@@ -47,11 +47,15 @@ const getReferencedTexFiles = () => {
     if (typeof item.image !== "string" || !item.image.startsWith("/assets/"))
       continue;
     const relativePath = item.image.slice("/assets/".length);
-    if (!relativePath.toLowerCase().endsWith(".png")) continue;
+    if (
+      !relativePath.toLowerCase().endsWith(".png") &&
+      !relativePath.toLowerCase().endsWith(".webp")
+    )
+      continue;
     const itemPath = relativePath.replace(/^items[\\/]/i, "");
     const sourcePath = path.join(
       INPUT_DIR,
-      itemPath.replace(/\.png$/i, ".tex"),
+      itemPath.replace(/\.(png|webp)$/i, ".tex"),
     );
     if (fs.existsSync(sourcePath)) paths.add(sourcePath);
   }
@@ -134,8 +138,14 @@ const convertTexFile = async (sourcePath, texconvPath) => {
         channels: bitmap.channels,
       },
     })
-      .png()
-      .toFile(path.join(outputFolder, `${baseName}.png`));
+      .webp({
+        quality: 100,
+        lossless: true,
+        alphaQuality: 100,
+        effort: 6,
+        chromaSubsampling: "4:4:4",
+      })
+      .toFile(path.join(outputFolder, `${baseName}.webp`));
     return;
   }
 
@@ -143,7 +153,7 @@ const convertTexFile = async (sourcePath, texconvPath) => {
 
   execFileSync(
     texconvPath,
-    ["-ft", "png", "-m", "1", "-y", "-o", outputFolder, tempDdsPath],
+    ["-ft", "webp", "-m", "1", "-y", "-o", outputFolder, tempDdsPath],
     {
       cwd: path.dirname(texconvPath),
       stdio: "ignore",
