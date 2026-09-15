@@ -8,6 +8,7 @@ type Item = {
   category: string
   rarity: string
   level: number
+  tier?: 'Mythical' | 'Awakened'
   image?: string
   attributes: Array<{ label: string; value: string | number }>
   stats: Record<string, string | number>
@@ -30,6 +31,22 @@ const textValue = (record: RawRecord, keys: string[], fallback: string) => {
 const numberValue = (record: RawRecord, keys: string[], fallback = 0) => {
   const value = Number(textValue(record, keys, String(fallback)))
   return Number.isFinite(value) ? value : fallback
+}
+
+const itemTypeFromPath = (filePath: string) => {
+  const normalizedPath = filePath.replaceAll('\\', '/').toLowerCase()
+  if (normalizedPath.includes('/gearweapons/')) return 'Weapon'
+  if (normalizedPath.includes('/gearaccessories/medals/')) return 'Medal'
+  if (normalizedPath.includes('/gearaccessories/necklaces/')) return 'Amulet'
+  if (normalizedPath.includes('/gearaccessories/rings/')) return 'Ring'
+  if (normalizedPath.includes('/gearaccessories/waist/')) return 'Belt'
+  if (normalizedPath.includes('/gearhands/')) return 'Gloves'
+  if (normalizedPath.includes('/geartorso/')) return 'Chest Armor'
+  if (normalizedPath.includes('/gearlegs/')) return 'Pants'
+  if (normalizedPath.includes('/gearhead/')) return 'Helm'
+  if (normalizedPath.includes('/gearfeet/')) return 'Boots'
+  if (normalizedPath.includes('/gearshoulders/')) return 'Shoulders'
+  return 'Item'
 }
 
 const damageTypes: Record<string, string> = {
@@ -77,7 +94,8 @@ const gameAttributes = (
     const maximum = numeric(`${fieldName('offensive', key)}Max`)
     const modifier = numeric(`${fieldName('offensive', key)}Modifier`)
     if (minimum || maximum) {
-      const damage = minimum && maximum ? `${formatNumber(minimum)} - ${formatNumber(maximum)}` : formatNumber(minimum || maximum)
+      const damage =
+        minimum && maximum ? `${formatNumber(minimum)}-${formatNumber(maximum)}` : formatNumber(minimum || maximum)
       add(`${label} Damage`, damage)
     }
     if (modifier) add(`${label} Damage`, `${modifier > 0 ? '+' : ''}${formatNumber(modifier)}%`)
@@ -117,7 +135,8 @@ const gameAttributes = (
   const blockRecovery = numeric('blockRecoveryTime')
   if (block) add('Shield Block', formatNumber(block))
   if (blockChance) add('Block Chance', `${formatNumber(blockChance)}%`)
-  if (blockAmountModifier) add('Block Amount Bonus', `${blockAmountModifier > 0 ? '+' : ''}${formatNumber(blockAmountModifier)}`)
+  if (blockAmountModifier)
+    add('Block Amount Bonus', `${blockAmountModifier > 0 ? '+' : ''}${formatNumber(blockAmountModifier)}`)
   if (blockAbsorption) add('Block Damage Absorption', `${formatNumber(blockAbsorption)}%`)
   if (blockRecovery) add('Block Recovery', `${formatNumber(blockRecovery)}s`)
 
@@ -132,8 +151,15 @@ const gameAttributes = (
     ['characterOffensiveAbility', 'Offensive Ability', 'number'],
     ['characterDefensiveAbility', 'Defensive Ability', 'number'],
     ['characterAttackSpeedModifier', 'Attack Speed', 'percent'],
+    ['characterAttackSpeedMaxModifier', 'Attack Speed', 'percent'],
     ['characterCastSpeedModifier', 'Cast Speed', 'percent'],
+    ['characterSpellCastSpeedMaxModifier', 'Cast Speed', 'percent'],
     ['characterMovementSpeedModifier', 'Movement Speed', 'percent'],
+    ['characterTotalSpeedModifier', 'Total Speed', 'percent'],
+    ['characterOffensiveAbilityModifier', 'Offensive Ability', 'percent'],
+    ['offensiveLifeLeechMin', 'Attack Damage Converted to Health', 'percent'],
+    ['offensiveTotalDamageModifier', 'Total Damage', 'percent'],
+    ['retaliationTotalDamageModifier', 'Retaliation Damage', 'percent'],
   ]
   for (const [key, label, format] of knownAttributes) {
     const value = numeric(key)
@@ -201,11 +227,18 @@ const normalize = (
     ['itemText', 'flavorText', 'itemDescription'],
     textValue(record, ['description'], ''),
   )
+  const tier: Item['tier'] = /(^|\/)awakened(\/|$)/.test(fallbackId)
+    ? 'Awakened'
+    : /(^|\/)upgraded(\/|$)/.test(fallbackId)
+      ? 'Mythical'
+      : undefined
+  const resolvedName = localization.get(rawName) ?? rawName
   return {
     id: textValue(record, ['id', 'record', 'path'], fallbackId),
-    name: localization.get(rawName) ?? rawName,
+    name: tier ? `${tier} ${resolvedName}` : resolvedName,
+    tier,
     description: localization.get(rawDescription) ?? rawDescription,
-    category: textValue(record, ['category', 'itemType', 'equipmentType', 'itemClassification'], 'Item'),
+    category: itemTypeFromPath(fallbackId),
     rarity: textValue(record, ['rarity', 'quality', 'itemClassification'], 'Common'),
     level: numberValue(record, ['level', 'itemLevel', 'requiredLevel', 'levelRequirement']),
     image: imagePath(record),

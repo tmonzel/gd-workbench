@@ -126,7 +126,7 @@ function App() {
       {!loading && status === 'ready' && items.length === 0 && (
         <div className="empty-state">
           <strong>No records found</strong>
-          <span>Try a different search or category.</span>
+          <span>Try a different search or item type.</span>
         </div>
       )}
       {status === 'ready' && items.length > 0 && (
