@@ -42,9 +42,16 @@ const damageTypes: Record<string, string> = {
   bleeding: 'Bleeding',
   aether: 'Aether',
   chaos: 'Chaos',
-  vitality: 'Vitality',
-  vitalityDecay: 'Vitality Decay',
+  life: 'Vitality',
 }
+
+const damageOverTimeTypes: Array<[string, string]> = [
+  ['Bleeding', 'Bleeding'],
+  ['Cold', 'Frostburn'],
+  ['Fire', 'Burn'],
+  ['Lightning', 'Electrocute'],
+  ['Poison', 'Poison'],
+]
 
 const formatNumber = (value: number) =>
   Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/0+$/, '').replace(/\.$/, '')
@@ -52,30 +59,76 @@ const formatNumber = (value: number) =>
 const gameAttributes = (
   stats: Record<string, string | number>,
   skillNames: Map<string, string>,
+  localization: Map<string, string>,
 ): Array<{ label: string; value: string | number }> => {
   const attributes: Array<{ label: string; value: string | number }> = []
   const numeric = (key: string) => Number(stats[key] ?? 0)
   const add = (label: string, value: string | number) => attributes.push({ label, value })
+  const fieldName = (prefix: string, key: string) => `${prefix}${key[0].toUpperCase()}${key.slice(1)}`
 
-  for (const [key, label] of Object.entries(damageTypes)) {
-    const minimum = numeric(`offensive${key[0].toUpperCase()}${key.slice(1)}Min`)
-    const maximum = numeric(`offensive${key[0].toUpperCase()}${key.slice(1)}Max`)
-    if (minimum || maximum) add(`${label} Damage`, `${formatNumber(minimum)} - ${formatNumber(maximum)}`)
+  const speedTag = String(stats.characterBaseAttackSpeedTag ?? '')
+  if (speedTag && !/notset$/i.test(speedTag)) {
+    const speedLabel = (localization.get(speedTag) ?? '').replace(/^speed:\s*/i, '').trim()
+    if (speedLabel) add('Weapon Speed', speedLabel)
   }
 
   for (const [key, label] of Object.entries(damageTypes)) {
-    const resistance = numeric(`defensive${key[0].toUpperCase()}${key.slice(1)}`)
-    const maximum = numeric(`defensive${key[0].toUpperCase()}${key.slice(1)}MaxResist`)
+    const minimum = numeric(`${fieldName('offensive', key)}Min`)
+    const maximum = numeric(`${fieldName('offensive', key)}Max`)
+    const modifier = numeric(`${fieldName('offensive', key)}Modifier`)
+    if (minimum || maximum) {
+      const damage = minimum && maximum ? `${formatNumber(minimum)} - ${formatNumber(maximum)}` : formatNumber(minimum || maximum)
+      add(`${label} Damage`, damage)
+    }
+    if (modifier) add(`${label} Damage`, `${modifier > 0 ? '+' : ''}${formatNumber(modifier)}%`)
+  }
+
+  for (const [key, label] of damageOverTimeTypes) {
+    const modifier = numeric(`offensiveSlow${key}Modifier`)
+    const duration = numeric(`offensiveSlow${key}DurationModifier`)
+    if (!modifier) continue
+    const value = `${modifier > 0 ? '+' : ''}${formatNumber(modifier)}%${duration ? ` with +${formatNumber(duration)}% Increased Duration` : ''}`
+    add(`${label} Damage`, value)
+  }
+
+  for (const [key, label] of Object.entries(damageTypes)) {
+    const resistance = numeric(fieldName('defensive', key))
+    const maximum = numeric(`${fieldName('defensive', key)}MaxResist`)
     if (resistance) add(`${label} Resistance`, `${formatNumber(resistance)}%`)
     if (maximum) add(`Maximum ${label} Resistance`, `+${formatNumber(maximum)}%`)
   }
+
+  const allResistance = numeric('defensiveAllResistance')
+  const elementalResistance = numeric('defensiveElementalResistance')
+  if (allResistance) add('All Resistances', `${formatNumber(allResistance)}%`)
+  if (elementalResistance) add('Elemental Resistance', `${formatNumber(elementalResistance)}%`)
+
+  const protection = numeric('defensiveProtection')
+  const bonusProtection = numeric('defensiveBonusProtection')
+  const absorption = numeric('defensiveAbsorption')
+  if (protection) add('Armor', formatNumber(protection))
+  if (bonusProtection) add('Armor Bonus', `${bonusProtection > 0 ? '+' : ''}${formatNumber(bonusProtection)}`)
+  if (absorption) add('Damage Absorption', `${formatNumber(absorption)}%`)
+
+  const block = numeric('defensiveBlock')
+  const blockChance = numeric('defensiveBlockChance')
+  const blockAmountModifier = numeric('defensiveBlockAmountModifier')
+  const blockAbsorption = numeric('blockAbsorption')
+  const blockRecovery = numeric('blockRecoveryTime')
+  if (block) add('Shield Block', formatNumber(block))
+  if (blockChance) add('Block Chance', `${formatNumber(blockChance)}%`)
+  if (blockAmountModifier) add('Block Amount Bonus', `${blockAmountModifier > 0 ? '+' : ''}${formatNumber(blockAmountModifier)}`)
+  if (blockAbsorption) add('Block Damage Absorption', `${formatNumber(blockAbsorption)}%`)
+  if (blockRecovery) add('Block Recovery', `${formatNumber(blockRecovery)}s`)
 
   const knownAttributes: Array<[string, string, string]> = [
     ['characterStrength', 'Strength', 'number'],
     ['characterDexterity', 'Physique', 'number'],
     ['characterIntelligence', 'Spirit', 'number'],
     ['characterLife', 'Health', 'number'],
+    ['characterLifeRegen', 'Health Regeneration', 'number'],
     ['characterMana', 'Energy', 'number'],
+    ['characterManaRegen', 'Energy Regeneration', 'number'],
     ['characterOffensiveAbility', 'Offensive Ability', 'number'],
     ['characterDefensiveAbility', 'Defensive Ability', 'number'],
     ['characterAttackSpeedModifier', 'Attack Speed', 'percent'],
@@ -156,7 +209,7 @@ const normalize = (
     rarity: textValue(record, ['rarity', 'quality', 'itemClassification'], 'Common'),
     level: numberValue(record, ['level', 'itemLevel', 'requiredLevel', 'levelRequirement']),
     image: imagePath(record),
-    attributes: gameAttributes(stats, skillNames),
+    attributes: gameAttributes(stats, skillNames, localization),
     stats,
   }
 }

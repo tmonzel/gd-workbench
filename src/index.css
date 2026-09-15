@@ -1,5 +1,5 @@
 :root {
-  font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
+  font-family: 'Libertinus Sans', 'Inter', sans-serif;
   color: #d9d1c2;
   background: #151719;
   font-synthesis: none;
@@ -7,6 +7,15 @@
   -webkit-font-smoothing: antialiased;
 }
 
-* { box-sizing: border-box; }
-body { margin: 0; min-width: 320px; background: #151719; }
-button, input { font: inherit; }
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  min-width: 320px;
+  background: #151719;
+}
+button,
+input {
+  font: inherit;
+}

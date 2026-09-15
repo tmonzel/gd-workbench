@@ -34,34 +34,56 @@ function ItemCard({ item }: ItemCardProps) {
         .filter(([label, value]) => !hiddenStatLabels.has(label) && !isPathValue(value))
         .slice(0, 8)
         .map(([label, value]) => ({ label, value }))
+  const primaryStats = visibleStats.filter(({ value }) => !String(value).startsWith('+'))
+  const bonusStats = visibleStats.filter(({ value }) => String(value).startsWith('+'))
+  const typeLine =
+    item.category.toLowerCase() === item.rarity.toLowerCase() ? item.category : `${item.rarity} ${item.category}`
+  const requiredLevel = Number(item.stats?.levelRequirement ?? item.level)
+  const itemLevel = Number(item.stats?.itemLevel ?? item.level)
 
   return (
     <article className={`item-card ${rarityClass}`}>
-      <div className="item-art">
-        <img
-          src={item.image}
-          alt=""
-          onError={(event) => {
-            event.currentTarget.style.display = 'none'
-          }}
-        />
-        <small>LVL {item.level}</small>
-      </div>
-      <div className="item-body">
-        <div className="item-title">
-          <h3>{item.name}</h3>
-          <span className="item-category">{item.category}</span>
+      <div className="item-header">
+        <div className="item-art">
+          <img
+            src={item.image}
+            alt=""
+            onError={(event) => {
+              event.currentTarget.style.display = 'none'
+            }}
+          />
         </div>
-        {/* <span className="rarity-text">{item.rarity}</span> */}
-        {item.description && <p>{item.description}</p>}
-        <dl>
-          {visibleStats.map(({ label, value }) => (
-            <div key={label}>
-              <dt>{label}</dt>
-              <dd>{value}</dd>
+        <div className="item-heading">
+          <h3>{item.name}</h3>
+          {item.description && <p className="item-lore">&ldquo;{item.description}&rdquo;</p>}
+          <span className="item-category">{typeLine}</span>
+          {primaryStats.length > 0 && (
+            <div className="item-stats-primary">
+              {primaryStats.map(({ label, value }) => (
+                <p key={label}>
+                  <strong>{value}</strong> {label}
+                </p>
+              ))}
             </div>
+          )}
+        </div>
+      </div>
+      {bonusStats.length > 0 && (
+        <div className="item-stats-bonus">
+          {bonusStats.map(({ label, value }) => (
+            <p key={label}>
+              <strong>{value}</strong> {label}
+            </p>
           ))}
-        </dl>
+        </div>
+      )}
+      <div className="item-requirements">
+        <p>
+          Required Level: <strong>{requiredLevel}</strong>
+        </p>
+        <p>
+          Item Level: <strong>{itemLevel}</strong>
+        </p>
       </div>
     </article>
   )
