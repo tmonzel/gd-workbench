@@ -20,6 +20,17 @@ const hiddenStatLabels = new Set([
   'baseTexture',
   'bitmap',
   'randomizerName',
+  'actorHeight',
+  'actorRadius',
+  'allowTransparency',
+  'cannotPickUp',
+  'cannotPickUpMultiple',
+  'castsShadows',
+  'dexterityRequirement',
+  'intelligenceRequirement',
+  'forcedRelicCompletion',
+  'artifactCreateQuantity',
+  'itemLevel',
 ])
 
 type ItemCardProps = {
@@ -29,7 +40,7 @@ type ItemCardProps = {
 function ItemCard({ item }: ItemCardProps) {
   const rarityClass = `rarity-${item.rarity.toLowerCase()}`
   const visibleStats = item.attributes?.length
-    ? item.attributes
+    ? item.attributes.filter(({ label, value }) => !hiddenStatLabels.has(label) && !isPathValue(value))
     : Object.entries(item.stats ?? {})
         .filter(([label, value]) => !hiddenStatLabels.has(label) && !isPathValue(value))
         .slice(0, 8)
