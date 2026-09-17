@@ -12,11 +12,17 @@ type Item = {
   image?: string
   attributes: Array<{ label: string; value: string | number }>
   stats: Record<string, string | number>
+  grantedSkill?: {
+    name: string
+    description: string
+    level: number
+    attributes: Array<{ label: string; value: string | number }>
+  }
 }
 
 type RawRecord = Record<string, unknown>
 
-const inputPath = resolve(process.argv[2] ?? 'data/source/items.json')
+const inputPath = resolve(process.argv[2])
 const outputPath = resolve(process.argv[3] ?? 'public/data/items.json')
 const localizationPath = process.argv[4] ? resolve(process.argv[4]) : undefined
 
@@ -67,11 +73,90 @@ const damageOverTimeTypes: Array<[string, string]> = [
   ['Cold', 'Frostburn'],
   ['Fire', 'Burn'],
   ['Lightning', 'Electrocute'],
-  ['Poison', 'Poison'],
+  ['Poison', 'Acid'],
 ]
 
 const formatNumber = (value: number) =>
   Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/0+$/, '').replace(/\.$/, '')
+
+// Skill records store one value per rank as "v1;v2;v3;..."; pick the rank we need.
+const skillValueAt = (record: RawRecord, key: string, level: number): number => {
+  const raw = record[key]
+  if (typeof raw === 'number') return raw
+  if (typeof raw !== 'string' || !raw) return 0
+  if (!raw.includes(';')) return Number(raw) || 0
+  const parts = raw.split(';')
+  const index = Math.min(Math.max(level, 1), parts.length) - 1
+  return Number(parts[index]) || 0
+}
+
+// itemSkillLevelEq is either a literal level or a small arithmetic expression using itemLevel.
+const resolveSkillLevel = (equation: unknown, itemLevel: number): number => {
+  if (typeof equation === 'number') return Math.max(1, Math.round(equation))
+  if (typeof equation !== 'string' || !equation.trim()) return 1
+  const expression = equation.replace(/itemlevel/gi, String(itemLevel))
+  if (!/^[\d+\-*/.() ]+$/.test(expression)) return 1
+  try {
+    const value = new Function(`"use strict"; return (${expression});`)() as number
+    return Number.isFinite(value) ? Math.max(1, Math.floor(value)) : 1
+  } catch {
+    return 1
+  }
+}
+
+const grantedSkillAttributes = (
+  skillRecord: RawRecord,
+  level: number,
+): Array<{ label: string; value: string | number }> => {
+  const attributes: Array<{ label: string; value: string | number }> = []
+  const add = (label: string, value: string | number) => attributes.push({ label, value })
+  const at = (key: string) => skillValueAt(skillRecord, key, level)
+  const fieldName = (prefix: string, key: string) => `${prefix}${key[0].toUpperCase()}${key.slice(1)}`
+
+  for (const [key, label] of Object.entries(damageTypes)) {
+    const minimum = at(`${fieldName('offensive', key)}Min`)
+    const maximum = at(`${fieldName('offensive', key)}Max`)
+    const modifier = at(`${fieldName('offensive', key)}Modifier`)
+    if (minimum || maximum) {
+      const damage =
+        minimum && maximum ? `${formatNumber(minimum)}-${formatNumber(maximum)}` : formatNumber(minimum || maximum)
+      add(`${label} Damage`, damage)
+    }
+    if (modifier) add(`${label} Damage`, `${modifier > 0 ? '+' : ''}${formatNumber(modifier)}%`)
+  }
+
+  const cooldown = at('skillCooldownTime')
+  if (cooldown) add('Cooldown', `${formatNumber(cooldown)}s`)
+
+  const projectileCount = at('projectileLaunchNumber')
+  if (projectileCount) add('Projectile(s)', formatNumber(projectileCount))
+
+  const piercingChance = at('projectilePiercingChance')
+  if (piercingChance) add('Chance to pass through Enemies', `${formatNumber(piercingChance)}%`)
+
+  return attributes
+}
+
+const resolveGrantedSkill = (
+  stats: Record<string, string | number>,
+  skillRecords: Map<string, RawRecord>,
+  localization: Map<string, string>,
+): Item['grantedSkill'] => {
+  const skillPath = String(stats.itemSkillName ?? '').replaceAll('\\', '/')
+  if (!skillPath) return undefined
+  const skillRecord = skillRecords.get(skillPath)
+  if (!skillRecord) return undefined
+  const nameTag = typeof skillRecord.skillDisplayName === 'string' ? skillRecord.skillDisplayName : ''
+  const name = nameTag ? (localization.get(nameTag) ?? nameTag) : ''
+  if (!name) return undefined
+  const descriptionTag = typeof skillRecord.skillBaseDescription === 'string' ? skillRecord.skillBaseDescription : ''
+  const description = descriptionTag ? (localization.get(descriptionTag) ?? '') : ''
+  const itemLevel = Number(stats.itemLevel ?? 1)
+  const maxLevel = Number(skillRecord.skillMaxLevel ?? 0)
+  const level = resolveSkillLevel(stats.itemSkillLevelEq, itemLevel)
+  const clampedLevel = maxLevel > 0 ? Math.min(level, maxLevel) : level
+  return { name, description, level: clampedLevel, attributes: grantedSkillAttributes(skillRecord, clampedLevel) }
+}
 
 const gameAttributes = (
   stats: Record<string, string | number>,
@@ -107,6 +192,14 @@ const gameAttributes = (
     if (!modifier) continue
     const value = `${modifier > 0 ? '+' : ''}${formatNumber(modifier)}%${duration ? ` with +${formatNumber(duration)}% Increased Duration` : ''}`
     add(`${label} Damage`, value)
+  }
+
+  for (const suffix of ['', '2']) {
+    const percentage = numeric(`conversionPercentage${suffix}`)
+    const inType = String(stats[`conversionInType${suffix}`] ?? '')
+    const outType = String(stats[`conversionOutType${suffix}`] ?? '')
+    if (percentage && inType && outType)
+      add('Damage Conversion', `${formatNumber(percentage)}% ${inType} Damage converted to ${outType} Damage`)
   }
 
   for (const [key, label] of Object.entries(damageTypes)) {
@@ -207,6 +300,7 @@ const normalize = (
   fallbackId: string,
   localization: Map<string, string>,
   skillNames: Map<string, string>,
+  skillRecords: Map<string, RawRecord>,
 ): Item => {
   const stats = (record.stats && typeof record.stats === 'object' ? record.stats : {}) as Record<
     string,
@@ -233,6 +327,10 @@ const normalize = (
       ? 'Mythical'
       : undefined
   const resolvedName = localization.get(rawName) ?? rawName
+  // Drop zero/blank fields from the output; gameAttributes already read the full stats above.
+  const trimmedStats = Object.fromEntries(
+    Object.entries(stats).filter(([, value]) => (typeof value === 'number' ? value !== 0 : value.trim() !== '')),
+  )
   return {
     id: textValue(record, ['id', 'record', 'path'], fallbackId),
     name: tier ? `${tier} ${resolvedName}` : resolvedName,
@@ -243,7 +341,8 @@ const normalize = (
     level: numberValue(record, ['level', 'itemLevel', 'requiredLevel', 'levelRequirement']),
     image: imagePath(record),
     attributes: gameAttributes(stats, skillNames, localization),
-    stats,
+    stats: trimmedStats,
+    grantedSkill: resolveGrantedSkill(stats, skillRecords, localization),
   }
 }
 
@@ -315,29 +414,40 @@ const readRecords = async (path: string): Promise<RawRecord[]> => {
   return [parsed]
 }
 
-const readSkillNames = async (path: string, localization: Map<string, string>): Promise<Map<string, string>> => {
+const readSkillData = async (
+  path: string,
+  localization: Map<string, string>,
+): Promise<{ names: Map<string, string>; records: Map<string, RawRecord> }> => {
   const names = new Map<string, string>()
+  const records = new Map<string, RawRecord>()
   for (const record of await readRecords(path).catch(() => [])) {
     const id = typeof record.id === 'string' ? record.id.replaceAll('\\', '/') : ''
+    if (!id) continue
+    const relativeIndex = id.indexOf('records/skills/')
+    const relativeId = relativeIndex >= 0 ? id.slice(relativeIndex) : id
+    records.set(id, record)
+    records.set(relativeId, record)
     const tag = typeof record.skillDisplayName === 'string' ? record.skillDisplayName : ''
-    if (!id || !tag) continue
+    if (!tag) continue
     const name = localization.get(tag) ?? tag
     names.set(id, name)
-    const relativeId = id.indexOf('records/skills/')
-    if (relativeId >= 0) names.set(id.slice(relativeId), name)
+    names.set(relativeId, name)
   }
-  return names
+  return { names, records }
 }
 
 const records = await readRecords(inputPath)
 const localization = await readLocalization(localizationPath)
-const skillNames = await readSkillNames(resolve('data/game/records/skills'), localization)
+const { names: skillNames, records: skillRecords } = await readSkillData(
+  resolve('data/game/records/skills'),
+  localization,
+)
 const items = records.map((record, index) => {
   const recordId =
     typeof record.id === 'string'
       ? relative(process.cwd(), record.id).replaceAll('\\', '/')
       : `${inputPath}#${index + 1}`
-  return normalize({ ...record, id: recordId }, recordId, localization, skillNames)
+  return normalize({ ...record, id: recordId }, recordId, localization, skillNames, skillRecords)
 })
 await mkdir(join(outputPath, '..'), { recursive: true })
 const outputDirectory = join(outputPath, '..')

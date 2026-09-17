@@ -8,10 +8,20 @@ type Item = {
   image?: string
   attributes?: Array<{ label: string; value: string | number }>
   stats?: Record<string, string | number>
+  grantedSkill?: {
+    name: string
+    description: string
+    level: number
+    attributes: Array<{ label: string; value: string | number }>
+  }
 }
 
+const isRollRangeValue = (value: string) => /^[+-]?\d+(\.\d+)?\/\d+(\.\d+)?%?$/.test(value)
+
 const isPathValue = (value: string | number) =>
-  typeof value === 'string' && (/[\\/]/.test(value) || /\.(dbr|tex|msh|arc|tpl|wav|mp3)$/i.test(value))
+  typeof value === 'string' &&
+  !isRollRangeValue(value) &&
+  (/[\\/]/.test(value) || /\.(dbr|tex|msh|arc|tpl|wav|mp3)$/i.test(value))
 
 const hiddenStatLabels = new Set([
   'templateName',
@@ -96,6 +106,23 @@ function ItemCard({ item }: ItemCardProps) {
           Item Level: <strong>{itemLevel}</strong>
         </p>
       </div>
+      {item.grantedSkill && (
+        <div className="item-granted-skill">
+          <p className="item-granted-skill-name">
+            <strong>{item.grantedSkill.name}</strong> (Level {item.grantedSkill.level})
+          </p>
+          {item.grantedSkill.description && <p className="item-lore">{item.grantedSkill.description}</p>}
+          {item.grantedSkill.attributes.length > 0 && (
+            <div className="item-stats-bonus">
+              {item.grantedSkill.attributes.map(({ label, value }) => (
+                <p key={label}>
+                  <strong>{value}</strong> {label}
+                </p>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </article>
   )
 }

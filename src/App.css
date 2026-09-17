@@ -298,6 +298,23 @@ h2 {
   color: #d7d0c2;
   font-weight: 600;
 }
+.item-granted-skill {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.item-granted-skill-name {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #9a9a9a;
+}
+.item-granted-skill-name strong {
+  color: #eae4d8;
+  font-weight: 600;
+}
+.item-granted-skill .item-lore {
+  margin-top: 2px;
+}
 .empty-state {
   display: grid;
   gap: 8px;
