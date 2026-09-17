@@ -7,6 +7,7 @@
     "dev": "vite",
     "extract:resources": "node extract_gd_resources.cjs",
     "extract:templates": "node extract_gd_templates.cjs",
+    "debug:item": "tsx --tsconfig tsconfig.scripts.json scripts/extract-item.ts",
     "import:items": "tsx --tsconfig tsconfig.scripts.json scripts/import-items.ts ./data/game/records/items ./public/data/items.json ./data/lang",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
