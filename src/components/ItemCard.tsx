@@ -47,9 +47,10 @@ const hiddenStatLabels = new Set([
 
 type ItemCardProps = {
   item: Item
+  onEquip?: (item: Item) => void
 }
 
-function ItemCard({ item }: ItemCardProps) {
+function ItemCard({ item, onEquip }: ItemCardProps) {
   const rarityClass = `rarity-${item.rarity.toLowerCase()}`
   const visibleStats = item.attributes?.length
     ? item.attributes.filter(({ label, value }) => !hiddenStatLabels.has(label) && !isPathValue(value))
@@ -135,6 +136,15 @@ function ItemCard({ item }: ItemCardProps) {
             </div>
           )}
         </div>
+      )}
+      {onEquip && item.category !== 'Item' && (
+        <button
+          className="mt-3 rounded-md border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-xs text-neutral-300 transition-colors hover:border-orange-400 hover:text-orange-200"
+          type="button"
+          onClick={() => onEquip(item)}
+        >
+          Equip in character
+        </button>
       )}
     </Card>
   )
