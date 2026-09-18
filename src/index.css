@@ -1,7 +1,7 @@
 :root {
-  font-family: 'Libertinus Sans', 'Inter', sans-serif;
-  color: #d9d1c2;
-  background: #151719;
+  font-family: 'Geist Sans', ui-sans-serif, system-ui, sans-serif;
+  color: #e5e5e5;
+  background: #121212;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -13,7 +13,7 @@
 body {
   margin: 0;
   min-width: 320px;
-  background: #151719;
+  background: #121212;
 }
 button,
 input {

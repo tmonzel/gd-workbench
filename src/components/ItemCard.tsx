@@ -1,3 +1,5 @@
+import { Card } from './Card'
+
 type Item = {
   id: string
   name: string
@@ -63,9 +65,14 @@ function ItemCard({ item }: ItemCardProps) {
   const itemLevel = Number(item.stats?.itemLevel ?? item.level)
 
   return (
-    <article className={`item-card ${rarityClass}`}>
-      <div className="item-header">
-        <div className="item-art">
+    <Card
+      as="article"
+      size="md"
+      variant="elevated"
+      className={`group flex min-w-0 w-full flex-col transition-colors hover:border-neutral-600 hover:bg-neutral-900 ${rarityClass}`}
+    >
+      <div className="flex items-start gap-3">
+        <div className="flex shrink-0 items-center justify-center overflow-hidden rounded-md border border-neutral-800 bg-neutral-950 p-2">
           <img
             src={item.image}
             alt=""
@@ -74,14 +81,18 @@ function ItemCard({ item }: ItemCardProps) {
             }}
           />
         </div>
-        <div className="item-heading">
-          <h3>{item.name}</h3>
-          {item.description && <p className="item-lore">&ldquo;{item.description}&rdquo;</p>}
-          <span className="item-category">{typeLine}</span>
+        <div className="min-w-0 pt-0.5">
+          <h3 className="line-clamp-2 text-[0.92rem] font-medium leading-tight text-neutral-50">{item.name}</h3>
+          {item.description && (
+            <p className="mt-1 line-clamp-2 text-[0.7rem] italic leading-snug text-neutral-500">
+              &ldquo;{item.description}&rdquo;
+            </p>
+          )}
+          <span className="mt-1 block truncate text-xs text-orange-300">{typeLine}</span>
           {primaryStats.length > 0 && (
-            <div className="item-stats-primary">
+            <div className="mt-2">
               {primaryStats.map(({ label, value }) => (
-                <p key={label}>
+                <p className="truncate text-[0.78rem] text-neutral-400" key={label}>
                   <strong>{value}</strong> {label}
                 </p>
               ))}
@@ -90,32 +101,34 @@ function ItemCard({ item }: ItemCardProps) {
         </div>
       </div>
       {bonusStats.length > 0 && (
-        <div className="item-stats-bonus">
+        <div className="mt-3">
           {bonusStats.map(({ label, value }) => (
-            <p key={label}>
-              <strong>{value}</strong> {label}
+            <p className="truncate text-[0.78rem] text-neutral-400" key={label}>
+              <span className="text-white">{value}</span> {label}
             </p>
           ))}
         </div>
       )}
-      <div className="item-requirements">
-        <p>
+      <div className="mt-auto space-y-0.5 border-t border-neutral-800 pt-3 text-[0.72rem] leading-snug text-neutral-500">
+        <p className="m-0">
           Required Level: <strong>{requiredLevel}</strong>
         </p>
-        <p>
+        <p className="m-0">
           Item Level: <strong>{itemLevel}</strong>
         </p>
       </div>
       {item.grantedSkill && (
-        <div className="item-granted-skill">
-          <p className="item-granted-skill-name">
+        <div className="mt-3 border-t border-neutral-800 pt-3">
+          <p className="m-0 text-xs text-neutral-400">
             <strong>{item.grantedSkill.name}</strong> (Level {item.grantedSkill.level})
           </p>
-          {item.grantedSkill.description && <p className="item-lore">{item.grantedSkill.description}</p>}
+          {item.grantedSkill.description && (
+            <p className="mt-1 text-[0.7rem] italic leading-snug text-neutral-500">{item.grantedSkill.description}</p>
+          )}
           {item.grantedSkill.attributes.length > 0 && (
-            <div className="item-stats-bonus">
+            <div className="mt-2">
               {item.grantedSkill.attributes.map(({ label, value }) => (
-                <p key={label}>
+                <p className="truncate text-[0.78rem] leading-snug text-orange-200" key={label}>
                   <strong>{value}</strong> {label}
                 </p>
               ))}
@@ -123,7 +136,7 @@ function ItemCard({ item }: ItemCardProps) {
           )}
         </div>
       )}
-    </article>
+    </Card>
   )
 }
 
