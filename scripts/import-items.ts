@@ -1,5 +1,6 @@
 import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { basename, extname, join, relative, resolve } from 'node:path'
+import { DAMAGE_OVER_TIME_TYPES, DAMAGE_TYPES, fieldName } from './damage-utils.js'
 
 type Item = {
   id: string
@@ -10,6 +11,7 @@ type Item = {
   level: number
   tier?: 'Mythical' | 'Awakened'
   image?: string
+  twoHanded?: boolean
   attributes: Array<{ label: string; value: string | number }>
   stats: Record<string, string | number>
   grantedSkill?: {
@@ -41,6 +43,8 @@ const numberValue = (record: RawRecord, keys: string[], fallback = 0) => {
 
 const itemTypeFromPath = (filePath: string) => {
   const normalizedPath = filePath.replaceAll('\\', '/').toLowerCase()
+  if (normalizedPath.includes('/gearweapons/shields/') || normalizedPath.includes('/gearweapons/focus/'))
+    return 'Off-Hand'
   if (normalizedPath.includes('/gearweapons/')) return 'Weapon'
   if (normalizedPath.includes('/gearaccessories/medals/')) return 'Medal'
   if (normalizedPath.includes('/gearaccessories/necklaces/')) return 'Amulet'
@@ -55,29 +59,94 @@ const itemTypeFromPath = (filePath: string) => {
   return 'Item'
 }
 
-const damageTypes: Record<string, string> = {
-  physical: 'Physical',
-  fire: 'Fire',
-  cold: 'Cold',
-  lightning: 'Lightning',
-  poison: 'Poison',
-  pierce: 'Piercing',
-  bleeding: 'Bleeding',
-  aether: 'Aether',
-  chaos: 'Chaos',
-  life: 'Vitality',
-}
-
-const damageOverTimeTypes: Array<[string, string]> = [
-  ['Bleeding', 'Bleeding'],
-  ['Cold', 'Frostburn'],
-  ['Fire', 'Burn'],
-  ['Lightning', 'Electrocute'],
-  ['Poison', 'Acid'],
-]
-
 const formatNumber = (value: number) =>
   Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/0+$/, '').replace(/\.$/, '')
+
+const humanizeSkillIdentifier = (path: string) => {
+  const normalizedPath = path
+    .replaceAll('\\', '/')
+    .replace(/^records\//, '')
+    .replace(/\.dbr$/i, '')
+    .toLowerCase()
+  const rawIdentifier =
+    path
+      .split(/[\\/]/)
+      .pop()
+      ?.replace(/\.dbr$/i, '')
+      .toLowerCase() ?? ''
+  const exactNames: Record<string, string> = {
+    soulscythe3: 'Soul Harvest',
+    natureblessing1: "Mogdrogen's Pact",
+    arcaneseal1: 'Inquisitor Seal',
+    pox1: 'Bloody Pox',
+    thermitemines1: 'Thermite Mine',
+    thermitemines2_petmod: 'Thermite Mine',
+    thermitemines2_petmodifier: 'Thermite Mine',
+    summon_raven1: 'Summon Familiar',
+    summon_skeleton1: 'Raise Skeletons',
+    bloodofdreeg1: 'Blood of Dreeg',
+    squall1: 'Wind Devil',
+    amatokpact1: "Amatok's Pact",
+    soulsiphon1: 'Siphon Souls',
+    spectralarmor1: 'Spectral Binding',
+    spectralarmor2: 'Spectral Wrath',
+    auracensure1: 'Aura of Censure',
+    eviscerate2: 'Lethal Assault',
+    presenceofvirtue1: 'Presence of Virtue',
+    auraconviction1: 'Aura of Conviction',
+    curse1: 'Curse of Frailty',
+    lightningnet1b: "Allagast's Arcane Net",
+    chillingsurge2: 'Absolute Zero',
+    passive01: 'Inner Focus',
+    totem2_petmodifier: 'Storm Totem',
+    arcaneseal2_petmodifier: 'Inquisitor Seal',
+    summon_celestialguardian1: 'Summon Guardian of Empyrion',
+    summon_celestialguardian2_petmodifier: 'Summon Guardian of Empyrion',
+    summon_blightbeast1: 'Summon Blight Fiend',
+    summon_blightbeast2_petmodifier: 'Summon Blight Fiend',
+    squall2: 'Wind Devil',
+    chillingsurge: "Olexra's Flash Freeze",
+    'skills/playerclass07/passive03': 'Relic Training',
+    'skills/playerclass07/lightningnet1': 'Storm Box of Elgoloth',
+    'skills/playerclass05/passive01': 'Inner Focus',
+    'skills/playerclass06/passive01': 'Brute Force',
+    'skills/playerclass07/passive01': 'Ranged Expertise',
+    'skills/playerclass10/passive01': 'Implements of War',
+  }
+  if (exactNames[normalizedPath]) return exactNames[normalizedPath]
+  if (exactNames[rawIdentifier]) return exactNames[rawIdentifier]
+  const identifier =
+    path
+      .split(/[\\/]/)
+      .pop()
+      ?.replace(/\.dbr$/i, '')
+      .replace(/_(?:petmodifier|petmod|buff|modifier)$/i, '')
+      .replace(/\d+[a-z]?$/i, '')
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .replace(/[_-]+/g, ' ')
+      .trim() ?? 'skill'
+  const knownNames: Record<string, string> = {
+    bonechillingcry: 'Bone Chilling Cry',
+    spectralarmor: 'Spectral Armor',
+    totem: 'Totem',
+    lightningnet: 'Lightning Net',
+    eviscerate: 'Eviscerate',
+    devouringswarm: 'Devouring Swarm',
+    thermitemines: 'Thermite Mines',
+    veilofshadows: 'Veil of Shadows',
+    icerune: 'Ice Rune',
+    mortartrap: 'Mortar Trap',
+    elementalinfusion: 'Elemental Infusion',
+    illomen: 'Ill Omen',
+    soulscythe: 'Soul Scythe',
+    bloodborne: 'Bloodborne',
+    blastshield: 'Blast Shield',
+  }
+  return (
+    knownNames[identifier.replace(/\s+/g, '').toLowerCase()] ??
+    identifier.replace(/\b\w/g, (character) => character.toUpperCase())
+  )
+}
 
 // Skill records store one value per rank as "v1;v2;v3;..."; pick the rank we need.
 const skillValueAt = (record: RawRecord, key: string, level: number): number => {
@@ -111,9 +180,12 @@ const grantedSkillAttributes = (
   const attributes: Array<{ label: string; value: string | number }> = []
   const add = (label: string, value: string | number) => attributes.push({ label, value })
   const at = (key: string) => skillValueAt(skillRecord, key, level)
-  const fieldName = (prefix: string, key: string) => `${prefix}${key[0].toUpperCase()}${key.slice(1)}`
-
-  for (const [key, label] of Object.entries(damageTypes)) {
+  const atMax = (key: string) => skillValueAt(skillRecord, key.replace(/Min$/, 'Max'), level)
+  const range = (minimum: number, maximum: number) =>
+    minimum && maximum && minimum !== maximum
+      ? `${formatNumber(minimum)}-${formatNumber(maximum)}`
+      : formatNumber(minimum || maximum)
+  for (const [key, label] of Object.entries(DAMAGE_TYPES)) {
     const minimum = at(`${fieldName('offensive', key)}Min`)
     const maximum = at(`${fieldName('offensive', key)}Max`)
     const modifier = at(`${fieldName('offensive', key)}Modifier`)
@@ -123,10 +195,74 @@ const grantedSkillAttributes = (
       add(`${label} Damage`, damage)
     }
     if (modifier) add(`${label} Damage`, `${modifier > 0 ? '+' : ''}${formatNumber(modifier)}%`)
+    const retaliationMinimum = at(`${fieldName('retaliation', key)}Min`)
+    const retaliationMaximum = at(`${fieldName('retaliation', key)}Max`)
+    const retaliationModifier = at(`${fieldName('retaliation', key)}Modifier`)
+    if (retaliationMinimum || retaliationMaximum)
+      add(
+        `${key === 'poison' ? 'Acid' : label} Retaliation Damage`,
+        retaliationMinimum && retaliationMaximum
+          ? `${formatNumber(retaliationMinimum)}-${formatNumber(retaliationMaximum)}`
+          : formatNumber(retaliationMinimum || retaliationMaximum),
+      )
+    if (retaliationModifier)
+      add(
+        `${key === 'poison' ? 'Acid' : label} Retaliation Damage`,
+        `${retaliationModifier > 0 ? '+' : ''}${formatNumber(retaliationModifier)}%`,
+      )
   }
 
-  const cooldown = at('skillCooldownTime')
-  if (cooldown) add('Cooldown', `${formatNumber(cooldown)}s`)
+  for (const [key, label] of DAMAGE_OVER_TIME_TYPES) {
+    const minimum = at(`offensiveSlow${key}Min`)
+    const maximum = atMax(`offensiveSlow${key}Min`)
+    const duration = at(`offensiveSlow${key}DurationMin`)
+    if (minimum || maximum)
+      add(`${label} Damage${duration ? ` over ${formatNumber(duration)} seconds` : ''}`, range(minimum, maximum))
+  }
+
+  const elementalMinimum = at('offensiveElementalMin')
+  const elementalMaximum = at('offensiveElementalMax')
+  if (elementalMinimum || elementalMaximum) add('Elemental Damage', range(elementalMinimum, elementalMaximum))
+
+  const targetRadius = at('projectileExplosionRadius') || at('skillTargetRadius')
+  if (targetRadius) add('Meter Target Area', formatNumber(targetRadius))
+
+  const stunChance = at('offensiveStunChance')
+  const stunDuration = at('offensiveStunMin')
+  if (stunChance) add('Stun Chance', `${formatNumber(stunChance)}%`)
+  if (stunDuration) add('Stun Duration', `${formatNumber(stunDuration)} seconds`)
+
+  const activeDuration = at('skillActiveDuration')
+  if (activeDuration) add('Skill Duration', `${formatNumber(activeDuration)} seconds`)
+
+  const lifeBonus = at('skillLifeBonus')
+  const lifePercent = at('skillLifePercent')
+  const manaPercent = at('skillManaPercent')
+  const lifeRegen = at('characterLifeRegen')
+  const manaRegenModifier = at('characterManaRegenModifier')
+  const lifeMonitor = at('lifeMonitorPercent')
+  if (lifeBonus) add('Health Restored', formatNumber(lifeBonus))
+  if (lifePercent) add('Health Restored', `${formatNumber(lifePercent)}%`)
+  if (manaPercent) add('Energy Restored', `${formatNumber(manaPercent)}%`)
+  if (lifeRegen) add('Health Regeneration', formatNumber(lifeRegen))
+  if (manaRegenModifier) add('Energy Regeneration', `${formatNumber(manaRegenModifier)}%`)
+  if (lifeMonitor) add('Health Threshold', `${formatNumber(lifeMonitor)}%`)
+
+  const resistanceReduction = at('offensiveTotalResistanceReductionPercentMin')
+  const resistanceDuration = at('offensiveTotalResistanceReductionPercentDurationMin')
+  if (resistanceReduction)
+    add(
+      `Reduced Target Resistances${resistanceDuration ? ` for ${formatNumber(resistanceDuration)} seconds` : ''}`,
+      `${formatNumber(resistanceReduction)}%`,
+    )
+
+  for (const [key, label] of Object.entries(DAMAGE_TYPES)) {
+    const resistance = at(`defensive${key[0].toUpperCase()}${key.slice(1)}`)
+    if (resistance) add(`${label} Resistance`, `${resistance > 0 ? '+' : ''}${formatNumber(resistance)}%`)
+  }
+  const elementalResistance = at('defensiveElementalResistance')
+  if (elementalResistance)
+    add('Elemental Resistance', `${elementalResistance > 0 ? '+' : ''}${formatNumber(elementalResistance)}%`)
 
   const projectileCount = at('projectileLaunchNumber')
   if (projectileCount) add('Projectile(s)', formatNumber(projectileCount))
@@ -137,11 +273,11 @@ const grantedSkillAttributes = (
   return attributes
 }
 
-const resolveGrantedSkill = (
+const resolveGrantedSkill = async (
   stats: Record<string, string | number>,
   skillRecords: Map<string, RawRecord>,
   localization: Map<string, string>,
-): Item['grantedSkill'] => {
+): Promise<Item['grantedSkill']> => {
   const skillPath = String(stats.itemSkillName ?? '').replaceAll('\\', '/')
   if (!skillPath) return undefined
   const skillRecord = skillRecords.get(skillPath)
@@ -155,7 +291,77 @@ const resolveGrantedSkill = (
   const maxLevel = Number(skillRecord.skillMaxLevel ?? 0)
   const level = resolveSkillLevel(stats.itemSkillLevelEq, itemLevel)
   const clampedLevel = maxLevel > 0 ? Math.min(level, maxLevel) : level
-  return { name, description, level: clampedLevel, attributes: grantedSkillAttributes(skillRecord, clampedLevel) }
+  const attributes = grantedSkillAttributes(skillRecord, clampedLevel)
+  const add = (label: string, value: string | number) => attributes.push({ label, value })
+  const manaCost = skillValueAt(skillRecord, 'skillManaCost', clampedLevel)
+  const cooldown = skillValueAt(skillRecord, 'skillCooldownTime', clampedLevel)
+  const petLimit = skillValueAt(skillRecord, 'petLimit', clampedLevel)
+  if (manaCost) add('Energy Cost', formatNumber(manaCost))
+  if (cooldown) add('Second Skill Recharge', formatNumber(cooldown))
+  if (petLimit) add('Summon Limit', formatNumber(petLimit))
+  const controllerPath = String(stats.itemSkillAutoController ?? '').replaceAll('\\', '/')
+  if (controllerPath) {
+    const controllerFile = resolve('data/game', controllerPath)
+    const controller = parseDbr(await readFile(controllerFile, 'utf8'), controllerFile)
+    const chance = Number(controller.chanceToRun ?? 0)
+    if (chance) add('Chance on Attack', `${formatNumber(chance)}%`)
+  }
+  const targetRadius = skillValueAt(skillRecord, 'skillTargetRadius', clampedLevel)
+  if (targetRadius) add('Meter Target Area', formatNumber(targetRadius))
+  const poisonDamage = skillValueAt(skillRecord, 'offensiveSlowPoisonMin', clampedLevel)
+  const poisonDuration = skillValueAt(skillRecord, 'offensiveSlowPoisonDurationMin', clampedLevel)
+  if (poisonDamage) add(`Poison Damage over ${formatNumber(poisonDuration)} seconds`, formatNumber(poisonDamage))
+  const resistanceReduction = skillValueAt(skillRecord, 'offensiveTotalResistanceReductionPercentMin', clampedLevel)
+  const resistanceDuration = skillValueAt(
+    skillRecord,
+    'offensiveTotalResistanceReductionPercentDurationMin',
+    clampedLevel,
+  )
+  if (resistanceReduction)
+    add(
+      `Reduced Target Resistances for ${formatNumber(resistanceDuration)} seconds`,
+      `${formatNumber(resistanceReduction)}%`,
+    )
+
+  const spawnPath = String(skillRecord.spawnObjects ?? '')
+    .split(';')
+    .filter(Boolean)[0]
+  const petRecord = spawnPath ? skillRecords.get(spawnPath) : undefined
+  const equationPath = String(petRecord?.characterAttributeEquations ?? '').replaceAll('\\', '/')
+  const equationRecord = equationPath ? skillRecords.get(equationPath) : undefined
+  if (equationRecord) {
+    const evaluate = (key: string) => {
+      const expression = equationRecord[key]
+      if (typeof expression !== 'string') return 0
+      const normalized = expression
+        .replaceAll('charLevel', '100')
+        .replaceAll('elapsedTime', '1')
+        .replaceAll('lifeRegen', '0')
+        .replaceAll('manaRegen', '0')
+        .replaceAll('manaRegenMod', '0')
+        .replaceAll('^', '**')
+      if (!/^[\d+*/().\s*-]+$/.test(normalized)) return 0
+      try {
+        const value = new Function(`"use strict"; return (${normalized});`)() as number
+        return Number.isFinite(value) ? value : 0
+      } catch {
+        return 0
+      }
+    }
+    const health = evaluate('characterLife')
+    const energy = evaluate('characterMana')
+    if (health) add(`${name} Health`, formatNumber(health))
+    if (energy) add(`${name} Energy`, formatNumber(energy))
+  }
+  const petSkillPaths = petRecord?.skillName2 ? [String(petRecord.skillName2)] : []
+  for (const petSkillPath of petSkillPaths) {
+    const petSkill = skillRecords.get(petSkillPath)
+    if (!petSkill) continue
+    const petAttributes = grantedSkillAttributes(petSkill, 1)
+    for (const attribute of petAttributes)
+      if (/damage$/i.test(attribute.label)) add(`${name} ${attribute.label}`, attribute.value)
+  }
+  return { name, description, level: clampedLevel, attributes }
 }
 
 const gameAttributes = (
@@ -166,7 +372,6 @@ const gameAttributes = (
   const attributes: Array<{ label: string; value: string | number }> = []
   const numeric = (key: string) => Number(stats[key] ?? 0)
   const add = (label: string, value: string | number) => attributes.push({ label, value })
-  const fieldName = (prefix: string, key: string) => `${prefix}${key[0].toUpperCase()}${key.slice(1)}`
 
   const speedTag = String(stats.characterBaseAttackSpeedTag ?? '')
   if (speedTag && !/notset$/i.test(speedTag)) {
@@ -174,9 +379,10 @@ const gameAttributes = (
     if (speedLabel) add('Weapon Speed', speedLabel)
   }
 
-  for (const [key, label] of Object.entries(damageTypes)) {
-    const minimum = numeric(`${fieldName('offensive', key)}Min`)
-    const maximum = numeric(`${fieldName('offensive', key)}Max`)
+  for (const [key, label] of Object.entries(DAMAGE_TYPES)) {
+    // weapons store their base damage range under an "offensiveBase..." prefix instead of "offensive..."
+    const minimum = numeric(`${fieldName('offensive', key)}Min`) || numeric(`${fieldName('offensiveBase', key)}Min`)
+    const maximum = numeric(`${fieldName('offensive', key)}Max`) || numeric(`${fieldName('offensiveBase', key)}Max`)
     const modifier = numeric(`${fieldName('offensive', key)}Modifier`)
     if (minimum || maximum) {
       const damage =
@@ -184,9 +390,22 @@ const gameAttributes = (
       add(`${label} Damage`, damage)
     }
     if (modifier) add(`${label} Damage`, `${modifier > 0 ? '+' : ''}${formatNumber(modifier)}%`)
+    const retaliationMinimum = numeric(`${fieldName('retaliation', key)}Min`)
+    const retaliationMaximum = numeric(`${fieldName('retaliation', key)}Max`)
+    const retaliationModifier = numeric(`${fieldName('retaliation', key)}Modifier`)
+    const retaliationLabel = `${key === 'poison' ? 'Acid' : label} Retaliation Damage`
+    if (retaliationMinimum || retaliationMaximum)
+      add(
+        retaliationLabel,
+        retaliationMinimum && retaliationMaximum
+          ? `${formatNumber(retaliationMinimum)}-${formatNumber(retaliationMaximum)}`
+          : formatNumber(retaliationMinimum || retaliationMaximum),
+      )
+    if (retaliationModifier)
+      add(retaliationLabel, `${retaliationModifier > 0 ? '+' : ''}${formatNumber(retaliationModifier)}%`)
   }
 
-  for (const [key, label] of damageOverTimeTypes) {
+  for (const [key, label] of DAMAGE_OVER_TIME_TYPES) {
     const modifier = numeric(`offensiveSlow${key}Modifier`)
     const duration = numeric(`offensiveSlow${key}DurationModifier`)
     if (!modifier) continue
@@ -202,7 +421,7 @@ const gameAttributes = (
       add('Damage Conversion', `${formatNumber(percentage)}% ${inType} Damage converted to ${outType} Damage`)
   }
 
-  for (const [key, label] of Object.entries(damageTypes)) {
+  for (const [key, label] of Object.entries(DAMAGE_TYPES)) {
     const resistance = numeric(fieldName('defensive', key))
     const maximum = numeric(`${fieldName('defensive', key)}MaxResist`)
     if (resistance) add(`${label} Resistance`, `${formatNumber(resistance)}%`)
@@ -234,8 +453,8 @@ const gameAttributes = (
   if (blockRecovery) add('Block Recovery', `${formatNumber(blockRecovery)}s`)
 
   const knownAttributes: Array<[string, string, string]> = [
-    ['characterStrength', 'Strength', 'number'],
-    ['characterDexterity', 'Physique', 'number'],
+    ['characterStrength', 'Physique', 'number'],
+    ['characterDexterity', 'Cunning', 'number'],
     ['characterIntelligence', 'Spirit', 'number'],
     ['characterLife', 'Health', 'number'],
     ['characterLifeRegen', 'Health Regeneration', 'number'],
@@ -269,13 +488,7 @@ const gameAttributes = (
     const skillPath = String(stats[`augmentSkillName${index}`] ?? '')
     const skillLevel = numeric(`augmentSkillLevel${index}`)
     if (!skillPath || !skillLevel) continue
-    const skillName =
-      skillNames.get(skillPath.replaceAll('\\', '/')) ??
-      skillPath
-        .split(/[\\/]/)
-        .pop()
-        ?.replace(/\.dbr$/i, '') ??
-      'Skill'
+    const skillName = skillNames.get(skillPath.replaceAll('\\', '/')) ?? humanizeSkillIdentifier(skillPath)
     add('Skill Bonus', `+${formatNumber(skillLevel)} to ${skillName}`)
   }
 
@@ -295,13 +508,13 @@ const imagePath = (record: RawRecord): string | undefined => {
   return undefined
 }
 
-const normalize = (
+const normalize = async (
   record: RawRecord,
   fallbackId: string,
   localization: Map<string, string>,
   skillNames: Map<string, string>,
   skillRecords: Map<string, RawRecord>,
-): Item => {
+): Promise<Item> => {
   const stats = (record.stats && typeof record.stats === 'object' ? record.stats : {}) as Record<
     string,
     string | number
@@ -326,6 +539,7 @@ const normalize = (
     : /(^|\/)upgraded(\/|$)/.test(fallbackId)
       ? 'Mythical'
       : undefined
+  const twoHanded = /\/gearweapons\/(melee2h|guns2h)\//i.test(fallbackId) || undefined
   const resolvedName = localization.get(rawName) ?? rawName
   // Drop zero/blank fields from the output; gameAttributes already read the full stats above.
   const trimmedStats = Object.fromEntries(
@@ -335,6 +549,7 @@ const normalize = (
     id: textValue(record, ['id', 'record', 'path'], fallbackId),
     name: tier ? `${tier} ${resolvedName}` : resolvedName,
     tier,
+    twoHanded,
     description: localization.get(rawDescription) ?? rawDescription,
     category: itemTypeFromPath(fallbackId),
     rarity: textValue(record, ['rarity', 'quality', 'itemClassification'], 'Common'),
@@ -342,7 +557,7 @@ const normalize = (
     image: imagePath(record),
     attributes: gameAttributes(stats, skillNames, localization),
     stats: trimmedStats,
-    grantedSkill: resolveGrantedSkill(stats, skillRecords, localization),
+    grantedSkill: await resolveGrantedSkill(stats, skillRecords, localization),
   }
 }
 
@@ -442,13 +657,15 @@ const { names: skillNames, records: skillRecords } = await readSkillData(
   resolve('data/game/records/skills'),
   localization,
 )
-const items = records.map((record, index) => {
-  const recordId =
-    typeof record.id === 'string'
-      ? relative(process.cwd(), record.id).replaceAll('\\', '/')
-      : `${inputPath}#${index + 1}`
-  return normalize({ ...record, id: recordId }, recordId, localization, skillNames, skillRecords)
-})
+const items = await Promise.all(
+  records.map(async (record, index) => {
+    const recordId =
+      typeof record.id === 'string'
+        ? relative(process.cwd(), record.id).replaceAll('\\', '/')
+        : `${inputPath}#${index + 1}`
+    return normalize({ ...record, id: recordId }, recordId, localization, skillNames, skillRecords)
+  }),
+)
 await mkdir(join(outputPath, '..'), { recursive: true })
 const outputDirectory = join(outputPath, '..')
 await rm(join(outputDirectory, 'item-pages'), { recursive: true, force: true })

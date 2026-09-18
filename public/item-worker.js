@@ -1,59 +1,77 @@
-let items = [];
-const pageSize = 24;
-let pendingRequest = { page: 0, search: "", category: "All" };
+let items = []
+let setItemIds = new Set()
+const pageSize = 24
+let pendingRequest = { page: 0, search: '', category: 'All', maxLevel: undefined, onlySetItems: false }
+const categoryGroups = {
+  Jewelry: ['Medal', 'Amulet', 'Ring', 'Belt'],
+  Armor: ['Chest Armor', 'Gloves', 'Pants', 'Boots', 'Helm', 'Shoulders'],
+  Weapon: ['Weapon', 'Off-Hand'],
+}
 
-const matches = (item, search, category) => {
-  const haystack =
-    `${item.name} ${item.description} ${item.category}`.toLowerCase();
+const matchesCategory = (itemCategory, category) =>
+  category === 'All' || itemCategory === category || categoryGroups[category]?.includes(itemCategory)
+
+const matches = (item, search, category, maxLevel, onlySetItems) => {
+  const haystack = `${item.name} ${item.description} ${item.category}`.toLowerCase()
+  const requiredLevel = Number(item.stats?.levelRequirement ?? item.level) || 0
   return (
     (!search || haystack.includes(search)) &&
-    (category === "All" || item.category === category)
-  );
-};
+    matchesCategory(item.category, category) &&
+    (maxLevel == null || requiredLevel <= maxLevel) &&
+    (!onlySetItems || setItemIds.has(item.id))
+  )
+}
 
-const sendPage = (page, search = "", category = "All") => {
-  const filtered = items.filter((item) => matches(item, search, category));
+const sendPage = (page, search = '', category = 'All', maxLevel = undefined, onlySetItems = false) => {
+  const filtered = items.filter((item) => matches(item, search, category, maxLevel, onlySetItems))
   postMessage({
-    type: "page",
+    type: 'page',
     page,
     pageSize,
     total: filtered.length,
     items: filtered.slice(page * pageSize, (page + 1) * pageSize),
-  });
-};
+  })
+}
 
 onmessage = (event) => {
-  const { type, page = 0, search = "", category = "All" } = event.data;
-  if (type === "load") {
-    fetch("/data/items.json")
+  const { type, page = 0, search = '', category = 'All', maxLevel, onlySetItems = false } = event.data
+  if (type === 'setIds') {
+    setItemIds = new Set(event.data.ids)
+  }
+  if (type === 'load') {
+    fetch('/data/items.json')
       .then((response) => response.json())
       .then((data) => {
-        items = data;
+        items = data
         postMessage({
-          type: "ready",
+          type: 'ready',
           total: items.length,
-          categories: ["All", ...new Set(items.map((item) => item.category))],
-        });
+          categories: ['All', ...new Set(items.map((item) => item.category))],
+        })
         sendPage(
           pendingRequest.page,
           pendingRequest.search,
           pendingRequest.category,
-        );
+          pendingRequest.maxLevel,
+          pendingRequest.onlySetItems,
+        )
       })
       .catch((error) =>
         postMessage({
-          type: "error",
+          type: 'error',
           message: error instanceof Error ? error.message : String(error),
         }),
-      );
+      )
   }
-  if (type === "page") {
-    pendingRequest = { page, search: search.trim().toLowerCase(), category };
+  if (type === 'page') {
+    pendingRequest = { page, search: search.trim().toLowerCase(), category, maxLevel, onlySetItems }
     if (items.length)
       sendPage(
         pendingRequest.page,
         pendingRequest.search,
         pendingRequest.category,
-      );
+        pendingRequest.maxLevel,
+        pendingRequest.onlySetItems,
+      )
   }
-};
+}

@@ -1,4 +1,7 @@
+import { useState } from 'react'
 import { Card } from './Card'
+import { parseSkillBonus } from '../skillBonus'
+import { getSetForItem, type EquippedSetInfo, type ItemSet } from '../itemSets'
 
 type Item = {
   id: string
@@ -8,6 +11,7 @@ type Item = {
   rarity: string
   level: number
   image?: string
+  twoHanded?: boolean
   attributes?: Array<{ label: string; value: string | number }>
   stats?: Record<string, string | number>
   grantedSkill?: {
@@ -45,12 +49,37 @@ const hiddenStatLabels = new Set([
   'itemLevel',
 ])
 
+const rarityTextClasses: Record<string, string> = {
+  common: 'text-white',
+  magic: 'text-yellow-300',
+  magical: 'text-yellow-300',
+  rare: 'text-green-400',
+  epic: 'text-blue-400',
+  legendary: 'text-purple-400',
+}
+
 type ItemCardProps = {
   item: Item
   onEquip?: (item: Item) => void
+  onUnequip?: (item: Item) => void
+  isEquipped?: boolean
+  activeSkillNames?: Set<string>
+  itemSets?: ItemSet[]
+  equippedSetInfo?: EquippedSetInfo[]
+  compact?: boolean
 }
 
-function ItemCard({ item, onEquip }: ItemCardProps) {
+function ItemCard({
+  item,
+  onEquip,
+  onUnequip,
+  isEquipped = false,
+  activeSkillNames,
+  itemSets = [],
+  equippedSetInfo = [],
+  compact = false,
+}: ItemCardProps) {
+  const [hoverPoint, setHoverPoint] = useState<{ x: number; y: number } | null>(null)
   const rarityClass = `rarity-${item.rarity.toLowerCase()}`
   const visibleStats = item.attributes?.length
     ? item.attributes.filter(({ label, value }) => !hiddenStatLabels.has(label) && !isPathValue(value))
@@ -60,57 +89,175 @@ function ItemCard({ item, onEquip }: ItemCardProps) {
         .map(([label, value]) => ({ label, value }))
   const primaryStats = visibleStats.filter(({ value }) => !String(value).startsWith('+'))
   const bonusStats = visibleStats.filter(({ value }) => String(value).startsWith('+'))
-  const typeLine =
-    item.category.toLowerCase() === item.rarity.toLowerCase() ? item.category : `${item.rarity} ${item.category}`
+  const typeLine = item.category
+  const rarityTextClass = rarityTextClasses[item.rarity.toLowerCase()] ?? 'text-neutral-400'
   const requiredLevel = Number(item.stats?.levelRequirement ?? item.level)
   const itemLevel = Number(item.stats?.itemLevel ?? item.level)
+  const itemSet = getSetForItem(item.id, itemSets)
+  const equippedCount = itemSet ? (equippedSetInfo.find((info) => info.set.id === itemSet.id)?.equippedCount ?? 0) : 0
+
+  if (compact) {
+    return (
+      <div
+        className="group relative min-w-0"
+        onMouseMove={(event) => setHoverPoint({ x: event.clientX, y: event.clientY })}
+        onMouseLeave={() => setHoverPoint(null)}
+      >
+        <div className="flex min-h-18 items-start gap-2 rounded-md border border-neutral-800 bg-neutral-900/70 p-2 transition-colors group-hover:border-neutral-600 group-hover:bg-neutral-800/80">
+          <div className="flex shrink-0 items-center justify-center overflow-hidden rounded border border-neutral-800 bg-neutral-950 p-2">
+            <img src={item.image} alt="" />
+          </div>
+          <div className="min-w-0">
+            <span
+              className={`mb-1 inline-block rounded border border-current/30 px-1 py-0.5 text-[0.58rem] uppercase tracking-[0.08em] ${rarityTextClass}`}
+            >
+              {item.rarity}
+            </span>
+            <p className="truncate font-medium text-neutral-100">{item.name}</p>
+            {item.description && (
+              <p className="mt-0.5 line-clamp-2 text-[0.65rem] italic leading-snug text-neutral-500">
+                {item.description}
+              </p>
+            )}
+            <p className="mt-1 truncate text-sm text-orange-300">
+              {typeLine}
+              {item.twoHanded && ' · Two-Handed'}
+            </p>
+          </div>
+        </div>
+        {hoverPoint && (
+          <div
+            className="pointer-events-none fixed z-50 w-80 rounded-lg bg-neutral-950 shadow-2xl shadow-black/60"
+            style={{ left: hoverPoint.x + 16, top: hoverPoint.y + 16 }}
+          >
+            <ItemCard
+              item={item}
+              isEquipped
+              activeSkillNames={activeSkillNames}
+              itemSets={itemSets}
+              equippedSetInfo={equippedSetInfo}
+            />
+          </div>
+        )}
+      </div>
+    )
+  }
 
   return (
     <Card
       as="article"
       size="md"
       variant="elevated"
-      className={`group flex min-w-0 w-full flex-col transition-colors hover:border-neutral-600 hover:bg-neutral-900 ${rarityClass}`}
+      className={`group flex min-w-0 w-full flex-col transition-colors hover:border-neutral-500 hover:bg-neutral-800/60 ${isEquipped ? 'border-neutral-600! bg-neutral-700/20! shadow-[0_0_0_1px_rgb(163_163_163/0.35)] hover:bg-neutral-700/30!' : ''} ${rarityClass}`}
     >
-      <div className="flex items-start gap-3">
-        <div className="flex shrink-0 items-center justify-center overflow-hidden rounded-md border border-neutral-800 bg-neutral-950 p-2">
-          <img
-            src={item.image}
-            alt=""
-            onError={(event) => {
-              event.currentTarget.style.display = 'none'
-            }}
-          />
+      <div className="flex-1">
+        <div className="flex items-start gap-3">
+          <div className="flex shrink-0 items-center justify-center overflow-hidden rounded-md border border-neutral-800 bg-neutral-950 p-2">
+            <img
+              src={item.image}
+              alt=""
+              onError={(event) => {
+                event.currentTarget.style.display = 'none'
+              }}
+            />
+          </div>
+          <div className="min-w-0 pt-0.5">
+            <span
+              className={`mb-1 inline-block rounded border border-current/30 px-1.5 py-0.5 text-[0.6rem] uppercase tracking-[0.08em] ${rarityTextClass}`}
+            >
+              {item.rarity}
+            </span>
+            <h3 className="line-clamp-2 text-[0.92rem] font-medium leading-tight text-neutral-50">{item.name}</h3>
+            {item.description && (
+              <p className="mt-1 line-clamp-2 text-[0.7rem] italic leading-snug text-neutral-500">
+                &ldquo;{item.description}&rdquo;
+              </p>
+            )}
+            <span className="mt-1 block truncate text-xs text-orange-300">
+              {typeLine}
+              {item.twoHanded && ' · Two-Handed'}
+            </span>
+            {itemSet && (
+              <span className="mt-1 inline-block rounded border border-neutral-600 bg-neutral-800/60 px-1.5 py-0.5 text-[0.62rem] uppercase tracking-[0.08em] text-neutral-300">
+                {itemSet.name} Set · {equippedCount}/{itemSet.members.length}
+              </span>
+            )}
+            {primaryStats.length > 0 && (
+              <div className="mt-2">
+                {primaryStats.map(({ label, value }) => (
+                  <p className="truncate text-[0.78rem] text-neutral-400" key={label}>
+                    <strong>{value}</strong> {label}
+                  </p>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-        <div className="min-w-0 pt-0.5">
-          <h3 className="line-clamp-2 text-[0.92rem] font-medium leading-tight text-neutral-50">{item.name}</h3>
-          {item.description && (
-            <p className="mt-1 line-clamp-2 text-[0.7rem] italic leading-snug text-neutral-500">
-              &ldquo;{item.description}&rdquo;
-            </p>
-          )}
-          <span className="mt-1 block truncate text-xs text-orange-300">{typeLine}</span>
-          {primaryStats.length > 0 && (
-            <div className="mt-2">
-              {primaryStats.map(({ label, value }) => (
-                <p className="truncate text-[0.78rem] text-neutral-400" key={label}>
-                  <strong>{value}</strong> {label}
+        {bonusStats.length > 0 && (
+          <div className="mt-3">
+            {bonusStats.map(({ label, value }) => {
+              const skillBonus = label === 'Skill Bonus' ? parseSkillBonus(value) : null
+              const inactive = skillBonus && activeSkillNames && !activeSkillNames.has(skillBonus.name)
+              return (
+                <p
+                  className={`truncate text-[0.78rem] ${inactive ? 'text-neutral-600' : 'text-neutral-400'}`}
+                  key={label}
+                  title={inactive ? 'Not part of your currently selected masteries' : undefined}
+                >
+                  <span className={inactive ? 'text-neutral-500' : 'text-white'}>{value}</span> {label}
                 </p>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-      {bonusStats.length > 0 && (
-        <div className="mt-3">
-          {bonusStats.map(({ label, value }) => (
-            <p className="truncate text-[0.78rem] text-neutral-400" key={label}>
-              <span className="text-white">{value}</span> {label}
+              )
+            })}
+          </div>
+        )}
+        {item.grantedSkill && (
+          <div className="mt-3 border-t border-neutral-800 pt-3">
+            <p className="m-0 text-xs text-neutral-400">
+              <strong>{item.grantedSkill.name}</strong> (Level {item.grantedSkill.level})
             </p>
-          ))}
-        </div>
-      )}
-      <div className="mt-auto space-y-0.5 border-t border-neutral-800 pt-3 text-[0.72rem] leading-snug text-neutral-500">
+            {item.grantedSkill.description && (
+              <p className="mt-1 text-[0.7rem] italic leading-snug text-neutral-500">{item.grantedSkill.description}</p>
+            )}
+            {item.grantedSkill.attributes.length > 0 && (
+              <div className="mt-2">
+                {item.grantedSkill.attributes.map(({ label, value }) => (
+                  <p className="truncate text-[0.78rem] leading-snug text-orange-200" key={label}>
+                    <strong>{value}</strong> {label}
+                  </p>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        {itemSet && (
+          <div className="mt-3 border-t border-neutral-800 pt-3">
+            <p className="m-0 text-xs text-neutral-400">
+              <strong className="text-neutral-200">{itemSet.name}</strong> Set ({equippedCount}/{itemSet.members.length}{' '}
+              equipped)
+            </p>
+            <div className="mt-1.5 grid gap-1">
+              {itemSet.bonuses.map((tier) => {
+                const active = equippedCount >= tier.count
+                return (
+                  <p
+                    className={`m-0 text-[0.72rem] leading-snug ${active ? 'text-orange-200' : 'text-neutral-600'}`}
+                    key={tier.count}
+                  >
+                    <span className="uppercase tracking-[0.08em]">{tier.count} pieces:</span>{' '}
+                    {[
+                      ...tier.attributes.map((attribute) => `${attribute.value} ${attribute.label}`),
+                      tier.skill && `${tier.skill.name}`,
+                    ]
+                      .filter(Boolean)
+                      .join(', ')}
+                  </p>
+                )
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+      <div className="mt-4 space-y-0.5 border-t border-neutral-800 pt-3 text-[0.72rem] leading-snug text-neutral-500">
         <p className="m-0">
           Required Level: <strong>{requiredLevel}</strong>
         </p>
@@ -118,32 +265,13 @@ function ItemCard({ item, onEquip }: ItemCardProps) {
           Item Level: <strong>{itemLevel}</strong>
         </p>
       </div>
-      {item.grantedSkill && (
-        <div className="mt-3 border-t border-neutral-800 pt-3">
-          <p className="m-0 text-xs text-neutral-400">
-            <strong>{item.grantedSkill.name}</strong> (Level {item.grantedSkill.level})
-          </p>
-          {item.grantedSkill.description && (
-            <p className="mt-1 text-[0.7rem] italic leading-snug text-neutral-500">{item.grantedSkill.description}</p>
-          )}
-          {item.grantedSkill.attributes.length > 0 && (
-            <div className="mt-2">
-              {item.grantedSkill.attributes.map(({ label, value }) => (
-                <p className="truncate text-[0.78rem] leading-snug text-orange-200" key={label}>
-                  <strong>{value}</strong> {label}
-                </p>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
       {onEquip && item.category !== 'Item' && (
         <button
-          className="mt-3 rounded-md border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-xs text-neutral-300 transition-colors hover:border-orange-400 hover:text-orange-200"
+          className={`mt-3 rounded-md border px-3 py-1.5 text-xs transition-colors ${isEquipped ? 'border-[#fcd34d] bg-[#fcd34d]/10 text-[#fcd34d] hover:bg-[#fcd34d]/20' : 'border-neutral-700 bg-neutral-900 text-neutral-300 hover:border-neutral-500 hover:bg-neutral-800 hover:text-neutral-100'}`}
           type="button"
-          onClick={() => onEquip(item)}
+          onClick={() => (isEquipped ? onUnequip?.(item) : onEquip(item))}
         >
-          Equip in character
+          {isEquipped ? 'Unequip' : 'Equip'}
         </button>
       )}
     </Card>

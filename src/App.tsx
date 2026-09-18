@@ -1,59 +1,79 @@
-import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
-import { Card } from './components/Card'
-import ItemCard from './components/ItemCard'
+import AttributePanel, { clampAttributes } from './components/AttributePanel'
+import Header from './components/Header'
+import StatPanel from './components/StatPanel'
+import DamagePanel from './components/DamagePanel'
+import ResistancePanel from './components/ResistancePanel'
+import SkillPanel from './components/SkillPanel'
+import WorkspaceTabs from './components/WorkspaceTabs'
+import EquipmentView from './views/EquipmentView'
+import LibraryView from './views/LibraryView'
+import MasteriesView from './views/MasteriesView'
+import DevotionsView from './views/DevotionsView'
+import type { Character, Item, Mastery, MasterySkill } from './types'
+import { getEquippedSkillBonuses, parseSkillBonus } from './skillBonus'
+import { getEquippedSetInfo, type ItemSet } from './itemSets'
+import { formatSkillEffect, formatSkillValue } from './damage-utils'
 
-type Item = {
-  id: string
-  name: string
-  description: string
-  category: string
-  rarity: string
-  level: number
-  image?: string
-  attributes?: Array<{ label: string; value: string | number }>
-  stats?: Record<string, string | number>
-}
-type Character = {
-  level: number
-  physique: number
-  cunning: number
-  spirit: number
-  equipment: Partial<Record<string, Item>>
-}
+type DevotionData = Parameters<typeof DevotionsView>[0]['data']
+
 type WorkerMessage =
-  | { type: 'ready'; total: number; categories: string[] }
+  | { type: 'ready'; total: number }
   | { type: 'page'; page: number; pageSize: number; total: number; items: Item[] }
   | { type: 'error'; message: string }
 
 function App() {
   const [items, setItems] = useState<Item[]>([])
-  const [categories, setCategories] = useState(['All'])
+  const [masteries, setMasteries] = useState<Mastery[]>([])
+  const [skillsets, setSkillsets] = useState<Record<string, MasterySkill[]>>({})
+  const [devotions, setDevotions] = useState<DevotionData | null>(null)
+  const [selectedDevotions, setSelectedDevotions] = useState<string[]>([])
+  const [itemSets, setItemSets] = useState<ItemSet[]>([])
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('All')
+  const [hideAboveLevel, setHideAboveLevel] = useState(false)
+  const [onlySetItems, setOnlySetItems] = useState(false)
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(24)
   const [total, setTotal] = useState(0)
-  const [datasetTotal, setDatasetTotal] = useState(0)
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
-  const [view, setView] = useState<'library' | 'character'>('library')
+  const [view, setView] = useState<'library' | 'character' | 'masteries' | 'devotions'>('masteries')
   const [character, setCharacter] = useState<Character>({
     level: 1,
-    physique: 50,
-    cunning: 50,
-    spirit: 50,
+    physique: 0,
+    cunning: 0,
+    spirit: 0,
+    skillLevels: {},
     equipment: {},
   })
   const workerRef = useRef<Worker | null>(null)
 
   useEffect(() => {
+    fetch('/data/masteries.json')
+      .then((response) => response.json() as Promise<Mastery[]>)
+      .then(setMasteries)
+      .catch(() => setMasteries([]))
+    fetch('/data/mastery-skills.json')
+      .then((response) => response.json() as Promise<Record<string, MasterySkill[]>>)
+      .then(setSkillsets)
+      .catch(() => setSkillsets({}))
+    fetch('/data/devotions.json')
+      .then((response) => response.json() as Promise<DevotionData>)
+      .then(setDevotions)
+      .catch(() => setDevotions(null))
+    fetch('/data/item-sets.json')
+      .then((response) => response.json() as Promise<ItemSet[]>)
+      .then((data) => {
+        setItemSets(data)
+        workerRef.current?.postMessage({ type: 'setIds', ids: data.flatMap((set) => set.members) })
+      })
+      .catch(() => setItemSets([]))
     const worker = new Worker('/item-worker.js')
     workerRef.current = worker
     worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
       const message = event.data
       if (message.type === 'ready') {
-        setDatasetTotal(message.total)
-        setCategories(message.categories)
         setStatus('ready')
       }
       if (message.type === 'page') {
@@ -68,9 +88,22 @@ function App() {
     return () => worker.terminate()
   }, [])
 
-  const requestPage = (nextPage: number, nextSearch = search, nextCategory = category) => {
+  const requestPage = (
+    nextPage: number,
+    nextSearch = search,
+    nextCategory = category,
+    nextHideAboveLevel = hideAboveLevel,
+    nextOnlySetItems = onlySetItems,
+  ) => {
     setPage(nextPage)
-    workerRef.current?.postMessage({ type: 'page', page: nextPage, search: nextSearch, category: nextCategory })
+    workerRef.current?.postMessage({
+      type: 'page',
+      page: nextPage,
+      search: nextSearch,
+      category: nextCategory,
+      maxLevel: nextHideAboveLevel ? character.level : undefined,
+      onlySetItems: nextOnlySetItems,
+    })
   }
 
   const changeFilter = (value: string) => {
@@ -81,281 +114,287 @@ function App() {
     setSearch(value)
     requestPage(0, value, category)
   }
+  const toggleHideAboveLevel = () => {
+    const next = !hideAboveLevel
+    setHideAboveLevel(next)
+    requestPage(0, search, category, next, onlySetItems)
+  }
+  const toggleOnlySetItems = () => {
+    const next = !onlySetItems
+    setOnlySetItems(next)
+    requestPage(0, search, category, hideAboveLevel, next)
+  }
+  useEffect(() => {
+    if (hideAboveLevel) requestPage(0, search, category, hideAboveLevel, onlySetItems)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [character.level])
   const pageCount = Math.max(1, Math.ceil(total / pageSize))
   const loading = status === 'loading'
+  const itemSkillBonuses = useMemo(() => getEquippedSkillBonuses(character.equipment), [character.equipment])
+  const equippedSetInfo = useMemo(
+    () => getEquippedSetInfo(character.equipment, itemSets),
+    [character.equipment, itemSets],
+  )
+  const selectedMasterySkillNames = useMemo(() => {
+    const names = new Set<string>()
+    for (const id of [character.mastery1, character.mastery2])
+      for (const skill of skillsets[id ?? ''] ?? []) names.add(skill.name)
+    return names
+  }, [character.mastery1, character.mastery2, skillsets])
+  const activeSkills = useMemo(() => {
+    const entries = new Map<string, { level: number; sources: Set<string>; stats: Set<string>; icon?: string }>()
+    const masteryLevels = new Map<string, number>()
+    const masteryIcons = new Map<string, string>()
+    const excludedSkillNames = new Set<string>()
+    for (const skills of Object.values(skillsets))
+      for (const skill of skills) {
+        masteryLevels.set(skill.name, character.skillLevels[skill.id] ?? 0)
+        if (skill.icon) masteryIcons.set(skill.name, skill.icon)
+        if (skill.isModifier || skill.isTransmuter) excludedSkillNames.add(skill.name)
+      }
+    const addSkill = (name: string, level: number, source: string, stats: string[] = [], icon?: string) => {
+      if (!name || !level || excludedSkillNames.has(name)) return
+      const entry = entries.get(name) ?? { level: 0, sources: new Set<string>(), stats: new Set<string>() }
+      entry.level = Math.max(entry.level, level)
+      entry.icon ??= icon ?? masteryIcons.get(name)
+      entry.sources.add(source)
+      for (const stat of stats) entry.stats.add(stat)
+      entries.set(name, entry)
+    }
+    for (const item of Object.values(character.equipment)) {
+      if (!item) continue
+      if (
+        item.grantedSkill &&
+        (!masteryLevels.has(item.grantedSkill.name) || (masteryLevels.get(item.grantedSkill.name) ?? 0) > 0)
+      )
+        addSkill(
+          item.grantedSkill.name,
+          item.grantedSkill.level,
+          item.name,
+          item.grantedSkill.attributes.map((attribute) => `${attribute.value} ${attribute.label}`),
+        )
+      for (const attribute of item.attributes ?? []) {
+        if (attribute.label !== 'Skill Bonus') continue
+        const bonus = parseSkillBonus(attribute.value)
+        if (bonus && (!masteryLevels.has(bonus.name) || (masteryLevels.get(bonus.name) ?? 0) > 0))
+          addSkill(bonus.name, bonus.amount, item.name)
+      }
+    }
+    for (const masteryId of [character.mastery1, character.mastery2])
+      for (const skill of skillsets[masteryId ?? ''] ?? []) {
+        if (skill.isModifier || skill.isTransmuter) continue
+        const level = character.skillLevels[skill.id] ?? 0
+        if (level > 0) {
+          const effectiveLevel = level + (itemSkillBonuses[skill.name] ?? 0)
+          const activeModifiers = (skillsets[masteryId ?? ''] ?? []).filter(
+            (modifier) =>
+              modifier.groupId === skill.groupId &&
+              (modifier.isModifier || modifier.isTransmuter) &&
+              ((character.skillLevels[modifier.id] ?? 0) > 0 || (itemSkillBonuses[modifier.name] ?? 0) > 0),
+          )
+          const convertsAllLightningToAether = activeModifiers.some((modifier) =>
+            modifier.effects.some(
+              (effect) =>
+                effect.key === 'conversionPercentage' &&
+                effect.label === 'Lightning Damage converted to Aether Damage' &&
+                effect.values.includes(100),
+            ),
+          )
+          const totalDamageMultiplier =
+            1 +
+            activeModifiers.reduce(
+              (total, modifier) =>
+                total +
+                modifier.effects
+                  .filter((effect) => effect.key === 'offensiveDamageMultModifier')
+                  .reduce((sum, effect) => {
+                    const modifierLevel =
+                      (character.skillLevels[modifier.id] ?? 0) + (itemSkillBonuses[modifier.name] ?? 0)
+                    return sum + (effect.values[Math.min(modifierLevel, effect.values.length) - 1] ?? 0)
+                  }, 0) /
+                  100,
+              0,
+            )
+          const stats = skill.effects
+            .filter(
+              (effect) =>
+                !(convertsAllLightningToAether && /electrocute|slowLightning/i.test(`${effect.key} ${effect.label}`)),
+            )
+            .map((effect) => {
+              const rawValue = effect.values[Math.min(effectiveLevel, effect.values.length) - 1]
+              const isDamage = /^(offensive|weaponDamagePct|retaliation)/i.test(effect.key)
+              const converted = convertsAllLightningToAether && /lightning/i.test(effect.key)
+              const label = converted ? effect.label.replace(/Lightning/gi, 'Aether') : effect.label
+              const value = isDamage ? rawValue * totalDamageMultiplier : rawValue
+              return Number.isFinite(value) && value !== 0
+                ? formatSkillEffect(
+                    { ...effect, value: rawValue },
+                    effectiveLevel,
+                    isDamage ? totalDamageMultiplier : 1,
+                    label,
+                  )
+                : ''
+            })
+            .filter(Boolean)
+          for (const summon of skill.summonEffects)
+            for (const effect of summon.effects) {
+              const value = effect.values[Math.min(effectiveLevel, effect.values.length) - 1]
+              if (Number.isFinite(value) && value !== 0)
+                stats.push(`${formatSkillValue(value)}${effect.suffix ?? ''} ${effect.label} (${summon.name})`)
+            }
+          for (const modifier of activeModifiers)
+            for (const effect of modifier.effects.filter(
+              (candidate) => candidate.key === 'offensiveDamageMultModifier',
+            )) {
+              const modifierLevel = (character.skillLevels[modifier.id] ?? 0) + (itemSkillBonuses[modifier.name] ?? 0)
+              const value = effect.values[Math.min(modifierLevel, effect.values.length) - 1]
+              if (Number.isFinite(value) && value !== 0)
+                stats.push(`Total Damage Modified by ${formatSkillValue(value)}% (${modifier.name})`)
+            }
+          addSkill(skill.name, effectiveLevel, 'Mastery', stats, skill.icon)
+        }
+      }
+    return [...entries.entries()]
+      .map(([name, entry]) => ({
+        name,
+        level: entry.level,
+        source: [...entry.sources].join(' + '),
+        stats: [...entry.stats],
+        icon: entry.icon,
+      }))
+      .sort((left, right) => left.name.localeCompare(right.name))
+  }, [character, itemSkillBonuses, skillsets])
   const equipItem = (item: Item) => {
-    setCharacter((current) => ({
-      ...current,
-      equipment: { ...current.equipment, [item.category]: item },
-    }))
-    setView('character')
+    setCharacter((current) => {
+      // a two-handed weapon blocks the off-hand slot; an off-hand item can't go on while one is equipped
+      if (item.category === 'Off-Hand' && current.equipment.Weapon?.twoHanded) return current
+      const equipment = { ...current.equipment }
+      equipment[item.category === 'Ring' ? (equipment['Ring 1'] ? 'Ring 2' : 'Ring 1') : item.category] = item
+      if (item.category === 'Weapon' && item.twoHanded) delete equipment['Off-Hand']
+      return { ...current, equipment }
+    })
   }
+  const unequipItem = (item: Item) => {
+    setCharacter((current) => {
+      const equipment = { ...current.equipment }
+      for (const slot of Object.keys(equipment)) {
+        if (equipment[slot]?.id === item.id) delete equipment[slot]
+      }
+      return { ...current, equipment }
+    })
+  }
+  const changeLevel = (delta: number) => {
+    setCharacter((current) => {
+      const level = Math.max(1, Math.min(100, current.level + delta))
+      return {
+        ...current,
+        level,
+        ...clampAttributes(level, current.physique, current.cunning, current.spirit),
+      }
+    })
+  }
+  const masteryCombinations = masteries.flatMap((mastery) => mastery.combinations)
+  const selectedCombination =
+    character.mastery1 && character.mastery2
+      ? masteryCombinations.find(
+          (combo) =>
+            [combo.first, combo.second].sort().join('-') === [character.mastery1, character.mastery2].sort().join('-'),
+        )
+      : undefined
+  const firstMasteryName = masteries.find((mastery) => mastery.id === character.mastery1)?.name
+  const changeMastery = (slot: 'mastery1' | 'mastery2', value: string) =>
+    setCharacter((current) => {
+      if (slot === 'mastery2' && !current.mastery1) return current
+      if (slot === 'mastery1')
+        return { ...current, mastery1: value || undefined, mastery2: value ? current.mastery2 : undefined }
+      return { ...current, mastery2: value || undefined }
+    })
 
   return (
     <main className="min-h-screen w-full px-4 pb-10 text-neutral-100 sm:px-6 lg:px-8 xl:px-10">
-      <section className="flex items-end justify-between gap-6 py-10 sm:py-14">
-        <div>
-          <p className="mb-2 text-xs uppercase tracking-[0.18em] text-orange-300">Grim Dawn builder</p>
-          <h1 className="text-2xl font-medium tracking-tight text-neutral-50">Character workshop</h1>
-        </div>
-        <div className="grid grid-cols-[auto_auto] gap-x-2 gap-y-1 border-l border-neutral-700 pl-4 text-[0.68rem] uppercase tracking-[0.14em] text-neutral-500">
-          <span className="mt-1.5 size-1.5 rounded-full bg-orange-400 shadow-[0_0_10px_#fb923c]" />
-          <strong className="font-medium tracking-[0.05em] text-neutral-200">{datasetTotal || '...'} records</strong>
-          <span className="col-start-2">background loaded</span>
-        </div>
-      </section>
-      <nav className="mb-4 flex gap-1 border-b border-neutral-800" aria-label="Workspace views">
-        {(['library', 'character'] as const).map((name) => (
-          <button
-            className={`border-b-2 px-4 py-2 text-sm transition-colors ${
-              view === name
-                ? 'border-orange-400 text-orange-200'
-                : 'border-transparent text-neutral-500 hover:text-neutral-200'
-            }`}
-            key={name}
-            type="button"
-            onClick={() => setView(name)}
-          >
-            {name === 'library' ? 'Item library' : 'Character'}
-          </button>
-        ))}
-      </nav>
-      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(300px,360px)]">
+      <Header
+        level={character.level}
+        onLevelChange={changeLevel}
+        masteries={masteries}
+        mastery1={character.mastery1}
+        mastery2={character.mastery2}
+        combinedClassName={selectedCombination?.name ?? firstMasteryName}
+        onMasteryChange={changeMastery}
+      />
+      <WorkspaceTabs value={view} onChange={setView} />
+      <div className="grid items-start gap-4 lg:grid-cols-[240px_minmax(0,1fr)_minmax(300px,360px)]">
+        <AttributePanel character={character} setCharacter={setCharacter} />
         <div className="min-w-0">
           {view === 'character' ? (
-            <CharacterPanel character={character} setCharacter={setCharacter} />
+            <EquipmentView
+              character={character}
+              setCharacter={setCharacter}
+              equippedSetInfo={equippedSetInfo}
+              itemSets={itemSets}
+              activeSkillNames={selectedMasterySkillNames}
+            />
+          ) : view === 'masteries' ? (
+            <MasteriesView
+              character={character}
+              setCharacter={setCharacter}
+              masteries={masteries}
+              skillsets={skillsets}
+              itemBonuses={itemSkillBonuses}
+            />
+          ) : view === 'devotions' && devotions ? (
+            <DevotionsView data={devotions} selected={selectedDevotions} setSelected={setSelectedDevotions} />
           ) : (
-            <>
-              <section
-                className="flex flex-wrap items-center gap-3 rounded-lg border border-neutral-800 bg-neutral-950/60 p-3"
-                aria-label="Filter items"
-              >
-                <label className="flex min-w-[240px] flex-1 items-center gap-2 rounded-md border border-neutral-700 bg-neutral-900 px-3 text-orange-300 sm:flex-none">
-                  <span aria-hidden="true" className="text-lg">
-                    ⌕
-                  </span>
-                  <input
-                    className="w-full bg-transparent py-2 text-sm text-neutral-100 outline-none placeholder:text-neutral-600"
-                    value={search}
-                    onChange={(event) => changeSearch(event.target.value)}
-                    placeholder="Search the archive"
-                  />
-                </label>
-                <div className="flex flex-wrap gap-1.5">
-                  {categories.map((name) => (
-                    <button
-                      className={`rounded-md border px-2.5 py-1.5 text-xs transition-colors ${
-                        category === name
-                          ? 'border-neutral-500 bg-neutral-600 text-white'
-                          : 'border-neutral-800 bg-neutral-900 text-neutral-400 hover:border-neutral-600 hover:text-neutral-100'
-                      }`}
-                      key={name}
-                      type="button"
-                      onClick={() => changeFilter(name)}
-                    >
-                      {name}
-                    </button>
-                  ))}
-                </div>
-              </section>
-              <section className="flex items-center justify-between px-1 py-5 text-[0.68rem] uppercase tracking-[0.14em] text-neutral-500">
-                <p className="m-0 text-neutral-300">{total} matching items</p>
-                <span className="tabular-nums">
-                  Page {Math.min(page + 1, pageCount)} of {pageCount}
-                </span>
-              </section>
-              {loading ? (
-                <div className="grid gap-2 py-20 text-center text-sm text-neutral-500">
-                  <strong className="text-lg font-medium text-neutral-200">Loading database</strong>
-                  <span>The JSON file is loading in the background.</span>
-                </div>
-              ) : status === 'error' ? (
-                <div className="grid gap-2 py-20 text-center text-sm text-neutral-500">
-                  <strong className="text-lg font-medium text-neutral-200">Could not load items</strong>
-                  <span>Check that public/data/items.json exists.</span>
-                </div>
-              ) : (
-                <section className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-3">
-                  {items.map((item) => (
-                    <ItemCard item={item} key={item.id} onEquip={equipItem} />
-                  ))}
-                </section>
-              )}
-              {!loading && status === 'ready' && items.length === 0 && (
-                <div className="grid gap-2 py-20 text-center text-sm text-neutral-500">
-                  <strong className="text-lg font-medium text-neutral-200">No records found</strong>
-                  <span>Try a different search or item type.</span>
-                </div>
-              )}
-              {status === 'ready' && items.length > 0 && (
-                <nav
-                  className="mt-7 flex items-center justify-center gap-4 text-xs tabular-nums text-neutral-500"
-                  aria-label="Item pages"
-                >
-                  <button
-                    className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-neutral-300 transition-colors hover:border-orange-400 disabled:cursor-not-allowed disabled:opacity-40"
-                    type="button"
-                    disabled={page === 0}
-                    onClick={() => requestPage(page - 1)}
-                  >
-                    Previous
-                  </button>
-                  <span>
-                    {page * pageSize + 1}-{Math.min((page + 1) * pageSize, total)} of {total}
-                  </span>
-                  <button
-                    className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-neutral-300 transition-colors hover:border-orange-400 disabled:cursor-not-allowed disabled:opacity-40"
-                    type="button"
-                    disabled={page >= pageCount - 1}
-                    onClick={() => requestPage(page + 1)}
-                  >
-                    Next
-                  </button>
-                </nav>
-              )}
-              <footer className="mt-16 flex justify-between border-t border-neutral-800 pt-5 text-[0.68rem] uppercase tracking-[0.14em] text-neutral-600">
-                <span>GD CREATOR</span>
-                <span>
-                  Import source: <code>data/source/items.json</code>
-                </span>
-              </footer>
-            </>
+            <LibraryView
+              items={items}
+              category={category}
+              search={search}
+              page={page}
+              pageCount={pageCount}
+              pageSize={pageSize}
+              total={total}
+              loading={loading}
+              status={status}
+              onSearchChange={changeSearch}
+              onCategoryChange={changeFilter}
+              onPageChange={requestPage}
+              onEquip={equipItem}
+              onUnequip={unequipItem}
+              isEquipped={(item) =>
+                Object.values(character.equipment).some((equippedItem) => equippedItem?.id === item.id)
+              }
+              activeSkillNames={selectedMasterySkillNames}
+              itemSets={itemSets}
+              equippedSetInfo={equippedSetInfo}
+              hideAboveLevel={hideAboveLevel}
+              onToggleHideAboveLevel={toggleHideAboveLevel}
+              onlySetItems={onlySetItems}
+              onToggleOnlySetItems={toggleOnlySetItems}
+            />
           )}
         </div>
-        <ResultingStatsPanel character={character} />
+        <div className="grid gap-4 lg:sticky lg:top-4">
+          <SkillPanel skills={activeSkills} />
+          <DamagePanel
+            character={character}
+            devotions={devotions}
+            selectedDevotions={selectedDevotions}
+            equippedSetInfo={equippedSetInfo}
+          />
+          <ResistancePanel
+            character={character}
+            devotions={devotions}
+            selectedDevotions={selectedDevotions}
+            equippedSetInfo={equippedSetInfo}
+          />
+          <StatPanel
+            character={character}
+            devotions={devotions}
+            selectedDevotions={selectedDevotions}
+            equippedSetInfo={equippedSetInfo}
+          />
+        </div>
       </div>
     </main>
-  )
-}
-
-function CharacterPanel({
-  character,
-  setCharacter,
-}: {
-  character: Character
-  setCharacter: Dispatch<SetStateAction<Character>>
-}) {
-  const slots = [
-    'Weapon',
-    'Chest Armor',
-    'Gloves',
-    'Pants',
-    'Boots',
-    'Helm',
-    'Shoulders',
-    'Belt',
-    'Amulet',
-    'Ring',
-    'Medal',
-  ]
-  const update = (field: 'level' | 'physique' | 'cunning' | 'spirit', value: string) =>
-    setCharacter((current) => ({ ...current, [field]: Math.max(1, Number(value) || 1) }))
-
-  return (
-    <section>
-      <Card as="section" size="lg" variant="elevated">
-        <div className="mb-5 flex items-end justify-between gap-4">
-          <div>
-            <p className="mb-1 text-xs uppercase tracking-[0.16em] text-orange-300">Character sheet</p>
-            <h2 className="text-xl font-medium text-neutral-50">Build your character</h2>
-          </div>
-          <label className="grid min-w-56 gap-2 text-xs text-neutral-500">
-            <span className="flex items-center justify-between uppercase tracking-[0.14em]">
-              <span>Character level</span>
-              <strong className="text-sm font-medium normal-case tracking-normal text-orange-200">
-                {character.level} / 100
-              </strong>
-            </span>
-            <input
-              className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-neutral-700 accent-orange-400"
-              type="range"
-              min="1"
-              max="100"
-              step="1"
-              value={character.level}
-              onChange={(event) => update('level', event.target.value)}
-              aria-label="Character level"
-            />
-          </label>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-3">
-          {(['physique', 'cunning', 'spirit'] as const).map((field) => (
-            <label className="grid gap-1 text-xs capitalize text-neutral-500" key={field}>
-              {field}
-              <input
-                className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 outline-none focus:border-orange-400"
-                type="number"
-                min="1"
-                value={character[field]}
-                onChange={(event) => update(field, event.target.value)}
-              />
-            </label>
-          ))}
-        </div>
-        <div className="mt-6 grid gap-2 sm:grid-cols-2">
-          {slots.map((slot) => {
-            const item = character.equipment[slot]
-            return (
-              <div
-                className="flex items-center justify-between rounded-md border border-neutral-800 bg-neutral-900/60 px-3 py-2"
-                key={slot}
-              >
-                <span className="text-xs text-neutral-500">{slot}</span>
-                <span className="max-w-[60%] truncate text-xs text-neutral-200">{item?.name ?? 'Empty'}</span>
-                {item && (
-                  <button
-                    className="ml-2 text-xs text-neutral-500 hover:text-orange-300"
-                    type="button"
-                    onClick={() =>
-                      setCharacter((current) => ({
-                        ...current,
-                        equipment: { ...current.equipment, [slot]: undefined },
-                      }))
-                    }
-                  >
-                    Remove
-                  </button>
-                )}
-              </div>
-            )
-          })}
-        </div>
-      </Card>
-    </section>
-  )
-}
-
-function ResultingStatsPanel({ character }: { character: Character }) {
-  const totals = Object.values(character.equipment).reduce<Record<string, number>>((result, item) => {
-    for (const attribute of item?.attributes ?? []) {
-      const value = Number(String(attribute.value).replace(/[^0-9.-]/g, ''))
-      if (Number.isFinite(value)) result[attribute.label] = (result[attribute.label] ?? 0) + value
-    }
-    return result
-  }, {})
-
-  return (
-    <Card as="aside" size="lg" variant="filled" className="lg:sticky lg:top-4">
-      <p className="mb-1 text-xs uppercase tracking-[0.16em] text-orange-300">Resulting stats</p>
-      <h2 className="mb-5 text-xl font-medium text-neutral-50">Level {character.level} profile</h2>
-      <div className="grid grid-cols-2 gap-2">
-        {[
-          ['Physique', character.physique + (totals.Physique ?? 0)],
-          ['Cunning', character.cunning + (totals.Cunning ?? 0)],
-          ['Spirit', character.spirit + (totals.Spirit ?? 0)],
-          ['Health', totals.Health ?? 0],
-          ['Armor', totals.Armor ?? 0],
-          ['Offensive Ability', totals['Offensive Ability'] ?? 0],
-          ['Defensive Ability', totals['Defensive Ability'] ?? 0],
-          ['Damage Conversion', Object.keys(character.equipment).length],
-        ].map(([label, value]) => (
-          <div className="rounded-md border border-neutral-800 bg-neutral-950/60 px-3 py-2" key={label as string}>
-            <p className="m-0 text-[0.68rem] text-neutral-500">{label}</p>
-            <strong className="text-sm text-neutral-100">{value}</strong>
-          </div>
-        ))}
-      </div>
-    </Card>
   )
 }
 
