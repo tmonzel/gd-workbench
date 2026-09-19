@@ -1,15 +1,18 @@
 import type { Dispatch, SetStateAction } from 'react'
 import type { Character, MasterySkill } from '../types'
 import { formatSkillEffectParts, formatSkillValue } from '../damage-utils'
+import { skillPointsForLevel, spentSkillPoints } from '../skill-points'
 
 type SkillListProps = {
   skills: MasterySkill[]
   character: Character
   setCharacter: Dispatch<SetStateAction<Character>>
   itemBonuses?: Record<string, number>
+  masteryId: string
+  masteryLevel: number
 }
 
-function SkillList({ skills, character, setCharacter, itemBonuses = {} }: SkillListProps) {
+function SkillList({ skills, character, setCharacter, itemBonuses = {}, masteryId, masteryLevel }: SkillListProps) {
   const skillGroups = [...new Set(skills.map((skill) => skill.groupId))].map((groupId) => ({
     base:
       skills.find((skill) => skill.groupId === groupId && !skill.isModifier) ??
@@ -20,6 +23,8 @@ function SkillList({ skills, character, setCharacter, itemBonuses = {} }: SkillL
   const changeSkillLevel = (skill: MasterySkill, delta: number, baseSkillId = skill.id) => {
     setCharacter((current) => {
       if (skill.isModifier && (current.skillLevels[baseSkillId] ?? 0) < 1) return current
+      if (delta > 0 && (current.masteryLevels[masteryId] ?? masteryLevel) < skill.masteryLevelRequired) return current
+      if (delta > 0 && spentSkillPoints(current) >= skillPointsForLevel(current.level)) return current
       const currentLevel = current.skillLevels[skill.id] ?? 0
       const level = Math.max(0, Math.min(skill.maxLevel, currentLevel + delta))
       return { ...current, skillLevels: { ...current.skillLevels, [skill.id]: level } }
@@ -30,7 +35,8 @@ function SkillList({ skills, character, setCharacter, itemBonuses = {} }: SkillL
     const level = character.skillLevels[skill.id] ?? 0
     // items granting "+X to <skill>" add virtual points on top of allocated ones
     const bonus = itemBonuses[skill.name] ?? 0
-    const locked = skill.isModifier && (character.skillLevels[baseSkillId] ?? 0) < 1
+    const locked =
+      (skill.isModifier && (character.skillLevels[baseSkillId] ?? 0) < 1) || masteryLevel < skill.masteryLevelRequired
     const effectiveLevel = level + bonus
     const rankEffects =
       effectiveLevel > 0
@@ -77,7 +83,9 @@ function SkillList({ skills, character, setCharacter, itemBonuses = {} }: SkillL
         title={
           locked
             ? 'Allocate at least 1 point in the base skill first'
-            : 'Left click to increase, right click to decrease'
+            : masteryLevel < skill.masteryLevelRequired
+              ? `Requires mastery level ${skill.masteryLevelRequired}`
+              : 'Left click to increase, right click to decrease'
         }
       >
         <span className="flex items-center justify-between gap-2 text-sm text-neutral-100">

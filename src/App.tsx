@@ -44,6 +44,7 @@ function App() {
     physique: 0,
     cunning: 0,
     spirit: 0,
+    masteryLevels: {},
     skillLevels: {},
     equipment: {},
   })
@@ -388,6 +389,7 @@ function App() {
           />
           <StatPanel
             character={character}
+            masteries={masteries}
             devotions={devotions}
             selectedDevotions={selectedDevotions}
             equippedSetInfo={equippedSetInfo}

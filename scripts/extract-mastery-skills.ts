@@ -8,6 +8,7 @@ type Skill = {
   description: string
   maxLevel: number
   groupId: string
+  masteryLevelRequired: number
   isModifier: boolean
   isTransmuter: boolean
   icon?: string
@@ -158,6 +159,9 @@ for (let classNumber = 1; classNumber <= 10; classNumber += 1) {
     const groupId = tagMatch ? `${classId}:${tagMatch[2]}` : `${classId}:${basename(file, '.dbr')}`
     const suffix = tagMatch?.[3]
     const descriptionTag = record.get('skillBaseDescription')
+    const skillTier = Number(record.get('skillTier') ?? 0)
+    const explicitMasteryRequirement = Number(record.get('skillMasteryLevelRequired') ?? 0)
+    if (skillTier <= 0 && explicitMasteryRequirement <= 0) continue
     const effects = extractEffects(record)
     const summonEffects: Skill['summonEffects'] = []
     const summonPath = (record.get('spawnObjects') ?? '').split(';').filter(Boolean)[0]
@@ -171,6 +175,7 @@ for (let classNumber = 1; classNumber <= 10; classNumber += 1) {
       description: descriptionTag ? (tags.get(descriptionTag) ?? '') : '',
       maxLevel: Number(record.get('skillMaxLevel') ?? 0),
       groupId,
+      masteryLevelRequired: skillTier > 0 ? (skillTier === 1 ? 1 : (skillTier - 1) * 5) : explicitMasteryRequirement,
       isModifier: Boolean(suffix && suffix !== 'A'),
       isTransmuter: record.get('templateName')?.toLowerCase().endsWith('/skill_transmuter.tpl') ?? false,
       effects,

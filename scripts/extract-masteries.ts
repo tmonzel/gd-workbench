@@ -4,6 +4,7 @@ import { join, resolve } from 'node:path'
 type Masteries = {
   id: string
   name: string
+  progression?: Record<string, number[]>
   combinations: Array<{ id: string; first: string; second: string; name: string }>
 }[]
 
@@ -25,6 +26,21 @@ for (const file of (await readdir(languagePath)).filter((name) => /^tags.*_skill
 }
 
 const cleanName = (value: string) => value.replace(/\[ms\]|\[fs\]/g, '').trim()
+const parseRecord = async (file: string) => {
+  const record = new Map<string, string>()
+  for (const line of (await readFile(file, 'utf8')).split(/\r?\n/)) {
+    const split = line.indexOf(',')
+    if (split > 0)
+      record.set(
+        line.slice(0, split).trim(),
+        line
+          .slice(split + 1)
+          .replace(/,\s*$/, '')
+          .trim(),
+      )
+  }
+  return record
+}
 const masteryEntries = [...tags.entries()]
   .filter(([key, value]) => /^tagSkillClassName\d{2}$/.test(key) && value !== '?')
   .map(([key, value]) => ({ id: key.slice('tagSkillClassName'.length), name: cleanName(value) }))
@@ -41,6 +57,24 @@ for (const [tag, rawName] of tags.entries()) {
   const first = byId.get(key.slice(0, 2))
   const second = byId.get(key.slice(2))
   if (first && second) first.combinations.push({ id: key, first: first.id, second: second.id, name: value })
+}
+for (const mastery of masteries) {
+  const record = await parseRecord(
+    resolve(`data/game/records/skills/playerclass${mastery.id}/_classtraining_class${mastery.id}.dbr`),
+  ).catch(() => new Map())
+  const fields: Record<string, string> = {
+    characterStrength: 'Physique',
+    characterDexterity: 'Cunning',
+    characterIntelligence: 'Spirit',
+    characterLife: 'Health',
+    characterMana: 'Energy',
+  }
+  mastery.progression = Object.fromEntries(
+    Object.entries(fields).map(([field, label]) => [
+      label,
+      (record.get(field) ?? '').split(';').map(Number).filter(Number.isFinite),
+    ]),
+  )
 }
 
 await mkdir(resolve('public/data'), { recursive: true })

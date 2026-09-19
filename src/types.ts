@@ -20,6 +20,7 @@ export type Item = {
 export type Mastery = {
   id: string
   name: string
+  progression?: Record<string, number[]>
   combinations: Array<{ id: string; first: string; second: string; name: string }>
 }
 
@@ -29,6 +30,7 @@ export type MasterySkill = {
   description: string
   maxLevel: number
   groupId: string
+  masteryLevelRequired: number
   isModifier: boolean
   isTransmuter: boolean
   icon?: string
@@ -60,6 +62,7 @@ export type Character = {
   spirit: number
   mastery1?: string
   mastery2?: string
+  masteryLevels: Record<string, number>
   skillLevels: Record<string, number>
   equipment: Partial<Record<string, Item>>
 }

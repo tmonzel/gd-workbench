@@ -9,7 +9,7 @@ function LevelProgressControl({ level, onLevelChange }: LevelProgressControlProp
   return (
     <div className="mb-5" aria-label={`Character level ${level} of 100`}>
       <div className="mb-2 flex items-end justify-between text-lg text-neutral-500">
-        <strong className="font-medium text-[#fcd34d]">
+        <strong className="font-medium text-neutral-200">
           <span>{level}</span> <span className="text-neutral-600 text-md">/ 100</span>{' '}
         </strong>
         <span className="flex items-center gap-2">
@@ -35,7 +35,7 @@ function LevelProgressControl({ level, onLevelChange }: LevelProgressControlProp
       </div>
       <div className="h-1 overflow-hidden rounded-full bg-neutral-800">
         <div
-          className="h-full rounded-full bg-[#fcd34d] shadow-[0_0_12px_rgb(252_211_77/0.55)] transition-[width] duration-200"
+          className="h-full rounded-full bg-neutral-200 shadow-[0_0_12px_rgb(252_211_77/0.55)] transition-[width] duration-200"
           style={{ width: `${level}%` }}
         />
       </div>

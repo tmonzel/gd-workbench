@@ -1,5 +1,5 @@
 import CollapsiblePanel from './CollapsiblePanel'
-import type { Character } from '../types'
+import type { Character, Mastery } from '../types'
 import type { EquippedSetInfo } from '../itemSets'
 
 type Devotion = { skills: Array<{ id: string; attributes: Array<{ label: string; value: string }> }> }
@@ -9,9 +9,16 @@ type StatPanelProps = {
   devotions?: { constellations: Devotion[] } | null
   selectedDevotions?: string[]
   equippedSetInfo?: EquippedSetInfo[]
+  masteries?: Mastery[]
 }
 
-function StatPanel({ character, devotions, selectedDevotions = [], equippedSetInfo = [] }: StatPanelProps) {
+function StatPanel({
+  character,
+  devotions,
+  selectedDevotions = [],
+  equippedSetInfo = [],
+  masteries = [],
+}: StatPanelProps) {
   const totals = Object.values(character.equipment).reduce<Record<string, number>>((result, item) => {
     for (const attribute of item?.attributes ?? []) {
       const value = Number(String(attribute.value).replace(/[^0-9.-]/g, ''))
@@ -32,7 +39,14 @@ function StatPanel({ character, devotions, selectedDevotions = [], equippedSetIn
       const value = Number(String(attribute.value).replace(/[^0-9.-]/g, ''))
       if (Number.isFinite(value)) totals[attribute.label] = (totals[attribute.label] ?? 0) + value
     }
-  // core attributes secretly feed Health/Energy/OA/DA, per point: https://grimdawn.fandom.com/wiki/Attributes
+  for (const masteryId of [character.mastery1, character.mastery2]) {
+    const rank = character.masteryLevels[masteryId ?? ''] ?? 0
+    const progression = masteries.find((mastery) => mastery.id === masteryId)?.progression
+    if (!progression || rank < 1) continue
+    for (const [label, values] of Object.entries(progression))
+      totals[label] = (totals[label] ?? 0) + (values[Math.min(rank, values.length) - 1] ?? 0)
+  }
+  // Core attributes feed Health, Energy, OA, and DA.
   const physique = character.physique + (totals.Physique ?? 0)
   const cunning = character.cunning + (totals.Cunning ?? 0)
   const spirit = character.spirit + (totals.Spirit ?? 0)
