@@ -13,12 +13,14 @@ type SkillListProps = {
 }
 
 function SkillList({ skills, character, setCharacter, itemBonuses = {}, masteryId, masteryLevel }: SkillListProps) {
-  const skillGroups = [...new Set(skills.map((skill) => skill.groupId))].map((groupId) => ({
-    base:
-      skills.find((skill) => skill.groupId === groupId && !skill.isModifier) ??
-      skills.find((skill) => skill.groupId === groupId),
-    modifiers: skills.filter((skill) => skill.groupId === groupId && skill.isModifier),
-  }))
+  const skillGroups = [...new Set(skills.map((skill) => skill.groupId))]
+    .map((groupId) => ({
+      base:
+        skills.find((skill) => skill.groupId === groupId && !skill.isModifier) ??
+        skills.find((skill) => skill.groupId === groupId),
+      modifiers: skills.filter((skill) => skill.groupId === groupId && skill.isModifier),
+    }))
+    .sort((left, right) => (left.base?.masteryLevelRequired ?? 0) - (right.base?.masteryLevelRequired ?? 0))
 
   const changeSkillLevel = (skill: MasterySkill, delta: number, baseSkillId = skill.id) => {
     setCharacter((current) => {
@@ -71,7 +73,7 @@ function SkillList({ skills, character, setCharacter, itemBonuses = {}, masteryI
         : []
     return (
       <button
-        className={`grid h-fit self-start content-start justify-items-start gap-1 rounded-md border p-3 text-left transition-colors ${skill.isModifier ? 'ml-4' : ''} ${locked ? 'cursor-not-allowed border-neutral-900 bg-neutral-950/40 opacity-45' : 'border-neutral-800 bg-neutral-900/70 hover:border-neutral-500 hover:bg-neutral-800/70'}`}
+        className={`mb-2 grid h-fit w-full break-inside-avoid self-start content-start justify-items-start gap-1 rounded-md border p-3 text-left transition-colors ${skill.isModifier ? 'ml-4' : ''} ${locked ? 'cursor-not-allowed border-neutral-900 bg-neutral-950/40 opacity-45' : 'border-neutral-800 bg-neutral-900/70 hover:border-neutral-500 hover:bg-neutral-800/70'}`}
         key={skill.id}
         type="button"
         disabled={locked}
@@ -88,20 +90,26 @@ function SkillList({ skills, character, setCharacter, itemBonuses = {}, masteryI
               : 'Left click to increase, right click to decrease'
         }
       >
-        <span className="flex items-center justify-between gap-2 text-sm text-neutral-100">
+        <span className="flex w-full items-center justify-between gap-2 text-sm text-neutral-100">
           <span className="flex min-w-0 items-center gap-2">
             {skill.icon && <img className="shrink-0 object-cover" src={skill.icon} alt="" />}
             <span className="truncate">{skill.name}</span>
+            <span className="shrink-0">
+              ({level} / {skill.maxLevel})
+            </span>
             {skill.isTransmuter && (
               <span className="shrink-0 rounded border border-orange-400/30 bg-orange-400/10 px-1.5 py-0.5 text-[0.62rem] uppercase tracking-[0.12em] text-orange-200">
                 Transmuter
               </span>
             )}
           </span>
-          <strong className="shrink-0 text-[#fcd34d]">
-            {level}
-            {bonus > 0 && <span className="text-emerald-400"> +{bonus}</span>} / {skill.maxLevel}
-          </strong>
+          <span className="flex shrink-0 flex-col items-end gap-0.5">
+            <span
+              className={`text-[0.68rem] uppercase tracking-[0.1em] ${locked ? 'text-neutral-600' : 'text-orange-300/80'}`}
+            >
+              {skill.masteryLevelRequired} Points required
+            </span>
+          </span>
         </span>
         <span className="line-clamp-2 text-xs leading-snug text-neutral-500">
           {skill.description.replaceAll('^o', '')}
@@ -135,14 +143,14 @@ function SkillList({ skills, character, setCharacter, itemBonuses = {}, masteryI
 
   if (!skillGroups.length) return null
   return (
-    <div className="mt-6 grid items-start gap-2 sm:grid-cols-2">
+    <div className="mt-6 columns-1 gap-x-2 sm:columns-2">
       {skillGroups.map(({ base, modifiers }) => {
         if (!base) return null
         return modifiers.length === 0 ? (
           renderSkill(base, base.id)
         ) : (
           <div
-            className="grid h-fit self-start content-start gap-2 rounded-lg border border-neutral-800 bg-neutral-950/40 p-2"
+            className="mb-2 grid h-fit break-inside-avoid self-start content-start gap-2 rounded-lg border border-neutral-800 bg-neutral-950/40 p-2"
             key={base.groupId}
           >
             {[base, ...modifiers].map((skill) => renderSkill(skill, base.id))}

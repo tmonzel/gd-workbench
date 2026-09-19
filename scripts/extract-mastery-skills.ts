@@ -175,7 +175,16 @@ for (let classNumber = 1; classNumber <= 10; classNumber += 1) {
       description: descriptionTag ? (tags.get(descriptionTag) ?? '') : '',
       maxLevel: Number(record.get('skillMaxLevel') ?? 0),
       groupId,
-      masteryLevelRequired: skillTier > 0 ? (skillTier === 1 ? 1 : (skillTier - 1) * 5) : explicitMasteryRequirement,
+      masteryLevelRequired:
+        skillTier > 0
+          ? skillTier === 1
+            ? 1
+            : skillTier === 7
+              ? 32
+              : skillTier === 9
+                ? 50
+                : (skillTier - 1) * 5
+          : explicitMasteryRequirement,
       isModifier: Boolean(suffix && suffix !== 'A'),
       isTransmuter: record.get('templateName')?.toLowerCase().endsWith('/skill_transmuter.tpl') ?? false,
       effects,

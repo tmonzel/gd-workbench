@@ -20,7 +20,13 @@ function MasteriesView({ character, setCharacter, masteries, skillsets, itemBonu
       const level = current.masteryLevels[masteryId] ?? 0
       if (delta > 0 && spentSkillPoints(current) >= skillPointsForLevel(current.level)) return current
       const next = Math.max(0, Math.min(50, level + delta))
-      return { ...current, masteryLevels: { ...current.masteryLevels, [masteryId]: next } }
+      const skillLevels = { ...current.skillLevels }
+      if (delta < 0) {
+        for (const skill of skillsets[masteryId] ?? []) {
+          if (skill.masteryLevelRequired > next) delete skillLevels[skill.id]
+        }
+      }
+      return { ...current, masteryLevels: { ...current.masteryLevels, [masteryId]: next }, skillLevels }
     })
 
   return (

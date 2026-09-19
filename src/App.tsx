@@ -15,6 +15,7 @@ import type { Character, Item, Mastery, MasterySkill } from './types'
 import { getEquippedSkillBonuses, parseSkillBonus } from './skillBonus'
 import { getEquippedSetInfo, type ItemSet } from './itemSets'
 import { formatSkillEffect, formatSkillValue } from './damage-utils'
+import { trimAllocationsForLevel } from './skill-points'
 
 type DevotionData = Parameters<typeof DevotionsView>[0]['data']
 
@@ -288,8 +289,7 @@ function App() {
     setCharacter((current) => {
       const level = Math.max(1, Math.min(100, current.level + delta))
       return {
-        ...current,
-        level,
+        ...trimAllocationsForLevel(current, level, skillsets),
         ...clampAttributes(level, current.physique, current.cunning, current.spirit),
       }
     })
