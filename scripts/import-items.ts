@@ -420,7 +420,7 @@ const gameAttributes = (
     const duration = numeric(`offensiveSlow${key}DurationModifier`)
     if (!modifier) continue
     const value = `${modifier > 0 ? '+' : ''}${formatNumber(modifier)}%${duration ? ` with +${formatNumber(duration)}% Increased Duration` : ''}`
-    add(`${label} Damage`, value)
+    add(`${key === 'Poison' ? 'Acid' : label} Damage`, value)
   }
 
   for (const suffix of ['', '2']) {

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Card } from '@/components/Card'
 import {
   getSetForItem,
+  isEquippableItem,
   parseSkillBonus,
   rarityTextClasses,
   type EquippedSetInfo,
@@ -261,7 +262,7 @@ function ItemCard({
           Item Level: <strong>{itemLevel}</strong>
         </p>
       </div>
-      {onEquip && item.category !== 'Item' && (
+      {onEquip && isEquippableItem(item) && (
         <button
           className={`mt-3 rounded-md border px-3 py-1.5 text-xs transition-colors ${isEquipped ? 'border-[#fcd34d] bg-[#fcd34d]/10 text-[#fcd34d] hover:bg-[#fcd34d]/20' : 'border-neutral-700 bg-neutral-900 text-neutral-300 hover:border-neutral-500 hover:bg-neutral-800 hover:text-neutral-100'}`}
           type="button"

@@ -22,7 +22,6 @@ function ItemPanel({ itemLibrary, onEquip, onUnequip, isEquipped, activeSkillNam
     search,
     category,
     hideAboveLevel,
-    onlySetItems,
     rarities,
     page,
     pageSize,
@@ -33,12 +32,11 @@ function ItemPanel({ itemLibrary, onEquip, onUnequip, isEquipped, activeSkillNam
     changeSearch,
     requestPage,
     toggleHideAboveLevel,
-    toggleOnlySetItems,
     toggleRarity,
   } = itemLibrary
   const loading = status === 'loading'
   return (
-    <Card as="section" size="lg" variant="filled">
+    <Card as="section" size="md" variant="filled">
       <div className="grid gap-6 lg:grid-cols-[180px_minmax(0,1fr)]">
         <ItemSideNav category={category} onCategoryChange={changeCategory} />
         <div className="min-w-0">
@@ -95,26 +93,6 @@ function ItemPanel({ itemLibrary, onEquip, onUnequip, isEquipped, activeSkillNam
                 </span>
               </span>
               <span>Equipable only</span>
-            </label>
-            <label
-              className={`flex cursor-pointer items-center gap-1.5 px-1 py-0.5 text-xs transition-colors ${
-                onlySetItems ? 'text-neutral-200' : 'text-neutral-500 hover:text-neutral-300'
-              }`}
-              htmlFor="only-set-items"
-            >
-              <span className="relative flex size-4 shrink-0 items-center justify-center">
-                <input
-                  className="peer size-4 appearance-none rounded-sm border border-neutral-700 bg-neutral-950 checked:border-orange-300 checked:bg-orange-300 focus:ring-1 focus:ring-orange-300/50"
-                  type="checkbox"
-                  id="only-set-items"
-                  checked={onlySetItems}
-                  onChange={toggleOnlySetItems}
-                />
-                <span className="pointer-events-none absolute text-xs font-bold leading-none text-neutral-950 opacity-0 peer-checked:opacity-100">
-                  ✓
-                </span>
-              </span>
-              <span>Set items only</span>
             </label>
           </section>
           <section className="flex items-center justify-between px-1 py-5 text-[0.68rem] uppercase tracking-[0.14em] text-neutral-500">

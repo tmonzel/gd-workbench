@@ -1,13 +1,11 @@
 let items = []
-let setItemIds = new Set()
 const pageSize = 24
-let pendingRequest = { page: 0, search: '', category: 'All', maxLevel: undefined, onlySetItems: false, rarities: [] }
+let pendingRequest = { page: 0, search: '', category: 'All', maxLevel: undefined, rarities: [] }
 const categoryGroups = {
-  Accessories: ['Medal', 'Amulet', 'Ring', 'Belt'],
+  Accessories: ['Medal', 'Amulet', 'Ring', 'Belt', 'Relic'],
   Armor: ['Chest Armor', 'Gloves', 'Pants', 'Boots', 'Helm', 'Shoulders'],
   Weapon: ['Weapon', 'Off-Hand'],
   Other: [
-    'Relic',
     'Augment',
     'Component',
     'Consumable',
@@ -24,20 +22,19 @@ const matchesCategory = (itemCategory, category) =>
 
 const normalizedRarity = (rarity) => (rarity === 'Magical' ? 'Magic' : rarity)
 
-const matches = (item, search, category, maxLevel, onlySetItems, rarities) => {
+const matches = (item, search, category, maxLevel, rarities) => {
   const haystack = `${item.name} ${item.description} ${item.category}`.toLowerCase()
   const requiredLevel = Number(item.stats?.levelRequirement ?? item.level) || 0
   return (
     (!search || haystack.includes(search)) &&
     matchesCategory(item.category, category) &&
     (maxLevel == null || requiredLevel <= maxLevel) &&
-    (!onlySetItems || setItemIds.has(item.id)) &&
     (!rarities.length || rarities.includes(normalizedRarity(item.rarity)))
   )
 }
 
-const sendPage = (page, search = '', category = 'All', maxLevel = undefined, onlySetItems = false, rarities = []) => {
-  const filtered = items.filter((item) => matches(item, search, category, maxLevel, onlySetItems, rarities))
+const sendPage = (page, search = '', category = 'All', maxLevel = undefined, rarities = []) => {
+  const filtered = items.filter((item) => matches(item, search, category, maxLevel, rarities))
   postMessage({
     type: 'page',
     page,
@@ -48,10 +45,7 @@ const sendPage = (page, search = '', category = 'All', maxLevel = undefined, onl
 }
 
 onmessage = (event) => {
-  const { type, page = 0, search = '', category = 'All', maxLevel, onlySetItems = false, rarities = [] } = event.data
-  if (type === 'setIds') {
-    setItemIds = new Set(event.data.ids)
-  }
+  const { type, page = 0, search = '', category = 'All', maxLevel, rarities = [] } = event.data
   if (type === 'load') {
     fetch('/data/items.json')
       .then((response) => response.json())
@@ -67,7 +61,6 @@ onmessage = (event) => {
           pendingRequest.search,
           pendingRequest.category,
           pendingRequest.maxLevel,
-          pendingRequest.onlySetItems,
           pendingRequest.rarities,
         )
       })
@@ -79,14 +72,13 @@ onmessage = (event) => {
       )
   }
   if (type === 'page') {
-    pendingRequest = { page, search: search.trim().toLowerCase(), category, maxLevel, onlySetItems, rarities }
+    pendingRequest = { page, search: search.trim().toLowerCase(), category, maxLevel, rarities }
     if (items.length)
       sendPage(
         pendingRequest.page,
         pendingRequest.search,
         pendingRequest.category,
         pendingRequest.maxLevel,
-        pendingRequest.onlySetItems,
         pendingRequest.rarities,
       )
   }

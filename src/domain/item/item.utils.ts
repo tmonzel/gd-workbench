@@ -29,6 +29,24 @@ export const rarityBorderClasses: Record<string, string> = {
   legendary: 'border-purple-400/70',
 }
 
+export const EQUIPPABLE_CATEGORIES = new Set([
+  'Weapon',
+  'Off-Hand',
+  'Chest Armor',
+  'Gloves',
+  'Pants',
+  'Boots',
+  'Helm',
+  'Shoulders',
+  'Belt',
+  'Amulet',
+  'Ring',
+  'Medal',
+  'Relic',
+])
+
+export const isEquippableItem = (item: Item) => EQUIPPABLE_CATEGORIES.has(item.category)
+
 export const getEquippedSetInfo = (
   equipment: Partial<Record<string, Item>>,
   itemSets: ItemSet[],

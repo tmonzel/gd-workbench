@@ -7,11 +7,10 @@ type ItemSideNavProps = {
 }
 
 export const CATEGORY_GROUPS: Record<string, string[]> = {
-  Accessories: ['Medal', 'Amulet', 'Ring', 'Belt'],
+  Accessories: ['Medal', 'Amulet', 'Ring', 'Belt', 'Relic'],
   Armor: ['Chest Armor', 'Gloves', 'Pants', 'Boots', 'Helm', 'Shoulders'],
   Weapon: ['Weapon', 'Off-Hand'],
   Other: [
-    'Relic',
     'Augment',
     'Component',
     'Consumable',
@@ -33,6 +32,18 @@ const CATEGORY_LABELS: Record<string, string> = {
   'Potion Container': 'Potion Containers',
   'Potion Modifier': 'Potion Modifiers',
   'Lore Note': 'Lore Notes',
+  Medal: 'Medals',
+  Amulet: 'Amulets',
+  Ring: 'Rings',
+  Belt: 'Belts',
+  'Chest Armor': 'Chest Armors',
+  Gloves: 'Gloves',
+  Pants: 'Pants',
+  Boots: 'Boots',
+  Helm: 'Helms',
+  Shoulders: 'Shoulders',
+  Weapon: 'Weapons',
+  'Off-Hand': 'Off-Hands',
 }
 
 function ItemSideNav({ category, onCategoryChange }: ItemSideNavProps) {

@@ -1,5 +1,6 @@
 import { useState, type Dispatch, type SetStateAction } from 'react'
 import type { Item } from '@/domain/item/types'
+import { isEquippableItem } from '@/domain/item/item.utils'
 import type { MasterySkill } from '@/domain/skill/types'
 import { trimAllocationsForLevel } from '@/domain/skill/skill.utils'
 import { clampAttributes } from '@/domain/hero/hero.utils'
@@ -40,6 +41,7 @@ export function useHero(skillsets: Record<string, MasterySkill[]>) {
 
   const equipItem = (item: Item) => {
     setCharacter((current) => {
+      if (!isEquippableItem(item)) return current
       if (item.category === 'Off-Hand' && current.equipment.Weapon?.twoHanded) return current
       const equipment = { ...current.equipment }
       equipment[item.category === 'Ring' ? (equipment['Ring 1'] ? 'Ring 2' : 'Ring 1') : item.category] = item

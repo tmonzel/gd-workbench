@@ -28,7 +28,6 @@ export function useItemLibrary(level: number) {
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('All')
   const [hideAboveLevel, setHideAboveLevel] = useState(false)
-  const [onlySetItems, setOnlySetItems] = useState(false)
   const [rarities, setRarities] = useState<string[]>([])
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(24)
@@ -42,7 +41,6 @@ export function useItemLibrary(level: number) {
       nextSearch = search,
       nextCategory = category,
       nextHideAboveLevel = hideAboveLevel,
-      nextOnlySetItems = onlySetItems,
       nextRarities = rarities,
     ) => {
       setPage(nextPage)
@@ -52,11 +50,10 @@ export function useItemLibrary(level: number) {
         search: nextSearch,
         category: nextCategory,
         maxLevel: nextHideAboveLevel ? level : undefined,
-        onlySetItems: nextOnlySetItems,
         rarities: nextRarities,
       })
     },
-    [category, hideAboveLevel, level, onlySetItems, rarities, search, worker],
+    [category, hideAboveLevel, level, rarities, search, worker],
   )
 
   useEffect(() => {
@@ -77,11 +74,6 @@ export function useItemLibrary(level: number) {
     return () => itemWorker.terminate()
   }, [])
 
-  useEffect(() => {
-    if (worker && itemSets.length > 0)
-      worker.postMessage({ type: 'setIds', ids: itemSets.flatMap((set) => set.members) })
-  }, [itemSets, worker])
-
   const changeCategory = (value: string) => {
     setCategory(value)
     requestPage(0, search, value)
@@ -93,22 +85,17 @@ export function useItemLibrary(level: number) {
   const toggleHideAboveLevel = () => {
     const next = !hideAboveLevel
     setHideAboveLevel(next)
-    requestPage(0, search, category, next, onlySetItems)
-  }
-  const toggleOnlySetItems = () => {
-    const next = !onlySetItems
-    setOnlySetItems(next)
-    requestPage(0, search, category, hideAboveLevel, next)
+    requestPage(0, search, category, next)
   }
   const toggleRarity = (rarity: string) => {
     const next = rarities.includes(rarity) ? rarities.filter((value) => value !== rarity) : [...rarities, rarity]
     setRarities(next)
-    requestPage(0, search, category, hideAboveLevel, onlySetItems, next)
+    requestPage(0, search, category, hideAboveLevel, next)
   }
 
   useEffect(() => {
-    if (hideAboveLevel) requestPage(0, search, category, hideAboveLevel, onlySetItems, rarities)
-  }, [category, hideAboveLevel, level, onlySetItems, rarities, requestPage, search])
+    if (hideAboveLevel) requestPage(0, search, category, hideAboveLevel, rarities)
+  }, [category, hideAboveLevel, level, rarities, requestPage, search])
 
   return {
     items,
@@ -116,7 +103,6 @@ export function useItemLibrary(level: number) {
     search,
     category,
     hideAboveLevel,
-    onlySetItems,
     rarities,
     page,
     pageSize,
@@ -127,7 +113,6 @@ export function useItemLibrary(level: number) {
     changeSearch,
     requestPage,
     toggleHideAboveLevel,
-    toggleOnlySetItems,
     toggleRarity,
   }
 }
