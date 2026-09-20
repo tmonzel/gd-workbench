@@ -210,7 +210,6 @@ function App() {
           )}
         </div>
         <div className="grid gap-4 lg:sticky lg:top-4">
-          <ActiveSkillPanel skills={activeSkills} />
           <DamagePanel
             character={character}
             devotions={devotions}
@@ -230,6 +229,7 @@ function App() {
             selectedDevotions={selectedDevotions}
             equippedSetInfo={equippedSetInfo}
           />
+          <ActiveSkillPanel skills={activeSkills} />
         </div>
       </div>
     </main>

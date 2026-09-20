@@ -91,7 +91,31 @@ function DamagePanel({ character, devotions, selectedDevotions = [], equippedSet
   const damageStats = calculateDamage('')
   const damageOverTimeStats = calculateDamage('', true)
   const retaliationStats = calculateDamage(' Retaliation')
-  const totalDamage = damageStats.reduce((sum, stat) => sum + stat.average, 0)
+  const distributionTotal = (stats: typeof damageStats) =>
+    stats.reduce((sum, stat) => sum + (stat.totalMin > 0 || stat.totalMax > 0 ? Math.max(stat.average, 0) : 0), 0)
+  const totalDamage = distributionTotal(damageStats)
+  const totalDamageOverTime = distributionTotal(damageOverTimeStats)
+  const renderDistribution = (stats: typeof damageStats, total: number, label: string) =>
+    total > 0 && (
+      <div className="mb-4">
+        <p className="m-0 mb-1.5 text-[0.68rem] text-neutral-500">{label}</p>
+        <div className="flex h-2 w-full overflow-hidden rounded-full bg-neutral-900">
+          {stats
+            .filter((stat) => stat.totalMin > 0 || stat.totalMax > 0)
+            .map((stat) => {
+              const weight = Math.max(stat.average, 0)
+              return (
+                <div
+                  key={stat.type}
+                  className="h-full"
+                  style={{ width: `${(weight / total) * 100}%`, backgroundColor: DAMAGE_COLORS[stat.type] }}
+                  title={`${stat.displayType}: ${formatRange(stat.totalMin, stat.totalMax)} (${Math.round((weight / total) * 100)}%)`}
+                />
+              )
+            })}
+        </div>
+      </div>
+    )
   const renderDamageTable = (stats: typeof damageStats) => (
     <table className="w-full border-collapse text-sm">
       <thead>
@@ -136,12 +160,14 @@ function DamagePanel({ character, devotions, selectedDevotions = [], equippedSet
             <div>
               <h3 className="mb-2 text-xs uppercase tracking-[0.12em] text-neutral-400">Attack Damage</h3>
               {renderDamageTable(damageStats)}
+              {renderDistribution(damageStats, totalDamage, 'Direct damage distribution')}
             </div>
           )}
           {damageOverTimeStats.length > 0 && (
             <div>
               <h3 className="mb-2 text-xs uppercase tracking-[0.12em] text-neutral-400">Attack Damage Over Time</h3>
               {renderDamageTable(damageOverTimeStats)}
+              {renderDistribution(damageOverTimeStats, totalDamageOverTime, 'Damage over time distribution')}
             </div>
           )}
           {retaliationStats.length > 0 && (
@@ -150,23 +176,6 @@ function DamagePanel({ character, devotions, selectedDevotions = [], equippedSet
               {renderDamageTable(retaliationStats)}
             </div>
           )}
-        </div>
-      )}
-      {totalDamage > 0 && (
-        <div className="mt-4">
-          <p className="m-0 mb-1.5 text-[0.68rem] text-neutral-500">Damage distribution</p>
-          <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-neutral-900">
-            {damageStats
-              .filter((stat) => stat.average > 0)
-              .map((stat) => (
-                <div
-                  key={stat.type}
-                  className="h-full"
-                  style={{ width: `${(stat.average / totalDamage) * 100}%`, backgroundColor: DAMAGE_COLORS[stat.type] }}
-                  title={`${stat.type}: ${formatRange(stat.totalMin, stat.totalMax)} (${Math.round((stat.average / totalDamage) * 100)}%)`}
-                />
-              ))}
-          </div>
         </div>
       )}
     </CollapsiblePanel>
