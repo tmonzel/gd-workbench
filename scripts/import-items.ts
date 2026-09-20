@@ -43,14 +43,14 @@ const numberValue = (record: RawRecord, keys: string[], fallback = 0) => {
 
 const itemTypeFromPath = (filePath: string) => {
   const normalizedPath = filePath.replaceAll('\\', '/').toLowerCase()
-  if (normalizedPath.includes('/gearrelic/')) return 'Relics'
-  if (normalizedPath.includes('/materia/')) return 'Components'
-  if (normalizedPath.includes('/enchants/')) return normalizedPath.includes('/runes/') ? 'Potion Modifiers' : 'Augments'
-  if (normalizedPath.includes('/crafting/consumables/')) return 'Consumables'
-  if (normalizedPath.includes('/crafting/blueprints/')) return 'Blueprints'
-  if (normalizedPath.includes('/questitems/')) return 'Quest Items'
-  if (normalizedPath.includes('/loreobjects/')) return 'Lore Notes'
-  if (normalizedPath.includes('/misc/potions/')) return 'Potion Containers'
+  if (normalizedPath.includes('/gearrelic/')) return 'Relic'
+  if (normalizedPath.includes('/materia/')) return 'Component'
+  if (normalizedPath.includes('/enchants/')) return normalizedPath.includes('/runes/') ? 'Potion Modifier' : 'Augment'
+  if (normalizedPath.includes('/crafting/consumables/')) return 'Consumable'
+  if (normalizedPath.includes('/crafting/blueprints/')) return 'Blueprint'
+  if (normalizedPath.includes('/questitems/')) return 'Quest Item'
+  if (normalizedPath.includes('/loreobjects/')) return 'Lore Note'
+  if (normalizedPath.includes('/misc/potions/')) return 'Potion Container'
   if (normalizedPath.includes('/gearweapons/shields/') || normalizedPath.includes('/gearweapons/focus/'))
     return 'Off-Hand'
   if (normalizedPath.includes('/gearweapons/')) return 'Weapon'
