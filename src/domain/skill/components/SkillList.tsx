@@ -1,7 +1,13 @@
 import type { Dispatch, SetStateAction } from 'react'
+import { IconSword } from '@tabler/icons-react'
 import type { Character } from '@/domain/hero/types'
 import type { MasterySkill } from '@/domain/skill/types'
-import { formatSkillEffectParts, formatSkillValue, skillPointsForLevel, spentSkillPoints } from '@/domain/skill/skill.utils'
+import {
+  formatSkillEffectParts,
+  formatSkillValue,
+  skillPointsForLevel,
+  spentSkillPoints,
+} from '@/domain/skill/skill.utils'
 
 type SkillListProps = {
   skills: MasterySkill[]
@@ -107,6 +113,11 @@ function SkillList({ skills, character, setCharacter, itemBonuses = {}, masteryI
             {skill.isTransmuter && (
               <span className="shrink-0 rounded border border-orange-400/30 bg-orange-400/10 px-1.5 py-0.5 text-[0.62rem] uppercase tracking-[0.12em] text-orange-200">
                 Transmuter
+              </span>
+            )}
+            {skill.isWeaponDefaultAttack && (
+              <span className="flex items-center text-orange-200" title="Weapon Default Attack Skill">
+                <IconSword size={15} stroke={1.8} aria-label="Weapon Default Attack Skill" />
               </span>
             )}
           </span>

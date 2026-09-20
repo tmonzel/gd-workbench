@@ -11,6 +11,7 @@ type Skill = {
   masteryLevelRequired: number
   isModifier: boolean
   isTransmuter: boolean
+  isWeaponDefaultAttack: boolean
   icon?: string
   effects: Array<{ key: string; label: string; values: number[]; suffix?: string }>
   summonEffects: Array<{
@@ -188,6 +189,7 @@ for (let classNumber = 1; classNumber <= 10; classNumber += 1) {
           : explicitMasteryRequirement,
       isModifier: Boolean(suffix && suffix !== 'A'),
       isTransmuter: record.get('templateName')?.toLowerCase().endsWith('/skill_transmuter.tpl') ?? false,
+      isWeaponDefaultAttack: record.get('templateName')?.toLowerCase().includes('/skill_weaponpool') ?? false,
       effects,
       summonEffects,
       icon: record.get('skillUpBitmapName')
