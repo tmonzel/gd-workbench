@@ -4,7 +4,7 @@ import SkillList from '../components/SkillList'
 import type { Character, Mastery, MasterySkill } from '../types'
 import { skillPointsForLevel, spentSkillPoints } from '../skill-points'
 
-type MasteriesViewProps = {
+type SkillsViewProps = {
   character: Character
   setCharacter: Dispatch<SetStateAction<Character>>
   masteries: Mastery[]
@@ -12,7 +12,7 @@ type MasteriesViewProps = {
   itemBonuses?: Record<string, number>
 }
 
-function MasteriesView({ character, setCharacter, masteries, skillsets, itemBonuses = {} }: MasteriesViewProps) {
+function SkillsView({ character, setCharacter, masteries, skillsets, itemBonuses = {} }: SkillsViewProps) {
   const selectedMasteryIds = [character.mastery1, character.mastery2].filter(Boolean) as string[]
   const availablePoints = skillPointsForLevel(character.level) - spentSkillPoints(character)
   const changeMasteryLevel = (masteryId: string, delta: number) =>
@@ -30,7 +30,7 @@ function MasteriesView({ character, setCharacter, masteries, skillsets, itemBonu
     })
 
   return (
-    <Card as="section" size="lg" variant="elevated">
+    <Card as="section" size="lg" variant="filled">
       <div className="mb-6">
         <p className="mb-1 text-xs uppercase tracking-[0.16em] text-orange-300">Skills</p>
         <h2 className="text-xl font-medium text-neutral-50">Skill allocation</h2>
@@ -92,4 +92,4 @@ function MasteriesView({ character, setCharacter, masteries, skillsets, itemBonu
   )
 }
 
-export default MasteriesView
+export default SkillsView

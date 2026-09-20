@@ -36,7 +36,7 @@ function EquipmentView({
   ]
 
   return (
-    <Card as="section" size="lg" variant="elevated">
+    <Card as="section" size="lg" variant="filled">
       <div className="mb-5">
         <p className="mb-1 text-xs uppercase tracking-[0.16em] text-orange-300">Equipment</p>
         <h2 className="text-xl font-medium text-neutral-50">Equipped loadout</h2>
@@ -47,7 +47,7 @@ function EquipmentView({
           const blocked = slot === 'Off-Hand' && character.equipment.Weapon?.twoHanded
           return (
             <div
-              className={`rounded-md border px-3 py-2 ${blocked ? 'border-neutral-900 bg-neutral-950/60 opacity-60' : 'border-neutral-800 bg-neutral-900/60'}`}
+              className={`rounded-md border px-3 py-2 ${blocked ? 'border-neutral-800 bg-neutral-950/60 opacity-60' : 'border-neutral-700 bg-neutral-950/45'}`}
               key={slot}
             >
               <div className="mb-1 flex items-center justify-between">

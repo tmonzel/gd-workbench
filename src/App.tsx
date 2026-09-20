@@ -9,7 +9,7 @@ import SkillPanel from './components/SkillPanel'
 import WorkspaceTabs from './components/WorkspaceTabs'
 import EquipmentView from './views/EquipmentView'
 import LibraryView from './views/LibraryView'
-import MasteriesView from './views/MasteriesView'
+import SkillsView from './views/SkillsView'
 import DevotionsView from './views/DevotionsView'
 import type { Character, Item, Mastery, MasterySkill } from './types'
 import { getEquippedSkillBonuses, parseSkillBonus } from './skillBonus'
@@ -335,7 +335,7 @@ function App() {
               activeSkillNames={selectedMasterySkillNames}
             />
           ) : view === 'masteries' ? (
-            <MasteriesView
+            <SkillsView
               character={character}
               setCharacter={setCharacter}
               masteries={masteries}

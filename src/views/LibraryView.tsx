@@ -1,4 +1,5 @@
 import ItemCard from '../components/ItemCard'
+import { Card } from '../components/Card'
 import type { Item } from '../types'
 import type { EquippedSetInfo, ItemSet } from '../itemSets'
 
@@ -65,7 +66,7 @@ function LibraryView({
   const visibleSubcategories = CATEGORY_GROUPS[selectedGroup ?? category] ?? []
 
   return (
-    <>
+    <Card as="section" size="lg" variant="filled">
       <section className="flex flex-wrap items-center justify-between gap-2" aria-label="Filter items">
         <div className="flex flex-wrap gap-1">
           {TOP_CATEGORIES.map((name) => (
@@ -248,7 +249,7 @@ function LibraryView({
           </button>
         </nav>
       )}
-    </>
+    </Card>
   )
 }
 

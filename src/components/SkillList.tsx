@@ -29,11 +29,16 @@ function SkillList({ skills, character, setCharacter, itemBonuses = {}, masteryI
       if (delta > 0 && spentSkillPoints(current) >= skillPointsForLevel(current.level)) return current
       const currentLevel = current.skillLevels[skill.id] ?? 0
       const level = Math.max(0, Math.min(skill.maxLevel, currentLevel + delta))
-      return { ...current, skillLevels: { ...current.skillLevels, [skill.id]: level } }
+      const skillLevels = { ...current.skillLevels, [skill.id]: level }
+      if (!skill.isModifier && level === 0) {
+        for (const child of skills.filter((entry) => entry.groupId === skill.groupId && entry.isModifier))
+          delete skillLevels[child.id]
+      }
+      return { ...current, skillLevels }
     })
   }
 
-  const renderSkill = (skill: MasterySkill, baseSkillId: string) => {
+  const renderSkill = (skill: MasterySkill, baseSkillId: string, grouped = false) => {
     const level = character.skillLevels[skill.id] ?? 0
     // items granting "+X to <skill>" add virtual points on top of allocated ones
     const bonus = itemBonuses[skill.name] ?? 0
@@ -73,7 +78,7 @@ function SkillList({ skills, character, setCharacter, itemBonuses = {}, masteryI
         : []
     return (
       <button
-        className={`mb-2 grid h-fit w-full break-inside-avoid self-start content-start justify-items-start gap-1 rounded-md border p-3 text-left transition-colors ${skill.isModifier ? 'ml-4' : ''} ${locked ? 'cursor-not-allowed border-neutral-900 bg-neutral-950/40 opacity-45' : 'border-neutral-800 bg-neutral-900/70 hover:border-neutral-500 hover:bg-neutral-800/70'}`}
+        className={`grid h-fit w-full break-inside-avoid self-start content-start grid-cols-[auto_minmax(0,1fr)_auto] gap-x-3 gap-y-1 p-3 text-left transition-colors ${skill.isModifier ? 'ml-0 border-t border-neutral-800 pt-3' : ''} ${grouped ? 'rounded-none border-0 bg-transparent' : 'rounded-md border'} ${locked ? 'cursor-not-allowed opacity-45' : grouped ? 'hover:bg-neutral-900/50' : 'border-neutral-800 bg-neutral-900/70 hover:border-neutral-500 hover:bg-neutral-800/70'} ${locked && !grouped ? 'border-neutral-900 bg-neutral-950/40' : ''}`}
         key={skill.id}
         type="button"
         disabled={locked}
@@ -90,9 +95,11 @@ function SkillList({ skills, character, setCharacter, itemBonuses = {}, masteryI
               : 'Left click to increase, right click to decrease'
         }
       >
-        <span className="flex w-full items-center justify-between gap-2 text-sm text-neutral-100">
+        <span className="row-span-3 flex w-8 items-start justify-center">
+          {skill.icon && <img className="size-8 shrink-0 object-cover" src={skill.icon} alt="" />}
+        </span>
+        <span className="min-w-0 text-sm text-neutral-100">
           <span className="flex min-w-0 items-center gap-2">
-            {skill.icon && <img className="shrink-0 object-cover" src={skill.icon} alt="" />}
             <span className="truncate">{skill.name}</span>
             <span className="shrink-0">
               ({level} / {skill.maxLevel})
@@ -103,19 +110,19 @@ function SkillList({ skills, character, setCharacter, itemBonuses = {}, masteryI
               </span>
             )}
           </span>
-          <span className="flex shrink-0 flex-col items-end gap-0.5">
-            <span
-              className={`text-[0.68rem] uppercase tracking-[0.1em] ${locked ? 'text-neutral-600' : 'text-orange-300/80'}`}
-            >
-              {skill.masteryLevelRequired} Points required
-            </span>
+        </span>
+        <span className="flex flex-col items-end gap-1 text-right">
+          <span
+            className={`text-[0.68rem] uppercase tracking-[0.1em] ${locked ? 'text-neutral-600' : 'text-orange-300/80'}`}
+          >
+            {skill.masteryLevelRequired} Points required
           </span>
         </span>
-        <span className="line-clamp-2 text-xs leading-snug text-neutral-500">
+        <span className="min-w-0 line-clamp-2 text-xs leading-snug text-neutral-500">
           {skill.description.replaceAll('^o', '')}
         </span>
         {rankEffects.length > 0 && (
-          <span className="mt-1 grid gap-0.5 border-t border-neutral-800 pt-1 text-xs text-neutral-400">
+          <span className="col-start-2 mt-1 grid min-w-0 gap-0.5 border-t border-neutral-800 pt-1 text-xs text-neutral-400">
             {rankEffects.slice(0, 6).map((effect) => (
               <span className="text-neutral-300" key={effect.key}>
                 <strong className="text-neutral-200">{effect.displayParts.value}</strong> {effect.displayParts.label}
@@ -124,7 +131,7 @@ function SkillList({ skills, character, setCharacter, itemBonuses = {}, masteryI
           </span>
         )}
         {summonEffects.length > 0 && (
-          <span className="mt-1 grid gap-0.5 border-t border-neutral-800 pt-1 text-xs text-orange-200">
+          <span className="col-start-2 mt-1 grid min-w-0 gap-0.5 border-t border-neutral-800 pt-1 text-xs text-orange-200">
             <strong className="text-[0.68rem] uppercase tracking-[0.12em] text-orange-300">Summoned effects</strong>
             {summonEffects.slice(0, 8).map((effect) => (
               <span key={`${effect.summon}-${effect.key}`}>
@@ -143,17 +150,20 @@ function SkillList({ skills, character, setCharacter, itemBonuses = {}, masteryI
 
   if (!skillGroups.length) return null
   return (
-    <div className="mt-6 columns-1 gap-x-2 sm:columns-2">
+    <div className="mt-6 grid gap-2 columns-1 sm:columns-2">
       {skillGroups.map(({ base, modifiers }) => {
         if (!base) return null
         return modifiers.length === 0 ? (
           renderSkill(base, base.id)
         ) : (
           <div
-            className="mb-2 grid h-fit break-inside-avoid self-start content-start gap-2 rounded-lg border border-neutral-800 bg-neutral-950/40 p-2"
+            className="h-fit break-inside-avoid self-start content-start rounded-md border border-neutral-800 bg-neutral-950/35 p-1"
             key={base.groupId}
           >
-            {[base, ...modifiers].map((skill) => renderSkill(skill, base.id))}
+            {renderSkill(base, base.id, true)}
+            {(character.skillLevels[base.id] ?? 0) > 0 && (
+              <div>{modifiers.map((skill) => renderSkill(skill, base.id, true))}</div>
+            )}
           </div>
         )
       })}
