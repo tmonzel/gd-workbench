@@ -33,6 +33,7 @@ function EquipmentPanel({
     'Ring 1',
     'Ring 2',
     'Medal',
+    'Relic',
   ]
 
   return (
