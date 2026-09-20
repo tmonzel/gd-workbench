@@ -62,6 +62,7 @@ const effectLabel = (key: string) =>
     defensiveAether: 'Aether Resistance',
     characterDefensiveAbility: 'Defensive Ability',
     offensiveDamageMultModifier: 'Total Damage',
+    weaponDamagePct: 'Weapon Damage',
   })[key] ?? labelFor(key)
 const effectKeys =
   /^(offensive|defensive|retaliation|character|projectile|block|skillManaCost|skillCooldownTime|skillLife|weaponDamagePct|healing)/i
@@ -78,7 +79,7 @@ const extractEffects = (record: Map<string, string>) => {
       ([key, value]) =>
         effectKeys.test(key) &&
         (value.includes(';') || key === 'offensiveDamageMultModifier') &&
-        !/^offensive(Slow)?(?:Fire|Lightning|Cold|Poison|Bleeding)(?:Min|Max|Duration)/i.test(key),
+        !/^offensive(Slow)?(?:Physical|Fire|Lightning|Cold|Poison|Bleeding)(?:Min|Max|Duration)/i.test(key),
     )
     .map(([key, value]) => ({
       key,
