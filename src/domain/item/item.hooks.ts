@@ -7,6 +7,8 @@ type WorkerMessage =
   | { type: 'page'; page: number; pageSize: number; total: number; items: Item[] }
   | { type: 'error'; message: string }
 
+export type ItemLibraryState = ReturnType<typeof useItemLibrary>
+
 export function useItemSets() {
   const [itemSets, setItemSets] = useState<ItemSet[]>([])
 

@@ -14,17 +14,18 @@ import DevotionPanel from '@/domain/devotion/components/DevotionPanel'
 import { useSkillData } from '@/domain/skill/skill.hooks'
 import { useDevotionData } from '@/domain/devotion/devotion.hooks'
 import { getEquippedSkillBonuses, getEquippedSetInfo, parseSkillBonus } from '@/domain/item/item.utils'
-import { useItemSets } from '@/domain/item/item.hooks'
+import { useItemLibrary } from '@/domain/item/item.hooks'
 import { formatSkillEffect, formatSkillValue } from '@/domain/skill/skill.utils'
 import { useHero } from '@/domain/hero/hero.hooks'
 
 function App() {
   const { masteries, skillsets } = useSkillData()
   const { data: devotions, selected: selectedDevotions, setSelected: setSelectedDevotions } = useDevotionData()
-  const itemSets = useItemSets()
   const [view, setView] = useState<'items' | 'equipment' | 'masteries' | 'devotions'>('masteries')
   const { character, setCharacter, changeLevel, adjustAttribute, equipItem, unequipItem, changeMastery } =
     useHero(skillsets)
+  const itemLibrary = useItemLibrary(character.level)
+  const { itemSets } = itemLibrary
   const itemSkillBonuses = useMemo(() => getEquippedSkillBonuses(character.equipment), [character.equipment])
   const equippedSetInfo = useMemo(
     () => getEquippedSetInfo(character.equipment, itemSets),
@@ -197,7 +198,7 @@ function App() {
             <DevotionPanel data={devotions} selected={selectedDevotions} setSelected={setSelectedDevotions} />
           ) : (
             <ItemPanel
-              level={character.level}
+              itemLibrary={itemLibrary}
               onEquip={equipItem}
               onUnequip={unequipItem}
               isEquipped={(item) =>

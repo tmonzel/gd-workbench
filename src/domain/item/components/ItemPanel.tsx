@@ -3,11 +3,11 @@ import ItemList from '@/domain/item/components/ItemList'
 import ItemSideNav from '@/domain/item/components/ItemSideNav'
 import type { Item } from '@/domain/item/types'
 import type { EquippedSetInfo } from '@/domain/item/types'
-import { useItemLibrary } from '@/domain/item/item.hooks'
+import type { ItemLibraryState } from '@/domain/item/item.hooks'
 import { RARITIES, rarityBackgroundClasses, rarityBorderClasses, rarityTextClasses } from '@/domain/item/item.utils'
 
 type ItemPanelProps = {
-  level: number
+  itemLibrary: ItemLibraryState
   onEquip: (item: Item) => void
   onUnequip: (item: Item) => void
   isEquipped: (item: Item) => boolean
@@ -15,7 +15,7 @@ type ItemPanelProps = {
   equippedSetInfo?: EquippedSetInfo[]
 }
 
-function ItemPanel({ level, onEquip, onUnequip, isEquipped, activeSkillNames, equippedSetInfo }: ItemPanelProps) {
+function ItemPanel({ itemLibrary, onEquip, onUnequip, isEquipped, activeSkillNames, equippedSetInfo }: ItemPanelProps) {
   const {
     items,
     itemSets,
@@ -35,7 +35,7 @@ function ItemPanel({ level, onEquip, onUnequip, isEquipped, activeSkillNames, eq
     toggleHideAboveLevel,
     toggleOnlySetItems,
     toggleRarity,
-  } = useItemLibrary(level)
+  } = itemLibrary
   const loading = status === 'loading'
   return (
     <Card as="section" size="lg" variant="filled">
