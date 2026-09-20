@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { IconLibrary, IconShield, IconSparkles, IconStars } from '@tabler/icons-react'
 
 export type WorkspaceView = 'items' | 'equipment' | 'masteries' | 'devotions'
 
@@ -8,7 +9,7 @@ type WorkspaceTabsProps = {
 }
 
 // src/assets/equipment-icon.svg, inlined so its fill can follow the tab's current text color
-const EquipmentIcon = () => (
+export const EquipmentIcon = () => (
   <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <path
       fill="currentColor"
@@ -18,10 +19,10 @@ const EquipmentIcon = () => (
 )
 
 const tabs: Array<{ value: WorkspaceView; label: string; icon: ReactNode }> = [
-  { value: 'masteries', label: 'Skills', icon: '✦' },
-  { value: 'items', label: 'Items', icon: '▦' },
-  { value: 'equipment', label: 'Equipment', icon: <EquipmentIcon /> },
-  { value: 'devotions', label: 'Devotions', icon: '✧' },
+  { value: 'masteries', label: 'Skills', icon: <IconSparkles size={16} stroke={1.8} aria-hidden="true" /> },
+  { value: 'items', label: 'Items', icon: <IconLibrary size={16} stroke={1.8} aria-hidden="true" /> },
+  { value: 'equipment', label: 'Equipment', icon: <IconShield size={16} stroke={1.8} aria-hidden="true" /> },
+  { value: 'devotions', label: 'Devotions', icon: <IconStars size={16} stroke={1.8} aria-hidden="true" /> },
 ]
 
 function WorkspaceTabs({ value, onChange }: WorkspaceTabsProps) {
