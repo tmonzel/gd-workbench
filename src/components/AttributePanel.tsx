@@ -1,40 +1,17 @@
 import { IconMinus, IconPlus } from '@tabler/icons-react'
-import type { Dispatch, SetStateAction } from 'react'
-import { Card } from './Card'
-import type { Character } from '../types'
+import { Card } from '@/components/Card'
+import type { Character } from '@/domain/hero/types'
 
 type AttributePanelProps = {
   character: Character
-  setCharacter: Dispatch<SetStateAction<Character>>
+  onAttributeChange: (field: 'physique' | 'cunning' | 'spirit', delta: number) => void
 }
 
 const ATTRIBUTES = ['physique', 'cunning', 'spirit'] as const
 
-// one attribute point is earned per character level; excess points are trimmed when the level drops
-export const clampAttributes = (level: number, physique: number, cunning: number, spirit: number) => {
-  const values = { physique, cunning, spirit }
-  const order: Array<keyof typeof values> = ['spirit', 'cunning', 'physique']
-  let index = 0
-  while (values.physique + values.cunning + values.spirit > level && index < 100000) {
-    const field = order[index % order.length]
-    if (values[field] > 0) values[field] -= 1
-    index += 1
-  }
-  return values
-}
-
-function AttributePanel({ character, setCharacter }: AttributePanelProps) {
+function AttributePanel({ character, onAttributeChange }: AttributePanelProps) {
   const spent = character.physique + character.cunning + character.spirit
   const remaining = character.level - spent
-
-  const adjust = (field: (typeof ATTRIBUTES)[number], delta: number) =>
-    setCharacter((current) => {
-      const next = current[field] + delta
-      if (next < 0) return current
-      const spentAfter = current.physique + current.cunning + current.spirit - current[field] + next
-      if (spentAfter > current.level) return current
-      return { ...current, [field]: next }
-    })
 
   return (
     <Card as="aside" size="md" variant="filled" className="lg:sticky lg:top-4">
@@ -58,7 +35,7 @@ function AttributePanel({ character, setCharacter }: AttributePanelProps) {
                 className="flex size-8 items-center justify-center rounded-md border border-neutral-700 bg-neutral-900 text-sm font-semibold text-neutral-300 transition-colors hover:border-orange-300/60 hover:bg-neutral-800 hover:text-orange-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300/50 active:bg-neutral-700 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-neutral-700 disabled:hover:bg-neutral-900 disabled:hover:text-neutral-300"
                 type="button"
                 disabled={character[field] <= 0}
-                onClick={() => adjust(field, -1)}
+                onClick={() => onAttributeChange(field, -1)}
                 aria-label={`Decrease ${field}`}
               >
                 <IconMinus size={20} stroke={2.2} aria-hidden="true" />
@@ -67,7 +44,7 @@ function AttributePanel({ character, setCharacter }: AttributePanelProps) {
                 className="flex size-8 items-center justify-center rounded-md border border-neutral-700 bg-neutral-900 text-sm font-semibold text-neutral-300 transition-colors hover:border-orange-300/60 hover:bg-neutral-800 hover:text-orange-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300/50 active:bg-neutral-700 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-neutral-700 disabled:hover:bg-neutral-900 disabled:hover:text-neutral-300"
                 type="button"
                 disabled={remaining <= 0}
-                onClick={() => adjust(field, 1)}
+                onClick={() => onAttributeChange(field, 1)}
                 aria-label={`Increase ${field}`}
               >
                 <IconPlus size={20} stroke={2.2} aria-hidden="true" />

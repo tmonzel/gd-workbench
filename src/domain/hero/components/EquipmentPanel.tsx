@@ -1,10 +1,10 @@
 import type { Dispatch, SetStateAction } from 'react'
-import { Card } from '../components/Card'
-import type { Character } from '../types'
-import type { EquippedSetInfo, ItemSet } from '../itemSets'
-import ItemCard from '../components/ItemCard'
+import { Card } from '@/components/Card'
+import type { Character } from '@/domain/hero/types'
+import type { EquippedSetInfo, ItemSet } from '@/domain/item/types'
+import ItemCard from '@/domain/item/components/ItemCard'
 
-type EquipmentViewProps = {
+type EquipmentPanelProps = {
   character: Character
   setCharacter: Dispatch<SetStateAction<Character>>
   equippedSetInfo?: EquippedSetInfo[]
@@ -12,13 +12,13 @@ type EquipmentViewProps = {
   activeSkillNames?: Set<string>
 }
 
-function EquipmentView({
+function EquipmentPanel({
   character,
   setCharacter,
   equippedSetInfo = [],
   itemSets = [],
   activeSkillNames,
-}: EquipmentViewProps) {
+}: EquipmentPanelProps) {
   const slots = [
     'Weapon',
     'Off-Hand',
@@ -129,4 +129,4 @@ function EquipmentView({
   )
 }
 
-export default EquipmentView
+export default EquipmentPanel

@@ -1,7 +1,7 @@
 import type { Dispatch, SetStateAction } from 'react'
-import type { Character, MasterySkill } from '../types'
-import { formatSkillEffectParts, formatSkillValue } from '../damage-utils'
-import { skillPointsForLevel, spentSkillPoints } from '../skill-points'
+import type { Character } from '@/domain/hero/types'
+import type { MasterySkill } from '@/domain/skill/types'
+import { formatSkillEffectParts, formatSkillValue, skillPointsForLevel, spentSkillPoints } from '@/domain/skill/skill.utils'
 
 type SkillListProps = {
   skills: MasterySkill[]

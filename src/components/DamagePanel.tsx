@@ -1,7 +1,7 @@
-import CollapsiblePanel from './CollapsiblePanel'
-import type { Character } from '../types'
-import type { EquippedSetInfo } from '../itemSets'
-import { DAMAGE_COLORS, DAMAGE_TYPES } from '../damage-utils'
+import CollapsiblePanel from '@/components/CollapsiblePanel'
+import type { Character } from '@/domain/hero/types'
+import type { EquippedSetInfo } from '@/domain/item/types'
+import { DAMAGE_COLORS, DAMAGE_TYPES } from '@/domain/skill/skill.utils'
 
 type Devotion = { skills: Array<{ id: string; attributes: Array<{ label: string; value: string }> }> }
 

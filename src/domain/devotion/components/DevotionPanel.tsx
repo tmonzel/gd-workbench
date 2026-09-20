@@ -1,5 +1,5 @@
 import type { Dispatch, SetStateAction } from 'react'
-import { Card } from '../components/Card'
+import { Card } from '@/components/Card'
 
 // affinity colors follow the star/icon colors used in the in-game devotion map
 const AFFINITY_COLORS: Record<string, { text: string; border: string; bg: string; dot: string }> = {
@@ -34,7 +34,7 @@ type Devotion = {
 type Data = { maxPoints: number; affinities: string[]; constellations: Devotion[] }
 type Props = { data: Data; selected: string[]; setSelected: Dispatch<SetStateAction<string[]>> }
 
-function DevotionsView({ data, selected, setSelected }: Props) {
+function DevotionPanel({ data, selected, setSelected }: Props) {
   const affinity = Object.fromEntries(data.affinities.map((name) => [name, 0]))
   for (const constellation of data.constellations)
     if (constellation.skills.every((skill) => selected.includes(skill.id)))
@@ -162,4 +162,4 @@ function DevotionsView({ data, selected, setSelected }: Props) {
     </Card>
   )
 }
-export default DevotionsView
+export default DevotionPanel

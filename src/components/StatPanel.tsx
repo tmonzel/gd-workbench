@@ -1,6 +1,7 @@
-import CollapsiblePanel from './CollapsiblePanel'
-import type { Character, Mastery } from '../types'
-import type { EquippedSetInfo } from '../itemSets'
+import CollapsiblePanel from '@/components/CollapsiblePanel'
+import type { Character } from '@/domain/hero/types'
+import type { Mastery } from '@/domain/skill/types'
+import type { EquippedSetInfo } from '@/domain/item/types'
 
 type Devotion = { skills: Array<{ id: string; attributes: Array<{ label: string; value: string }> }> }
 

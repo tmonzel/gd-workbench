@@ -1,6 +1,6 @@
 import { IconChevronDown, IconChevronUp } from '@tabler/icons-react'
 import { useState } from 'react'
-import CollapsiblePanel from './CollapsiblePanel'
+import CollapsiblePanel from '@/components/CollapsiblePanel'
 
 type SkillEntry = {
   name: string
@@ -10,11 +10,11 @@ type SkillEntry = {
   icon?: string
 }
 
-type SkillPanelProps = {
+type ActiveSkillPanelProps = {
   skills: SkillEntry[]
 }
 
-function SkillPanel({ skills }: SkillPanelProps) {
+function ActiveSkillPanel({ skills }: ActiveSkillPanelProps) {
   const [expandedSkills, setExpandedSkills] = useState<Set<string>>(new Set())
 
   const toggleSkill = (skillKey: string) => {
@@ -84,4 +84,4 @@ function SkillPanel({ skills }: SkillPanelProps) {
   )
 }
 
-export default SkillPanel
+export default ActiveSkillPanel

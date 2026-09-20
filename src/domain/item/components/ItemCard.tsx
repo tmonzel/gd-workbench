@@ -1,7 +1,6 @@
 import { useState } from 'react'
-import { Card } from './Card'
-import { parseSkillBonus } from '../skillBonus'
-import { getSetForItem, type EquippedSetInfo, type ItemSet } from '../itemSets'
+import { Card } from '@/components/Card'
+import { getSetForItem, parseSkillBonus, type EquippedSetInfo, type ItemSet } from '@/domain/item/item.utils'
 
 type Item = {
   id: string

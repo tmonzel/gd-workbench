@@ -1,137 +1,30 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import './App.css'
-import AttributePanel, { clampAttributes } from './components/AttributePanel'
-import Header from './components/Header'
-import StatPanel from './components/StatPanel'
-import DamagePanel from './components/DamagePanel'
-import ResistancePanel from './components/ResistancePanel'
-import SkillPanel from './components/SkillPanel'
-import WorkspaceTabs from './components/WorkspaceTabs'
-import EquipmentView from './views/EquipmentView'
-import LibraryView from './views/LibraryView'
-import SkillsView from './views/SkillsView'
-import DevotionsView from './views/DevotionsView'
-import type { Character, Item, Mastery, MasterySkill } from './types'
-import { getEquippedSkillBonuses, parseSkillBonus } from './skillBonus'
-import { getEquippedSetInfo, type ItemSet } from './itemSets'
-import { formatSkillEffect, formatSkillValue } from './damage-utils'
-import { trimAllocationsForLevel } from './skill-points'
-
-type DevotionData = Parameters<typeof DevotionsView>[0]['data']
-
-type WorkerMessage =
-  | { type: 'ready'; total: number }
-  | { type: 'page'; page: number; pageSize: number; total: number; items: Item[] }
-  | { type: 'error'; message: string }
+import AttributePanel from '@/components/AttributePanel'
+import Header from '@/components/Header'
+import StatPanel from '@/components/StatPanel'
+import DamagePanel from '@/components/DamagePanel'
+import ResistancePanel from '@/components/ResistancePanel'
+import ActiveSkillPanel from '@/domain/skill/components/ActiveSkillPanel'
+import WorkspaceTabs from '@/components/WorkspaceTabs'
+import ItemPanel from '@/domain/item/components/ItemPanel'
+import EquipmentPanel from '@/domain/hero/components/EquipmentPanel'
+import SkillPanel from '@/domain/skill/components/SkillPanel'
+import DevotionPanel from '@/domain/devotion/components/DevotionPanel'
+import { useSkillData } from '@/domain/skill/skill.hooks'
+import { useDevotionData } from '@/domain/devotion/devotion.hooks'
+import { getEquippedSkillBonuses, getEquippedSetInfo, parseSkillBonus } from '@/domain/item/item.utils'
+import { useItemSets } from '@/domain/item/item.hooks'
+import { formatSkillEffect, formatSkillValue } from '@/domain/skill/skill.utils'
+import { useHero } from '@/domain/hero/hero.hooks'
 
 function App() {
-  const [items, setItems] = useState<Item[]>([])
-  const [masteries, setMasteries] = useState<Mastery[]>([])
-  const [skillsets, setSkillsets] = useState<Record<string, MasterySkill[]>>({})
-  const [devotions, setDevotions] = useState<DevotionData | null>(null)
-  const [selectedDevotions, setSelectedDevotions] = useState<string[]>([])
-  const [itemSets, setItemSets] = useState<ItemSet[]>([])
-  const [search, setSearch] = useState('')
-  const [category, setCategory] = useState('All')
-  const [hideAboveLevel, setHideAboveLevel] = useState(false)
-  const [onlySetItems, setOnlySetItems] = useState(false)
-  const [page, setPage] = useState(0)
-  const [pageSize, setPageSize] = useState(24)
-  const [total, setTotal] = useState(0)
-  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
-  const [view, setView] = useState<'library' | 'character' | 'masteries' | 'devotions'>('masteries')
-  const [character, setCharacter] = useState<Character>({
-    level: 1,
-    physique: 0,
-    cunning: 0,
-    spirit: 0,
-    masteryLevels: {},
-    skillLevels: {},
-    equipment: {},
-  })
-  const workerRef = useRef<Worker | null>(null)
-
-  useEffect(() => {
-    fetch('/data/masteries.json')
-      .then((response) => response.json() as Promise<Mastery[]>)
-      .then(setMasteries)
-      .catch(() => setMasteries([]))
-    fetch('/data/mastery-skills.json')
-      .then((response) => response.json() as Promise<Record<string, MasterySkill[]>>)
-      .then(setSkillsets)
-      .catch(() => setSkillsets({}))
-    fetch('/data/devotions.json')
-      .then((response) => response.json() as Promise<DevotionData>)
-      .then(setDevotions)
-      .catch(() => setDevotions(null))
-    fetch('/data/item-sets.json')
-      .then((response) => response.json() as Promise<ItemSet[]>)
-      .then((data) => {
-        setItemSets(data)
-        workerRef.current?.postMessage({ type: 'setIds', ids: data.flatMap((set) => set.members) })
-      })
-      .catch(() => setItemSets([]))
-    const worker = new Worker('/item-worker.js')
-    workerRef.current = worker
-    worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
-      const message = event.data
-      if (message.type === 'ready') {
-        setStatus('ready')
-      }
-      if (message.type === 'page') {
-        setItems(message.items)
-        setPageSize(message.pageSize)
-        setTotal(message.total)
-        setStatus('ready')
-      }
-      if (message.type === 'error') setStatus('error')
-    }
-    worker.postMessage({ type: 'load' })
-    return () => worker.terminate()
-  }, [])
-
-  const requestPage = (
-    nextPage: number,
-    nextSearch = search,
-    nextCategory = category,
-    nextHideAboveLevel = hideAboveLevel,
-    nextOnlySetItems = onlySetItems,
-  ) => {
-    setPage(nextPage)
-    workerRef.current?.postMessage({
-      type: 'page',
-      page: nextPage,
-      search: nextSearch,
-      category: nextCategory,
-      maxLevel: nextHideAboveLevel ? character.level : undefined,
-      onlySetItems: nextOnlySetItems,
-    })
-  }
-
-  const changeFilter = (value: string) => {
-    setCategory(value)
-    requestPage(0, search, value)
-  }
-  const changeSearch = (value: string) => {
-    setSearch(value)
-    requestPage(0, value, category)
-  }
-  const toggleHideAboveLevel = () => {
-    const next = !hideAboveLevel
-    setHideAboveLevel(next)
-    requestPage(0, search, category, next, onlySetItems)
-  }
-  const toggleOnlySetItems = () => {
-    const next = !onlySetItems
-    setOnlySetItems(next)
-    requestPage(0, search, category, hideAboveLevel, next)
-  }
-  useEffect(() => {
-    if (hideAboveLevel) requestPage(0, search, category, hideAboveLevel, onlySetItems)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [character.level])
-  const pageCount = Math.max(1, Math.ceil(total / pageSize))
-  const loading = status === 'loading'
+  const { masteries, skillsets } = useSkillData()
+  const { data: devotions, selected: selectedDevotions, setSelected: setSelectedDevotions } = useDevotionData()
+  const itemSets = useItemSets()
+  const [view, setView] = useState<'items' | 'equipment' | 'masteries' | 'devotions'>('masteries')
+  const { character, setCharacter, changeLevel, adjustAttribute, equipItem, unequipItem, changeMastery } =
+    useHero(skillsets)
   const itemSkillBonuses = useMemo(() => getEquippedSkillBonuses(character.equipment), [character.equipment])
   const equippedSetInfo = useMemo(
     () => getEquippedSetInfo(character.equipment, itemSets),
@@ -266,34 +159,6 @@ function App() {
       }))
       .sort((left, right) => left.name.localeCompare(right.name))
   }, [character, itemSkillBonuses, skillsets])
-  const equipItem = (item: Item) => {
-    setCharacter((current) => {
-      // a two-handed weapon blocks the off-hand slot; an off-hand item can't go on while one is equipped
-      if (item.category === 'Off-Hand' && current.equipment.Weapon?.twoHanded) return current
-      const equipment = { ...current.equipment }
-      equipment[item.category === 'Ring' ? (equipment['Ring 1'] ? 'Ring 2' : 'Ring 1') : item.category] = item
-      if (item.category === 'Weapon' && item.twoHanded) delete equipment['Off-Hand']
-      return { ...current, equipment }
-    })
-  }
-  const unequipItem = (item: Item) => {
-    setCharacter((current) => {
-      const equipment = { ...current.equipment }
-      for (const slot of Object.keys(equipment)) {
-        if (equipment[slot]?.id === item.id) delete equipment[slot]
-      }
-      return { ...current, equipment }
-    })
-  }
-  const changeLevel = (delta: number) => {
-    setCharacter((current) => {
-      const level = Math.max(1, Math.min(100, current.level + delta))
-      return {
-        ...trimAllocationsForLevel(current, level, skillsets),
-        ...clampAttributes(level, current.physique, current.cunning, current.spirit),
-      }
-    })
-  }
   const masteryCombinations = masteries.flatMap((mastery) => mastery.combinations)
   const selectedCombination =
     character.mastery1 && character.mastery2
@@ -303,14 +168,6 @@ function App() {
         )
       : undefined
   const firstMasteryName = masteries.find((mastery) => mastery.id === character.mastery1)?.name
-  const changeMastery = (slot: 'mastery1' | 'mastery2', value: string) =>
-    setCharacter((current) => {
-      if (slot === 'mastery2' && !current.mastery1) return current
-      if (slot === 'mastery1')
-        return { ...current, mastery1: value || undefined, mastery2: value ? current.mastery2 : undefined }
-      return { ...current, mastery2: value || undefined }
-    })
-
   return (
     <main className="min-h-screen w-full px-4 pb-10 text-neutral-100 sm:px-6 lg:px-8 xl:px-10">
       <Header
@@ -324,10 +181,10 @@ function App() {
       />
       <WorkspaceTabs value={view} onChange={setView} />
       <div className="grid items-start gap-4 lg:grid-cols-[240px_minmax(0,1fr)_minmax(300px,360px)]">
-        <AttributePanel character={character} setCharacter={setCharacter} />
+        <AttributePanel character={character} onAttributeChange={adjustAttribute} />
         <div className="min-w-0">
-          {view === 'character' ? (
-            <EquipmentView
+          {view === 'equipment' ? (
+            <EquipmentPanel
               character={character}
               setCharacter={setCharacter}
               equippedSetInfo={equippedSetInfo}
@@ -335,46 +192,24 @@ function App() {
               activeSkillNames={selectedMasterySkillNames}
             />
           ) : view === 'masteries' ? (
-            <SkillsView
-              character={character}
-              setCharacter={setCharacter}
-              masteries={masteries}
-              skillsets={skillsets}
-              itemBonuses={itemSkillBonuses}
-            />
+            <SkillPanel character={character} setCharacter={setCharacter} itemBonuses={itemSkillBonuses} />
           ) : view === 'devotions' && devotions ? (
-            <DevotionsView data={devotions} selected={selectedDevotions} setSelected={setSelectedDevotions} />
+            <DevotionPanel data={devotions} selected={selectedDevotions} setSelected={setSelectedDevotions} />
           ) : (
-            <LibraryView
-              items={items}
-              category={category}
-              search={search}
-              page={page}
-              pageCount={pageCount}
-              pageSize={pageSize}
-              total={total}
-              loading={loading}
-              status={status}
-              onSearchChange={changeSearch}
-              onCategoryChange={changeFilter}
-              onPageChange={requestPage}
+            <ItemPanel
+              level={character.level}
               onEquip={equipItem}
               onUnequip={unequipItem}
               isEquipped={(item) =>
                 Object.values(character.equipment).some((equippedItem) => equippedItem?.id === item.id)
               }
               activeSkillNames={selectedMasterySkillNames}
-              itemSets={itemSets}
               equippedSetInfo={equippedSetInfo}
-              hideAboveLevel={hideAboveLevel}
-              onToggleHideAboveLevel={toggleHideAboveLevel}
-              onlySetItems={onlySetItems}
-              onToggleOnlySetItems={toggleOnlySetItems}
             />
           )}
         </div>
         <div className="grid gap-4 lg:sticky lg:top-4">
-          <SkillPanel skills={activeSkills} />
+          <ActiveSkillPanel skills={activeSkills} />
           <DamagePanel
             character={character}
             devotions={devotions}

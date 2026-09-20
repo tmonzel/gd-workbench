@@ -1,22 +1,3 @@
-export type Item = {
-  id: string
-  name: string
-  description: string
-  category: string
-  rarity: string
-  level: number
-  image?: string
-  twoHanded?: boolean
-  attributes?: Array<{ label: string; value: string | number }>
-  stats?: Record<string, string | number>
-  grantedSkill?: {
-    name: string
-    description: string
-    level: number
-    attributes: Array<{ label: string; value: string | number }>
-  }
-}
-
 export type Mastery = {
   id: string
   name: string
@@ -53,16 +34,4 @@ export type MasterySkill = {
       maxValues?: number[]
     }>
   }>
-}
-
-export type Character = {
-  level: number
-  physique: number
-  cunning: number
-  spirit: number
-  mastery1?: string
-  mastery2?: string
-  masteryLevels: Record<string, number>
-  skillLevels: Record<string, number>
-  equipment: Partial<Record<string, Item>>
 }

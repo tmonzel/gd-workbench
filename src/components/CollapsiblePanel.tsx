@@ -1,6 +1,6 @@
 import { IconChevronDown, IconChevronUp } from '@tabler/icons-react'
 import { useState, type ReactNode } from 'react'
-import { Card } from './Card'
+import { Card } from '@/components/Card'
 
 type CollapsiblePanelProps = {
   eyebrow: string

@@ -1,18 +1,18 @@
 import type { Dispatch, SetStateAction } from 'react'
-import { Card } from '../components/Card'
-import SkillList from '../components/SkillList'
-import type { Character, Mastery, MasterySkill } from '../types'
-import { skillPointsForLevel, spentSkillPoints } from '../skill-points'
+import { Card } from '@/components/Card'
+import SkillList from '@/domain/skill/components/SkillList'
+import type { Character } from '@/domain/hero/types'
+import { skillPointsForLevel, spentSkillPoints } from '@/domain/skill/skill.utils'
+import { useSkillData } from '@/domain/skill/skill.hooks'
 
-type SkillsViewProps = {
+type SkillPanelProps = {
   character: Character
   setCharacter: Dispatch<SetStateAction<Character>>
-  masteries: Mastery[]
-  skillsets: Record<string, MasterySkill[]>
   itemBonuses?: Record<string, number>
 }
 
-function SkillsView({ character, setCharacter, masteries, skillsets, itemBonuses = {} }: SkillsViewProps) {
+function SkillPanel({ character, setCharacter, itemBonuses = {} }: SkillPanelProps) {
+  const { masteries, skillsets } = useSkillData()
   const selectedMasteryIds = [character.mastery1, character.mastery2].filter(Boolean) as string[]
   const availablePoints = skillPointsForLevel(character.level) - spentSkillPoints(character)
   const changeMasteryLevel = (masteryId: string, delta: number) =>
@@ -92,4 +92,4 @@ function SkillsView({ character, setCharacter, masteries, skillsets, itemBonuses
   )
 }
 
-export default SkillsView
+export default SkillPanel

@@ -1,6 +1,6 @@
-import LevelProgressControl from './LevelProgressControl'
+import LevelProgressControl from '@/components/LevelProgressControl'
 import { IconChevronDown } from '@tabler/icons-react'
-import type { Mastery } from '../types'
+import type { Mastery } from '@/domain/skill/types'
 
 type HeaderProps = {
   level: number

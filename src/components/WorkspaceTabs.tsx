@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-export type WorkspaceView = 'library' | 'character' | 'masteries' | 'devotions'
+export type WorkspaceView = 'items' | 'equipment' | 'masteries' | 'devotions'
 
 type WorkspaceTabsProps = {
   value: WorkspaceView
@@ -19,8 +19,8 @@ const EquipmentIcon = () => (
 
 const tabs: Array<{ value: WorkspaceView; label: string; icon: ReactNode }> = [
   { value: 'masteries', label: 'Skills', icon: '✦' },
-  { value: 'library', label: 'Item library', icon: '▦' },
-  { value: 'character', label: 'Equipment', icon: <EquipmentIcon /> },
+  { value: 'items', label: 'Items', icon: '▦' },
+  { value: 'equipment', label: 'Equipment', icon: <EquipmentIcon /> },
   { value: 'devotions', label: 'Devotions', icon: '✧' },
 ]
 
