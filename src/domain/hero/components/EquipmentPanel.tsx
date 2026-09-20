@@ -19,22 +19,54 @@ function EquipmentPanel({
   itemSets = [],
   activeSkillNames,
 }: EquipmentPanelProps) {
-  const slots = [
-    'Weapon',
-    'Off-Hand',
-    'Chest Armor',
-    'Gloves',
-    'Pants',
-    'Boots',
-    'Helm',
-    'Shoulders',
-    'Belt',
-    'Amulet',
-    'Ring 1',
-    'Ring 2',
-    'Medal',
-    'Relic',
+  const slotGroups = [
+    { name: 'Weapon', slots: ['Weapon', 'Off-Hand'] },
+    { name: 'Armor', slots: ['Chest Armor', 'Gloves', 'Pants', 'Boots', 'Helm', 'Shoulders'] },
+    { name: 'Accessories', slots: ['Belt', 'Amulet', 'Ring 1', 'Ring 2', 'Medal', 'Relic'] },
   ]
+  const renderSlot = (slot: string) => {
+    const item = character.equipment[slot]
+    const blocked = slot === 'Off-Hand' && character.equipment.Weapon?.twoHanded
+    return (
+      <div
+        className={`rounded-md border px-3 py-2 ${blocked ? 'border-neutral-800 bg-neutral-950/60 opacity-60' : 'border-neutral-700 bg-neutral-950/45'}`}
+        key={slot}
+      >
+        <div className="mb-1 flex items-center justify-between">
+          <span className="text-xs text-neutral-500">{slot}</span>
+          {item && !blocked && (
+            <button
+              className="flex size-5 items-center justify-center rounded text-sm leading-none text-neutral-600 transition-colors hover:bg-neutral-800 hover:text-neutral-200"
+              type="button"
+              aria-label={`Remove ${slot}`}
+              title={`Remove ${slot}`}
+              onClick={() =>
+                setCharacter((current) => ({
+                  ...current,
+                  equipment: { ...current.equipment, [slot]: undefined },
+                }))
+              }
+            >
+              ×
+            </button>
+          )}
+        </div>
+        {blocked ? (
+          <span className="block text-xs text-neutral-600">Blocked (two-handed weapon)</span>
+        ) : item ? (
+          <ItemCard
+            item={item}
+            compact
+            activeSkillNames={activeSkillNames}
+            itemSets={itemSets}
+            equippedSetInfo={equippedSetInfo}
+          />
+        ) : (
+          <span className="block text-xs text-neutral-600">Empty</span>
+        )}
+      </div>
+    )
+  }
 
   return (
     <Card as="section" size="lg" variant="filled">
@@ -42,50 +74,29 @@ function EquipmentPanel({
         <p className="mb-1 text-xs uppercase tracking-[0.16em] text-orange-300">Equipment</p>
         <h2 className="text-xl font-medium text-neutral-50">Equipped loadout</h2>
       </div>
-      <div className="mt-6 grid gap-3 sm:grid-cols-2">
-        {slots.map((slot) => {
-          const item = character.equipment[slot]
-          const blocked = slot === 'Off-Hand' && character.equipment.Weapon?.twoHanded
-          return (
-            <div
-              className={`rounded-md border px-3 py-2 ${blocked ? 'border-neutral-800 bg-neutral-950/60 opacity-60' : 'border-neutral-700 bg-neutral-950/45'}`}
-              key={slot}
-            >
-              <div className="mb-1 flex items-center justify-between">
-                <span className="text-xs text-neutral-500">{slot}</span>
-                {item && !blocked && (
-                  <button
-                    className="flex size-5 items-center justify-center rounded text-sm leading-none text-neutral-600 transition-colors hover:bg-neutral-800 hover:text-neutral-200"
-                    type="button"
-                    aria-label={`Remove ${slot}`}
-                    title={`Remove ${slot}`}
-                    onClick={() =>
-                      setCharacter((current) => ({
-                        ...current,
-                        equipment: { ...current.equipment, [slot]: undefined },
-                      }))
-                    }
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-              {blocked ? (
-                <span className="block text-xs text-neutral-600">Blocked (two-handed weapon)</span>
-              ) : item ? (
-                <ItemCard
-                  item={item}
-                  compact
-                  activeSkillNames={activeSkillNames}
-                  itemSets={itemSets}
-                  equippedSetInfo={equippedSetInfo}
-                />
-              ) : (
-                <span className="block text-xs text-neutral-600">Empty</span>
-              )}
-            </div>
-          )
-        })}
+      <div className="mt-6 grid gap-6">
+        <div className="grid gap-6 lg:grid-cols-2">
+          {slotGroups
+            .filter(({ name }) => name !== 'Armor')
+            .map(({ name, slots }) => (
+              <section className="overflow-hidden rounded-lg border border-neutral-800 bg-neutral-950/30" key={name}>
+                <h3 className="border-b border-neutral-800 bg-neutral-900/60 px-3 py-2 text-xs font-medium uppercase tracking-[0.14em] text-neutral-300">
+                  {name}
+                </h3>
+                <div className="grid gap-3 p-3 sm:grid-cols-2">{slots.map(renderSlot)}</div>
+              </section>
+            ))}
+        </div>
+        {slotGroups
+          .filter(({ name }) => name === 'Armor')
+          .map(({ name, slots }) => (
+            <section className="overflow-hidden rounded-lg border border-neutral-800 bg-neutral-950/30" key={name}>
+              <h3 className="border-b border-neutral-800 bg-neutral-900/60 px-3 py-2 text-xs font-medium uppercase tracking-[0.14em] text-neutral-300">
+                {name}
+              </h3>
+              <div className="grid gap-3 p-3 sm:grid-cols-2 lg:grid-cols-3">{slots.map(renderSlot)}</div>
+            </section>
+          ))}
       </div>
       {equippedSetInfo.length > 0 && (
         <div className="mt-6 grid gap-3">
