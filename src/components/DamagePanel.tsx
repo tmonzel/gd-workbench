@@ -2,6 +2,14 @@ import CollapsiblePanel from '@/components/CollapsiblePanel'
 import type { Character } from '@/domain/hero/types'
 import type { EquippedSetInfo } from '@/domain/item/types'
 import { DAMAGE_COLORS, DAMAGE_TYPES } from '@/domain/skill/skill.utils'
+import {
+  getAttributeDamageMultiplier,
+  getCharacterAttributeTotals,
+  parseDamageValue,
+  applyArmorPiercingConversion,
+  getWeaponArmorPiercingPercent,
+} from '@/domain/skill/damage.utils'
+import type { MasteryProgression } from '@/domain/skill/damage.utils'
 
 type Devotion = { skills: Array<{ id: string; attributes: Array<{ label: string; value: string }> }> }
 
@@ -10,25 +18,14 @@ type DamagePanelProps = {
   devotions?: { constellations: Devotion[] } | null
   selectedDevotions?: string[]
   equippedSetInfo?: EquippedSetInfo[]
+  masteries?: MasteryProgression[]
 }
 
-// values are either a flat number, a "min-max" range, or a "+X%" modifier
-const parseDamageValue = (raw: string) => {
-  const text = raw.trim()
-  const percentMatch = /^([+-]?\d+(\.\d+)?)%$/.exec(text)
-  if (percentMatch) return { min: 0, max: 0, percent: Number(percentMatch[1]) }
-  const rangeMatch = /^([+-]?\d+(\.\d+)?)-(\d+(\.\d+)?)$/.exec(text)
-  if (rangeMatch) return { min: Number(rangeMatch[1]), max: Number(rangeMatch[3]), percent: 0 }
-  const flatMatch = /^([+-]?\d+(\.\d+)?)$/.exec(text)
-  if (flatMatch) {
-    const value = Number(flatMatch[1])
-    return { min: value, max: value, percent: 0 }
-  }
-  return { min: 0, max: 0, percent: 0 }
-}
 const formatRange = (min: number, max: number) => {
   const roundedMin = Math.round(min * 10) / 10
   const roundedMax = Math.round(max * 10) / 10
+  if (roundedMin === 0) return `${roundedMax}`
+  if (roundedMax === 0) return `${roundedMin}`
   return roundedMin === roundedMax ? `${roundedMin}` : `${roundedMin}-${roundedMax}`
 }
 
@@ -41,7 +38,15 @@ const DAMAGE_OVER_TIME_LABELS: Record<string, string> = {
   Bleeding: 'Bleeding',
 }
 
-function DamagePanel({ character, devotions, selectedDevotions = [], equippedSetInfo = [] }: DamagePanelProps) {
+function DamagePanel({
+  character,
+  devotions,
+  selectedDevotions = [],
+  equippedSetInfo = [],
+  masteries = [],
+}: DamagePanelProps) {
+  const { cunning, spirit } = getCharacterAttributeTotals(character, masteries)
+
   const sourceAttributes: Array<{ label: string; value: string }> = []
   for (const item of Object.values(character.equipment))
     for (const attribute of item?.attributes ?? [])
@@ -81,14 +86,35 @@ function DamagePanel({ character, devotions, selectedDevotions = [], equippedSet
         max += parsed.max
         percent += parsed.percent
       }
-      const totalMin = min * (1 + percent / 100)
-      const totalMax = max * (1 + percent / 100)
-      return { type, displayType, min, max, percent, totalMin, totalMax, average: (totalMin + totalMax) / 2 }
+      // Apply attribute multipliers (only for regular damage, not retaliation)
+      const attributeMultiplier =
+        labelSuffix === '' ? getAttributeDamageMultiplier(type, damageOverTime, cunning, spirit) : 0
+      const totalPercent = percent + attributeMultiplier * 100
+      const totalMin = min * (1 + totalPercent / 100)
+      const totalMax = max * (1 + totalPercent / 100)
+      return {
+        type,
+        displayType,
+        min,
+        max,
+        percent,
+        attributeBonus: attributeMultiplier * 100,
+        totalPercent,
+        totalMin,
+        totalMax,
+        average: (totalMin + totalMax) / 2,
+      }
     }).filter(
-      (stat): stat is NonNullable<typeof stat> =>
-        stat !== null && (stat.min !== 0 || stat.max !== 0 || stat.percent !== 0),
+      // hide rows that don't resolve to a concrete total (e.g. an attribute bonus with no base damage to apply to)
+      (stat): stat is NonNullable<typeof stat> => stat !== null && (stat.totalMin !== 0 || stat.totalMax !== 0),
     )
-  const damageStats = calculateDamage('')
+  const armorPiercingPercent = getWeaponArmorPiercingPercent(character.equipment.Weapon?.attributes)
+  // Armor Piercing converts a % of ALL Physical attack damage (weapon + skill + item bonuses) to Piercing
+  const damageStats = applyArmorPiercingConversion(calculateDamage(''), armorPiercingPercent).map((stat) => ({
+    ...stat,
+    displayType: stat.type === 'Piercing' ? 'Piercing' : stat.displayType,
+    average: (stat.totalMin + stat.totalMax) / 2,
+  }))
   const damageOverTimeStats = calculateDamage('', true)
   const retaliationStats = calculateDamage(' Retaliation')
   const distributionTotal = (stats: typeof damageStats) =>
@@ -137,7 +163,15 @@ function DamagePanel({ character, devotions, selectedDevotions = [], equippedSet
             </td>
             <td className="py-1.5 text-right tabular-nums text-neutral-400">{formatRange(stat.min, stat.max)}</td>
             <td className="py-1.5 pl-2 text-right tabular-nums text-neutral-500">
-              {stat.percent ? `+${Math.round(stat.percent * 10) / 10}%` : '—'}
+              {stat.percent || stat.attributeBonus ? (
+                <span>
+                  {stat.percent ? `+${Math.round(stat.percent * 10) / 10}%` : ''}
+                  {stat.percent && stat.attributeBonus ? ' + ' : ''}
+                  {stat.attributeBonus ? `+${Math.round(stat.attributeBonus * 10) / 10}%` : ''}
+                </span>
+              ) : (
+                '—'
+              )}
             </td>
             <td className="py-1.5 pl-2 text-right tabular-nums text-neutral-100">
               <strong>{stat.totalMin || stat.totalMax ? formatRange(stat.totalMin, stat.totalMax) : '—'}</strong>

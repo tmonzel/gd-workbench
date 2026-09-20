@@ -3,14 +3,14 @@ import type { Item } from '@/domain/item/types'
 import { isEquippableItem } from '@/domain/item/item.utils'
 import type { MasterySkill } from '@/domain/skill/types'
 import { trimAllocationsForLevel } from '@/domain/skill/skill.utils'
-import { clampAttributes } from '@/domain/hero/hero.utils'
+import { BASE_ATTRIBUTE_VALUE, clampAttributes } from '@/domain/hero/hero.utils'
 import type { Character } from '@/domain/hero/types'
 
 const initialCharacter: Character = {
   level: 1,
-  physique: 0,
-  cunning: 0,
-  spirit: 0,
+  physique: BASE_ATTRIBUTE_VALUE,
+  cunning: BASE_ATTRIBUTE_VALUE,
+  spirit: BASE_ATTRIBUTE_VALUE,
   masteryLevels: {},
   skillLevels: {},
   equipment: {},
@@ -32,8 +32,9 @@ export function useHero(skillsets: Record<string, MasterySkill[]>) {
   const adjustAttribute = (field: 'physique' | 'cunning' | 'spirit', delta: number) => {
     setCharacter((current) => {
       const next = current[field] + delta
-      if (next < 0) return current
-      const spentAfter = current.physique + current.cunning + current.spirit - current[field] + next
+      if (next < BASE_ATTRIBUTE_VALUE) return current
+      const spentAfter =
+        current.physique + current.cunning + current.spirit - BASE_ATTRIBUTE_VALUE * 3 - current[field] + next
       if (spentAfter > current.level) return current
       return { ...current, [field]: next }
     })

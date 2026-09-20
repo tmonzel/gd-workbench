@@ -62,6 +62,9 @@ function StatPanel({
       <table className="w-full border-collapse text-sm">
         <tbody>
           {[
+            ['Physique', physique],
+            ['Cunning', cunning],
+            ['Spirit', spirit],
             ['Health', totals.Health ?? 0],
             [
               'Health Regeneration',
@@ -81,7 +84,9 @@ function StatPanel({
               <td className="py-1.5">
                 <span className="flex items-baseline justify-between gap-3">
                   <span className="text-neutral-500">{label}</span>
-                  <strong className="tabular-nums text-neutral-100">{Math.round((value as number) * 10) / 10}</strong>
+                  <strong className="tabular-nums text-neutral-100">
+                    {typeof value === 'string' ? value : Math.round((value as number) * 10) / 10}
+                  </strong>
                 </span>
               </td>
             </tr>

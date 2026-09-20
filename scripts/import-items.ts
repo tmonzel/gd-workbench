@@ -415,6 +415,9 @@ const gameAttributes = (
       add(retaliationLabel, `${retaliationModifier > 0 ? '+' : ''}${formatNumber(retaliationModifier)}%`)
   }
 
+  const pierceRatio = numeric('offensivePierceRatioMin') || numeric('offensivePierceRatioMax')
+  if (pierceRatio) add('Armor Piercing', `${formatNumber(pierceRatio)}%`)
+
   for (const [key, label] of DAMAGE_OVER_TIME_TYPES) {
     const modifier = numeric(`offensiveSlow${key}Modifier`)
     const duration = numeric(`offensiveSlow${key}DurationModifier`)

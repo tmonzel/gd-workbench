@@ -1,6 +1,7 @@
 import { IconMinus, IconPlus } from '@tabler/icons-react'
 import { Card } from '@/components/Card'
 import type { Character } from '@/domain/hero/types'
+import { BASE_ATTRIBUTE_VALUE } from '@/domain/hero/hero.utils'
 
 type AttributePanelProps = {
   character: Character
@@ -10,7 +11,7 @@ type AttributePanelProps = {
 const ATTRIBUTES = ['physique', 'cunning', 'spirit'] as const
 
 function AttributePanel({ character, onAttributeChange }: AttributePanelProps) {
-  const spent = character.physique + character.cunning + character.spirit
+  const spent = character.physique + character.cunning + character.spirit - BASE_ATTRIBUTE_VALUE * 3
   const remaining = character.level - spent
 
   return (
@@ -34,7 +35,7 @@ function AttributePanel({ character, onAttributeChange }: AttributePanelProps) {
               <button
                 className="flex size-8 items-center justify-center rounded-md border border-neutral-700 bg-neutral-900 text-sm font-semibold text-neutral-300 transition-colors hover:border-orange-300/60 hover:bg-neutral-800 hover:text-orange-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300/50 active:bg-neutral-700 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-neutral-700 disabled:hover:bg-neutral-900 disabled:hover:text-neutral-300"
                 type="button"
-                disabled={character[field] <= 0}
+                disabled={character[field] <= BASE_ATTRIBUTE_VALUE}
                 onClick={() => onAttributeChange(field, -1)}
                 aria-label={`Decrease ${field}`}
               >

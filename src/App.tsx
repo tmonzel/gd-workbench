@@ -9,12 +9,19 @@ import WorkspaceTabs from '@/components/WorkspaceTabs'
 import ItemPanel from '@/domain/item/components/ItemPanel'
 import EquipmentPanel from '@/domain/hero/components/EquipmentPanel'
 import SkillsView from '@/domain/skill/components/SkillsView'
+import type { SkillDamageRow } from '@/domain/skill/components/ActiveSkillPanel'
 import DevotionPanel from '@/domain/devotion/components/DevotionPanel'
 import { useSkillData } from '@/domain/skill/skill.hooks'
 import { useDevotionData } from '@/domain/devotion/devotion.hooks'
 import { getEquippedSkillBonuses, getEquippedSetInfo, parseSkillBonus } from '@/domain/item/item.utils'
 import { useItemLibrary } from '@/domain/item/item.hooks'
 import { formatSkillEffect, formatSkillValue } from '@/domain/skill/skill.utils'
+import {
+  getCharacterAttributeTotals,
+  getDamageTypeModifierPercent,
+  applyArmorPiercingConversion,
+  getWeaponArmorPiercingPercent,
+} from '@/domain/skill/damage.utils'
 import { useHero } from '@/domain/hero/hero.hooks'
 
 function App() {
@@ -37,10 +44,51 @@ function App() {
     return names
   }, [character.mastery1, character.mastery2, skillsets])
   const activeSkills = useMemo(() => {
-    const entries = new Map<string, { level: number; sources: Set<string>; stats: Set<string>; icon?: string }>()
+    const entries = new Map<
+      string,
+      {
+        level: number
+        sources: Set<string>
+        stats: Set<string>
+        damageRows: Map<string, SkillDamageRow>
+        icon?: string
+      }
+    >()
     const masteryLevels = new Map<string, number>()
     const masteryIcons = new Map<string, string>()
     const excludedSkillNames = new Set<string>()
+    const weaponDamage = new Map<string, { min: number; max: number }>()
+    for (const attribute of character.equipment.Weapon?.attributes ?? []) {
+      const match = /^(Physical|Fire|Cold|Lightning|Poison|Piercing|Bleeding|Aether|Chaos|Vitality) Damage$/i.exec(
+        attribute.label,
+      )
+      if (!match || /%$/.test(String(attribute.value))) continue
+      const values = String(attribute.value).match(/^([+-]?\d+(?:\.\d+)?)(?:-([+-]?\d+(?:\.\d+)?))?$/)
+      if (!values) continue
+      const type = `${match[1][0].toUpperCase()}${match[1].slice(1)}`
+      weaponDamage.set(type, { min: Number(values[1]), max: Number(values[2] ?? values[1]) })
+    }
+    // gathers the same item/devotion/set % damage bonuses and attribute conversions used by DamagePanel,
+    // so a skill's weapon-damage-% and flat damage get the same "current total" the player sees there
+    const { cunning, spirit } = getCharacterAttributeTotals(character, masteries)
+    const sourceAttributes: Array<{ label: string; value: string }> = []
+    for (const item of Object.values(character.equipment))
+      for (const attribute of item?.attributes ?? [])
+        sourceAttributes.push({ label: attribute.label, value: String(attribute.value) })
+    for (const constellation of devotions?.constellations ?? [])
+      for (const skill of constellation.skills) {
+        if (!selectedDevotions.includes(skill.id)) continue
+        for (const attribute of skill.attributes) sourceAttributes.push(attribute)
+      }
+    for (const { activeTier } of equippedSetInfo)
+      for (const attribute of activeTier?.attributes ?? []) sourceAttributes.push(attribute)
+    const damageModifierPercent = new Map<string, number>()
+    const getDamageModifierPercent = (type: string) => {
+      if (!damageModifierPercent.has(type))
+        damageModifierPercent.set(type, getDamageTypeModifierPercent(type, false, sourceAttributes, cunning, spirit))
+      return damageModifierPercent.get(type) ?? 0
+    }
+    const armorPiercingPercent = getWeaponArmorPiercingPercent(character.equipment.Weapon?.attributes)
     for (const skills of Object.values(skillsets))
       for (const skill of skills) {
         masteryLevels.set(skill.name, character.skillLevels[skill.id] ?? 0)
@@ -49,7 +97,12 @@ function App() {
       }
     const addSkill = (name: string, level: number, source: string, stats: string[] = [], icon?: string) => {
       if (!name || !level || excludedSkillNames.has(name)) return
-      const entry = entries.get(name) ?? { level: 0, sources: new Set<string>(), stats: new Set<string>() }
+      const entry = entries.get(name) ?? {
+        level: 0,
+        sources: new Set<string>(),
+        stats: new Set<string>(),
+        damageRows: new Map<string, SkillDamageRow>(),
+      }
       entry.level = Math.max(entry.level, level)
       entry.icon ??= icon ?? masteryIcons.get(name)
       entry.sources.add(source)
@@ -110,6 +163,8 @@ function App() {
                   100,
               0,
             )
+          const damageRows: SkillDamageRow[] = []
+          let weaponDamagePercent = 0
           const stats = skill.effects
             .filter(
               (effect) =>
@@ -118,6 +173,41 @@ function App() {
             .map((effect) => {
               const rawValue = effect.values[Math.min(effectiveLevel, effect.values.length) - 1]
               const isDamage = /^(offensive|weaponDamagePct|retaliation)/i.test(effect.key)
+              const isWeaponDamage = effect.key === 'weaponDamagePct'
+              if (isDamage) {
+                const typeMatch = effect.key.match(
+                  /offensive(?:Base)?(Physical|Fire|Cold|Lightning|Poison|Piercing|Bleeding|Aether|Chaos|Vitality)/i,
+                )
+                const type = typeMatch ? `${typeMatch[1][0].toUpperCase()}${typeMatch[1].slice(1)}` : 'Physical'
+                if (isWeaponDamage) weaponDamagePercent += rawValue
+                const min =
+                  effect.minValues?.[Math.min(effectiveLevel, effect.minValues.length) - 1] ??
+                  (isWeaponDamage ? 0 : rawValue)
+                // some flat (non-range) damage effects only expose a placeholder maxValues array
+                // (length 1, e.g. Cadence's Physical Damage) instead of real per-level max data -
+                // in that case the effect is a single flat number, so max should mirror min
+                const hasRangeMaxValues =
+                  (effect.maxValues?.length ?? 0) >= (effect.minValues?.length ?? effect.values.length)
+                const max = hasRangeMaxValues
+                  ? effect.maxValues![Math.min(effectiveLevel, effect.maxValues!.length) - 1]
+                  : isWeaponDamage
+                    ? 0
+                    : min
+                if (!isWeaponDamage) {
+                  const modifierPercent = getDamageModifierPercent(type)
+                  const flatMultiplier = (1 + modifierPercent / 100) * totalDamageMultiplier
+                  damageRows.push({
+                    type,
+                    label: type === 'Poison' ? 'Poison Damage' : `${type} Damage`,
+                    min,
+                    max,
+                    percent: modifierPercent,
+                    totalMin: min * flatMultiplier,
+                    totalMax: max * flatMultiplier,
+                  })
+                }
+              }
+              if (isWeaponDamage) return rawValue ? `${formatSkillValue(rawValue)}% Weapon Damage` : ''
               const converted = convertsAllLightningToAether && /lightning/i.test(effect.key)
               const label = converted ? effect.label.replace(/Lightning/gi, 'Aether') : effect.label
               const value = isDamage ? rawValue * totalDamageMultiplier : rawValue
@@ -146,7 +236,41 @@ function App() {
               if (Number.isFinite(value) && value !== 0)
                 stats.push(`Total Damage Modified by ${formatSkillValue(value)}% (${modifier.name})`)
             }
+          if (weaponDamagePercent > 0) {
+            for (const [type, weapon] of weaponDamage) {
+              const existing = damageRows.find((row) => row.type === type)
+              const modifierPercent = getDamageModifierPercent(type)
+              const flatMultiplier = (1 + modifierPercent / 100) * totalDamageMultiplier
+              // weapon damage is scaled by the skill's own weapon-damage-% before adding it to the
+              // already-modified flat skill damage, matching how e.g. Cadence combines its bonuses
+              const weaponMin = weapon.min * flatMultiplier * (weaponDamagePercent / 100)
+              const weaponMax = weapon.max * flatMultiplier * (weaponDamagePercent / 100)
+              if (existing) {
+                existing.min += weapon.min
+                existing.max += weapon.max
+                existing.totalMin += weaponMin
+                existing.totalMax += weaponMax
+              } else {
+                damageRows.push({
+                  type,
+                  label: `${type} Damage`,
+                  min: weapon.min,
+                  max: weapon.max,
+                  percent: modifierPercent,
+                  totalMin: weaponMin,
+                  totalMax: weaponMax,
+                })
+              }
+            }
+          }
           addSkill(skill.name, effectiveLevel, 'Mastery', stats, skill.icon)
+          const entry = entries.get(skill.name)
+          // Armor Piercing converts a % of ALL Physical attack damage (weapon + flat skill bonuses) to Piercing
+          const convertedDamageRows = applyArmorPiercingConversion(damageRows, armorPiercingPercent).map((row) => ({
+            ...row,
+            label: row.type === 'Piercing' ? 'Piercing Damage' : row.label,
+          }))
+          if (entry) for (const row of convertedDamageRows) entry.damageRows.set(`${row.type}-${row.label}`, row)
         }
       }
     return [...entries.entries()]
@@ -155,10 +279,11 @@ function App() {
         level: entry.level,
         source: [...entry.sources].join(' + '),
         stats: [...entry.stats],
+        damageRows: [...entry.damageRows.values()],
         icon: entry.icon,
       }))
       .sort((left, right) => left.name.localeCompare(right.name))
-  }, [character, itemSkillBonuses, skillsets])
+  }, [character, itemSkillBonuses, skillsets, devotions, selectedDevotions, equippedSetInfo, masteries])
   const masteryCombinations = masteries.flatMap((mastery) => mastery.combinations)
   const selectedCombination =
     character.mastery1 && character.mastery2
@@ -219,6 +344,7 @@ function App() {
             devotions={devotions}
             selectedDevotions={selectedDevotions}
             equippedSetInfo={equippedSetInfo}
+            masteries={masteries}
           />
           <ResistancePanel
             character={character}
