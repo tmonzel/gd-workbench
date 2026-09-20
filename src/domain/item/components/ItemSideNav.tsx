@@ -28,16 +28,17 @@ function ItemSideNav({ category, onCategoryChange }: ItemSideNavProps) {
       >
         All items
       </button>
-      <div className="grid gap-4">
+      <div>
         {Object.entries(CATEGORY_GROUPS).map(([group, subcategories]) => (
-          <section key={group}>
+          <section className="pt-4 first:pt-0" key={group}>
             <button
-              className={`mb-1 w-full border-l-2 px-2 text-left text-xs font-medium uppercase tracking-[0.12em] transition-colors ${
+              className={`mb-1 w-full border-l-2 px-2 py-1 text-left uppercase transition-colors ${
                 activeTopCategory === group
                   ? 'border-orange-300 text-orange-200'
                   : 'border-transparent text-neutral-400 hover:border-neutral-600 hover:text-neutral-200'
               }`}
               type="button"
+              style={{ fontSize: '0.75rem', lineHeight: '0.9rem', fontWeight: 500, letterSpacing: '0.15em' }}
               onClick={() => onCategoryChange(group)}
             >
               {group}
