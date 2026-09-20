@@ -31,7 +31,7 @@ function Header({
       <section className="flex items-end justify-between gap-6 py-5">
         <div>
           <p className="mb-1 text-xs uppercase tracking-[0.16em] text-orange-300">Hero class</p>
-          <h1 className="text-3xl font-medium tracking-tight text-neutral-50">
+          <h1 className="text-4xl font-medium tracking-tight text-neutral-50">
             {combinedClassName ?? 'Choose a mastery'}
           </h1>
         </div>
