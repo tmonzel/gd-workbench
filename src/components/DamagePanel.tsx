@@ -32,6 +32,15 @@ const formatRange = (min: number, max: number) => {
   return roundedMin === roundedMax ? `${roundedMin}` : `${roundedMin}-${roundedMax}`
 }
 
+const DAMAGE_OVER_TIME_LABELS: Record<string, string> = {
+  Physical: 'Internal Trauma',
+  Fire: 'Burn',
+  Cold: 'Frostburn',
+  Lightning: 'Electrocute',
+  Poison: 'Acid',
+  Bleeding: 'Bleeding',
+}
+
 function DamagePanel({ character, devotions, selectedDevotions = [], equippedSetInfo = [] }: DamagePanelProps) {
   const sourceAttributes: Array<{ label: string; value: string }> = []
   for (const item of Object.values(character.equipment))
@@ -46,9 +55,14 @@ function DamagePanel({ character, devotions, selectedDevotions = [], equippedSet
     for (const attribute of activeTier?.attributes ?? []) sourceAttributes.push(attribute)
 
   // keep the flat base range and the % modifiers separate, then apply the modifiers on top of the base
-  const calculateDamage = (labelSuffix: string) =>
+  const calculateDamage = (labelSuffix: string, damageOverTime = false) =>
     DAMAGE_TYPES.map((type) => {
-      const displayType = labelSuffix === ' Retaliation' && type === 'Poison' ? 'Acid' : type
+      const displayType = damageOverTime
+        ? DAMAGE_OVER_TIME_LABELS[type]
+        : labelSuffix === ' Retaliation' && type === 'Poison'
+          ? 'Acid'
+          : type
+      if (!displayType) return null
       const label = `${displayType}${labelSuffix} Damage`
       let min = 0
       let max = 0
@@ -70,8 +84,12 @@ function DamagePanel({ character, devotions, selectedDevotions = [], equippedSet
       const totalMin = min * (1 + percent / 100)
       const totalMax = max * (1 + percent / 100)
       return { type, displayType, min, max, percent, totalMin, totalMax, average: (totalMin + totalMax) / 2 }
-    }).filter((stat) => stat.min !== 0 || stat.max !== 0 || stat.percent !== 0)
+    }).filter(
+      (stat): stat is NonNullable<typeof stat> =>
+        stat !== null && (stat.min !== 0 || stat.max !== 0 || stat.percent !== 0),
+    )
   const damageStats = calculateDamage('')
+  const damageOverTimeStats = calculateDamage('', true)
   const retaliationStats = calculateDamage(' Retaliation')
   const totalDamage = damageStats.reduce((sum, stat) => sum + stat.average, 0)
   const renderDamageTable = (stats: typeof damageStats) => (
@@ -108,7 +126,7 @@ function DamagePanel({ character, devotions, selectedDevotions = [], equippedSet
 
   return (
     <CollapsiblePanel eyebrow="Damage" title="Damage breakdown">
-      {damageStats.length === 0 && retaliationStats.length === 0 ? (
+      {damageStats.length === 0 && damageOverTimeStats.length === 0 && retaliationStats.length === 0 ? (
         <p className="m-0 border-t border-neutral-800 pt-3 text-sm text-neutral-500">
           No damage bonuses or flat damage are currently available.
         </p>
@@ -118,6 +136,12 @@ function DamagePanel({ character, devotions, selectedDevotions = [], equippedSet
             <div>
               <h3 className="mb-2 text-xs uppercase tracking-[0.12em] text-neutral-400">Attack Damage</h3>
               {renderDamageTable(damageStats)}
+            </div>
+          )}
+          {damageOverTimeStats.length > 0 && (
+            <div>
+              <h3 className="mb-2 text-xs uppercase tracking-[0.12em] text-neutral-400">Attack Damage Over Time</h3>
+              {renderDamageTable(damageOverTimeStats)}
             </div>
           )}
           {retaliationStats.length > 0 && (
