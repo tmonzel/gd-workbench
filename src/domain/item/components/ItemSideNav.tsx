@@ -4,9 +4,20 @@ type ItemSideNavProps = {
 }
 
 export const CATEGORY_GROUPS: Record<string, string[]> = {
-  Jewelry: ['Medal', 'Amulet', 'Ring', 'Belt'],
+  Accessories: ['Medal', 'Amulet', 'Ring', 'Belt'],
   Armor: ['Chest Armor', 'Gloves', 'Pants', 'Boots', 'Helm', 'Shoulders'],
   Weapon: ['Weapon', 'Off-Hand'],
+  Other: [
+    'Relics',
+    'Augments',
+    'Components',
+    'Consumables',
+    'Blueprints',
+    'Quest Items',
+    'Potion Containers',
+    'Potion Modifiers',
+    'Lore Notes',
+  ],
 }
 
 function ItemSideNav({ category, onCategoryChange }: ItemSideNavProps) {
@@ -43,10 +54,10 @@ function ItemSideNav({ category, onCategoryChange }: ItemSideNavProps) {
             >
               {group}
             </button>
-            <div className="grid gap-0.5 pl-3">
+            <div className="grid gap-0.5 pl-3 text-sm">
               {subcategories.map((name) => (
                 <button
-                  className={`rounded px-2 py-1 text-left text-xs transition-colors ${
+                  className={`rounded px-2 py-1 text-left transition-colors ${
                     category === name
                       ? 'bg-neutral-800 text-neutral-100'
                       : 'text-neutral-500 hover:bg-neutral-900 hover:text-neutral-300'

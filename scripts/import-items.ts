@@ -43,6 +43,14 @@ const numberValue = (record: RawRecord, keys: string[], fallback = 0) => {
 
 const itemTypeFromPath = (filePath: string) => {
   const normalizedPath = filePath.replaceAll('\\', '/').toLowerCase()
+  if (normalizedPath.includes('/gearrelic/')) return 'Relics'
+  if (normalizedPath.includes('/materia/')) return 'Components'
+  if (normalizedPath.includes('/enchants/')) return normalizedPath.includes('/runes/') ? 'Potion Modifiers' : 'Augments'
+  if (normalizedPath.includes('/crafting/consumables/')) return 'Consumables'
+  if (normalizedPath.includes('/crafting/blueprints/')) return 'Blueprints'
+  if (normalizedPath.includes('/questitems/')) return 'Quest Items'
+  if (normalizedPath.includes('/loreobjects/')) return 'Lore Notes'
+  if (normalizedPath.includes('/misc/potions/')) return 'Potion Containers'
   if (normalizedPath.includes('/gearweapons/shields/') || normalizedPath.includes('/gearweapons/focus/'))
     return 'Off-Hand'
   if (normalizedPath.includes('/gearweapons/')) return 'Weapon'
@@ -58,6 +66,8 @@ const itemTypeFromPath = (filePath: string) => {
   if (normalizedPath.includes('/gearshoulders/')) return 'Shoulders'
   return 'Item'
 }
+
+const normalizeRarity = (value: string) => (value === 'Magical' ? 'Magic' : value)
 
 const formatNumber = (value: number) =>
   Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/0+$/, '').replace(/\.$/, '')
@@ -552,7 +562,7 @@ const normalize = async (
     twoHanded,
     description: localization.get(rawDescription) ?? rawDescription,
     category: itemTypeFromPath(fallbackId),
-    rarity: textValue(record, ['rarity', 'quality', 'itemClassification'], 'Common'),
+    rarity: normalizeRarity(textValue(record, ['rarity', 'quality', 'itemClassification'], 'Common')),
     level: numberValue(record, ['level', 'itemLevel', 'requiredLevel', 'levelRequirement']),
     image: imagePath(record),
     attributes: gameAttributes(stats, skillNames, localization),

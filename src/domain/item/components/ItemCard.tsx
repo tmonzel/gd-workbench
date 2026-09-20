@@ -1,6 +1,12 @@
 import { useState } from 'react'
 import { Card } from '@/components/Card'
-import { getSetForItem, parseSkillBonus, type EquippedSetInfo, type ItemSet } from '@/domain/item/item.utils'
+import {
+  getSetForItem,
+  parseSkillBonus,
+  rarityTextClasses,
+  type EquippedSetInfo,
+  type ItemSet,
+} from '@/domain/item/item.utils'
 
 type Item = {
   id: string
@@ -47,15 +53,6 @@ const hiddenStatLabels = new Set([
   'artifactCreateQuantity',
   'itemLevel',
 ])
-
-const rarityTextClasses: Record<string, string> = {
-  common: 'text-white',
-  magic: 'text-yellow-300',
-  magical: 'text-yellow-300',
-  rare: 'text-green-400',
-  epic: 'text-blue-400',
-  legendary: 'text-purple-400',
-}
 
 type ItemCardProps = {
   item: Item

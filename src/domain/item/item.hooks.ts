@@ -27,6 +27,7 @@ export function useItemLibrary(level: number) {
   const [category, setCategory] = useState('All')
   const [hideAboveLevel, setHideAboveLevel] = useState(false)
   const [onlySetItems, setOnlySetItems] = useState(false)
+  const [rarities, setRarities] = useState<string[]>([])
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(24)
   const [total, setTotal] = useState(0)
@@ -40,6 +41,7 @@ export function useItemLibrary(level: number) {
       nextCategory = category,
       nextHideAboveLevel = hideAboveLevel,
       nextOnlySetItems = onlySetItems,
+      nextRarities = rarities,
     ) => {
       setPage(nextPage)
       worker?.postMessage({
@@ -49,9 +51,10 @@ export function useItemLibrary(level: number) {
         category: nextCategory,
         maxLevel: nextHideAboveLevel ? level : undefined,
         onlySetItems: nextOnlySetItems,
+        rarities: nextRarities,
       })
     },
-    [category, hideAboveLevel, level, onlySetItems, search, worker],
+    [category, hideAboveLevel, level, onlySetItems, rarities, search, worker],
   )
 
   useEffect(() => {
@@ -95,10 +98,15 @@ export function useItemLibrary(level: number) {
     setOnlySetItems(next)
     requestPage(0, search, category, hideAboveLevel, next)
   }
+  const toggleRarity = (rarity: string) => {
+    const next = rarities.includes(rarity) ? rarities.filter((value) => value !== rarity) : [...rarities, rarity]
+    setRarities(next)
+    requestPage(0, search, category, hideAboveLevel, onlySetItems, next)
+  }
 
   useEffect(() => {
-    if (hideAboveLevel) requestPage(0, search, category, hideAboveLevel, onlySetItems)
-  }, [category, hideAboveLevel, level, onlySetItems, requestPage, search])
+    if (hideAboveLevel) requestPage(0, search, category, hideAboveLevel, onlySetItems, rarities)
+  }, [category, hideAboveLevel, level, onlySetItems, rarities, requestPage, search])
 
   return {
     items,
@@ -107,6 +115,7 @@ export function useItemLibrary(level: number) {
     category,
     hideAboveLevel,
     onlySetItems,
+    rarities,
     page,
     pageSize,
     total,
@@ -117,5 +126,6 @@ export function useItemLibrary(level: number) {
     requestPage,
     toggleHideAboveLevel,
     toggleOnlySetItems,
+    toggleRarity,
   }
 }

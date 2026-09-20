@@ -4,6 +4,7 @@ import ItemSideNav from '@/domain/item/components/ItemSideNav'
 import type { Item } from '@/domain/item/types'
 import type { EquippedSetInfo } from '@/domain/item/types'
 import { useItemLibrary } from '@/domain/item/item.hooks'
+import { RARITIES, rarityBackgroundClasses, rarityBorderClasses, rarityTextClasses } from '@/domain/item/item.utils'
 
 type ItemPanelProps = {
   level: number
@@ -22,6 +23,7 @@ function ItemPanel({ level, onEquip, onUnequip, isEquipped, activeSkillNames, eq
     category,
     hideAboveLevel,
     onlySetItems,
+    rarities,
     page,
     pageSize,
     total,
@@ -32,6 +34,7 @@ function ItemPanel({ level, onEquip, onUnequip, isEquipped, activeSkillNames, eq
     requestPage,
     toggleHideAboveLevel,
     toggleOnlySetItems,
+    toggleRarity,
   } = useItemLibrary(level)
   const loading = status === 'loading'
   return (
@@ -39,7 +42,27 @@ function ItemPanel({ level, onEquip, onUnequip, isEquipped, activeSkillNames, eq
       <div className="grid gap-6 lg:grid-cols-[180px_minmax(0,1fr)]">
         <ItemSideNav category={category} onCategoryChange={changeCategory} />
         <div className="min-w-0">
-          <section className="flex flex-wrap items-center justify-between gap-2" aria-label="Filter items">
+          <section className="flex flex-wrap items-center justify-between gap-2 mb-4" aria-label="Filter items">
+            <div className="flex flex-wrap items-center gap-1" aria-label="Rarity filters">
+              {RARITIES.map((rarity) => (
+                <label
+                  className={`cursor-pointer rounded border px-2.5 py-1.5 text-md transition-colors ${
+                    rarities.includes(rarity)
+                      ? `${rarityBorderClasses[rarity.toLowerCase()] ?? 'border-neutral-400/70'} brightness-125 ${rarityBackgroundClasses[rarity.toLowerCase()] ?? 'bg-neutral-800/80'} ${rarityTextClasses[rarity.toLowerCase()] ?? 'text-neutral-100'}`
+                      : 'border-neutral-700 bg-neutral-900/80 text-neutral-500 hover:border-neutral-500 hover:text-neutral-300'
+                  }`}
+                  key={rarity}
+                >
+                  <input
+                    className="sr-only"
+                    type="checkbox"
+                    checked={rarities.includes(rarity)}
+                    onChange={() => toggleRarity(rarity)}
+                  />
+                  {rarity}
+                </label>
+              ))}
+            </div>
             <label className="flex min-w-48 flex-1 items-center gap-1.5 rounded border border-neutral-700 bg-neutral-900 px-2 text-orange-300 sm:max-w-52 sm:flex-none">
               <span aria-hidden="true" className="text-base">
                 ⌕
