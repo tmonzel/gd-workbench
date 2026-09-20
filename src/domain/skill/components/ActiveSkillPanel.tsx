@@ -2,7 +2,7 @@ import { IconChevronDown, IconChevronUp } from '@tabler/icons-react'
 import { useState } from 'react'
 import CollapsiblePanel from '@/components/CollapsiblePanel'
 
-type SkillEntry = {
+export type SkillEntry = {
   name: string
   level: number
   source: string

@@ -5,11 +5,10 @@ import Header from '@/components/Header'
 import StatPanel from '@/components/StatPanel'
 import DamagePanel from '@/components/DamagePanel'
 import ResistancePanel from '@/components/ResistancePanel'
-import ActiveSkillPanel from '@/domain/skill/components/ActiveSkillPanel'
 import WorkspaceTabs from '@/components/WorkspaceTabs'
 import ItemPanel from '@/domain/item/components/ItemPanel'
 import EquipmentPanel from '@/domain/hero/components/EquipmentPanel'
-import SkillPanel from '@/domain/skill/components/SkillPanel'
+import SkillsView from '@/domain/skill/components/SkillsView'
 import DevotionPanel from '@/domain/devotion/components/DevotionPanel'
 import { useSkillData } from '@/domain/skill/skill.hooks'
 import { useDevotionData } from '@/domain/devotion/devotion.hooks'
@@ -193,7 +192,12 @@ function App() {
               activeSkillNames={selectedMasterySkillNames}
             />
           ) : view === 'masteries' ? (
-            <SkillPanel character={character} setCharacter={setCharacter} itemBonuses={itemSkillBonuses} />
+            <SkillsView
+              character={character}
+              setCharacter={setCharacter}
+              itemBonuses={itemSkillBonuses}
+              activeSkills={activeSkills}
+            />
           ) : view === 'devotions' && devotions ? (
             <DevotionPanel data={devotions} selected={selectedDevotions} setSelected={setSelectedDevotions} />
           ) : (
@@ -229,7 +233,6 @@ function App() {
             selectedDevotions={selectedDevotions}
             equippedSetInfo={equippedSetInfo}
           />
-          <ActiveSkillPanel skills={activeSkills} />
         </div>
       </div>
     </main>
