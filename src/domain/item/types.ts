@@ -1,6 +1,7 @@
 export type Item = {
   id: string
   name: string
+  qualityTag?: string
   description: string
   category: string
   rarity: string

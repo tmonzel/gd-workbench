@@ -12,6 +12,7 @@ import {
 type Item = {
   id: string
   name: string
+  qualityTag?: string
   description: string
   category: string
   rarity: string
@@ -110,7 +111,10 @@ function ItemCard({
             >
               {item.rarity}
             </span>
-            <p className="truncate font-medium text-neutral-100">{item.name}</p>
+            <p className="truncate font-medium text-neutral-100">
+              {item.qualityTag && <span>{item.qualityTag} </span>}
+              {item.name}
+            </p>
             {item.description && (
               <p className="mt-0.5 line-clamp-2 text-[0.65rem] italic leading-snug text-neutral-500">
                 {item.description}
@@ -164,7 +168,10 @@ function ItemCard({
             >
               {item.rarity}
             </span>
-            <h3 className="line-clamp-2 text-[0.92rem] font-medium leading-tight text-neutral-50">{item.name}</h3>
+            <h3 className="line-clamp-2 text-[0.92rem] font-medium leading-tight text-neutral-50">
+              {item.qualityTag && <span>{item.qualityTag} </span>}
+              {item.name}
+            </h3>
             {item.description && (
               <p className="mt-1 line-clamp-2 text-[0.7rem] italic leading-snug text-neutral-500">
                 &ldquo;{item.description}&rdquo;

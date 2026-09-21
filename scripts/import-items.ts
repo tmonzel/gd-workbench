@@ -5,6 +5,7 @@ import { DAMAGE_OVER_TIME_TYPES, DAMAGE_TYPES, fieldName } from './damage-utils.
 type Item = {
   id: string
   name: string
+  qualityTag?: string
   description: string
   category: string
   rarity: string
@@ -553,6 +554,11 @@ const normalize = async (
       ? 'Mythical'
       : undefined
   const twoHanded = /\/gearweapons\/(melee2h|guns2h)\//i.test(fallbackId) || undefined
+  // the game combines a separate quality/material tag (e.g. "Scrapmetal") with the base item name
+  // (e.g. "Gladius") to produce the full displayed name, unless the item opts out via hidePrefixName
+  const qualityTag = textValue(record, ['itemQualityTag'], '')
+  const hidesPrefix = numberValue(record, ['hidePrefixName'], 0) === 1
+  const resolvedQualityTag = qualityTag && !hidesPrefix ? (localization.get(qualityTag) ?? '') : undefined
   const resolvedName = localization.get(rawName) ?? rawName
   // Drop zero/blank fields from the output; gameAttributes already read the full stats above.
   const trimmedStats = Object.fromEntries(
@@ -560,7 +566,8 @@ const normalize = async (
   )
   return {
     id: textValue(record, ['id', 'record', 'path'], fallbackId),
-    name: tier ? `${tier} ${resolvedName}` : resolvedName,
+    name: resolvedName,
+    qualityTag: resolvedQualityTag,
     tier,
     twoHanded,
     description: localization.get(rawDescription) ?? rawDescription,

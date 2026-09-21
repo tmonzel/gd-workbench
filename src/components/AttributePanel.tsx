@@ -1,7 +1,7 @@
 import { IconMinus, IconPlus } from '@tabler/icons-react'
 import { Card } from '@/components/Card'
 import type { Character } from '@/domain/hero/types'
-import { BASE_ATTRIBUTE_VALUE } from '@/domain/hero/hero.utils'
+import { BASE_ATTRIBUTE_VALUE, ATTRIBUTE_POINT_VALUE } from '@/domain/hero/hero.utils'
 
 type AttributePanelProps = {
   character: Character
@@ -11,8 +11,9 @@ type AttributePanelProps = {
 const ATTRIBUTES = ['physique', 'cunning', 'spirit'] as const
 
 function AttributePanel({ character, onAttributeChange }: AttributePanelProps) {
-  const spent = character.physique + character.cunning + character.spirit - BASE_ATTRIBUTE_VALUE * 3
-  const remaining = character.level - spent
+  const spentPoints =
+    (character.physique + character.cunning + character.spirit - BASE_ATTRIBUTE_VALUE * 3) / ATTRIBUTE_POINT_VALUE
+  const remaining = character.level - spentPoints
 
   return (
     <Card as="aside" size="md" variant="filled" className="lg:sticky lg:top-4">

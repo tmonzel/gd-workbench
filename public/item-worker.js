@@ -23,7 +23,7 @@ const matchesCategory = (itemCategory, category) =>
 const normalizedRarity = (rarity) => (rarity === 'Magical' ? 'Magic' : rarity)
 
 const matches = (item, search, category, maxLevel, rarities) => {
-  const haystack = `${item.name} ${item.description} ${item.category}`.toLowerCase()
+  const haystack = `${item.qualityTag ?? ''} ${item.name} ${item.description} ${item.category}`.toLowerCase()
   const requiredLevel = Number(item.stats?.levelRequirement ?? item.level) || 0
   return (
     (!search || haystack.includes(search)) &&
