@@ -93,6 +93,10 @@ export function useItemLibrary(level: number) {
     requestPage(0, search, category, hideAboveLevel, next)
   }
 
+  const addItem = (item: Item) => {
+    worker?.postMessage({ type: 'addItem', item })
+  }
+
   useEffect(() => {
     if (hideAboveLevel) requestPage(0, search, category, hideAboveLevel, rarities)
   }, [category, hideAboveLevel, level, rarities, requestPage, search])
@@ -114,5 +118,6 @@ export function useItemLibrary(level: number) {
     requestPage,
     toggleHideAboveLevel,
     toggleRarity,
+    addItem,
   }
 }

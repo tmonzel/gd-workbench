@@ -45,7 +45,7 @@ const sendPage = (page, search = '', category = 'All', maxLevel = undefined, rar
 }
 
 onmessage = (event) => {
-  const { type, page = 0, search = '', category = 'All', maxLevel, rarities = [] } = event.data
+  const { type, page = 0, search = '', category = 'All', maxLevel, rarities = [], item } = event.data
   if (type === 'load') {
     fetch('/data/items.json')
       .then((response) => response.json())
@@ -70,6 +70,16 @@ onmessage = (event) => {
           message: error instanceof Error ? error.message : String(error),
         }),
       )
+  }
+  if (type === 'addItem' && item) {
+    items = [item, ...items.filter((existing) => existing.id !== item.id)]
+    sendPage(
+      pendingRequest.page,
+      pendingRequest.search,
+      pendingRequest.category,
+      pendingRequest.maxLevel,
+      pendingRequest.rarities,
+    )
   }
   if (type === 'page') {
     pendingRequest = { page, search: search.trim().toLowerCase(), category, maxLevel, rarities }

@@ -13,6 +13,8 @@ type Item = {
   id: string
   name: string
   qualityTag?: string
+  prefix?: string
+  suffix?: string
   description: string
   category: string
   rarity: string
@@ -65,6 +67,7 @@ type ItemCardProps = {
   itemSets?: ItemSet[]
   equippedSetInfo?: EquippedSetInfo[]
   compact?: boolean
+  onSelect?: (item: Item) => void
 }
 
 function ItemCard({
@@ -113,7 +116,9 @@ function ItemCard({
             </span>
             <p className="truncate font-medium text-neutral-100">
               {item.qualityTag && <span>{item.qualityTag} </span>}
+              {item.prefix && <span>{item.prefix} </span>}
               {item.name}
+              {item.suffix && <span> {item.suffix}</span>}
             </p>
             {item.description && (
               <p className="mt-0.5 line-clamp-2 text-[0.65rem] italic leading-snug text-neutral-500">
@@ -170,7 +175,9 @@ function ItemCard({
             </span>
             <h3 className="line-clamp-2 text-[0.92rem] font-medium leading-tight text-neutral-50">
               {item.qualityTag && <span>{item.qualityTag} </span>}
+              {item.prefix && <span>{item.prefix} </span>}
               {item.name}
+              {item.suffix && <span> {item.suffix}</span>}
             </h3>
             {item.description && (
               <p className="mt-1 line-clamp-2 text-[0.7rem] italic leading-snug text-neutral-500">
