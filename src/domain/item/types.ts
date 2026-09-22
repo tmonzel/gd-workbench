@@ -1,5 +1,6 @@
 export type Item = {
   id: string
+  isInstance?: boolean
   name: string
   qualityTag?: string
   prefix?: string

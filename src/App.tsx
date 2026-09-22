@@ -8,6 +8,7 @@ import ResistancePanel from '@/components/ResistancePanel'
 import WorkspaceTabs from '@/components/WorkspaceTabs'
 import ItemPanel from '@/domain/item/components/ItemPanel'
 import CraftingView from '@/domain/item/components/CraftingView'
+import type { Item } from '@/domain/item/types'
 import EquipmentPanel from '@/domain/hero/components/EquipmentPanel'
 import SkillsView from '@/domain/skill/components/SkillsView'
 import type { SkillDamageRow } from '@/domain/skill/components/ActiveSkillPanel'
@@ -29,6 +30,7 @@ function App() {
   const { masteries, skillsets } = useSkillData()
   const { data: devotions, selected: selectedDevotions, setSelected: setSelectedDevotions } = useDevotionData()
   const [view, setView] = useState<'items' | 'equipment' | 'masteries' | 'devotions' | 'crafting'>('masteries')
+  const [collectionItems, setCollectionItems] = useState<Item[]>([])
   const { character, setCharacter, changeLevel, adjustAttribute, equipItem, unequipItem, changeMastery } =
     useHero(skillsets)
   const itemLibrary = useItemLibrary(character.level)
@@ -38,6 +40,11 @@ function App() {
     () => getEquippedSetInfo(character.equipment, itemSets),
     [character.equipment, itemSets],
   )
+  const createItemInstance = (template: Item) =>
+    setCollectionItems((current) => [
+      ...current,
+      { ...template, id: `${template.id}::instance::${Date.now()}-${current.length}`, isInstance: true },
+    ])
   const selectedMasterySkillNames = useMemo(() => {
     const names = new Set<string>()
     for (const id of [character.mastery1, character.mastery2])
@@ -330,7 +337,12 @@ function App() {
             <CraftingView
               itemLibrary={itemLibrary}
               itemSets={itemSets}
-              onCraft={(item) => itemLibrary.addItem(item)}
+              onCraft={(item) =>
+                setCollectionItems((current) => [
+                  ...current,
+                  { ...item, id: `${item.id}::instance::${Date.now()}-${current.length}`, isInstance: true },
+                ])
+              }
               onEquip={equipItem}
               onUnequip={unequipItem}
               isEquipped={(item) =>
@@ -349,6 +361,8 @@ function App() {
               }
               activeSkillNames={selectedMasterySkillNames}
               equippedSetInfo={equippedSetInfo}
+              collectionItems={collectionItems}
+              onCreateInstance={createItemInstance}
             />
           )}
         </div>

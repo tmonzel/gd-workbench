@@ -4,6 +4,7 @@ import { useState } from 'react'
 type ItemSideNavProps = {
   category: string
   onCategoryChange: (value: string) => void
+  availableCategories?: Set<string>
 }
 
 export const CATEGORY_GROUPS: Record<string, string[]> = {
@@ -46,7 +47,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   'Off-Hand': 'Off-Hands',
 }
 
-function ItemSideNav({ category, onCategoryChange }: ItemSideNavProps) {
+function ItemSideNav({ category, onCategoryChange, availableCategories }: ItemSideNavProps) {
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(Object.keys(CATEGORY_GROUPS).map((group) => [group, true])),
   )
@@ -54,6 +55,11 @@ function ItemSideNav({ category, onCategoryChange }: ItemSideNavProps) {
     subcategories.includes(category),
   )?.[0]
   const activeTopCategory = selectedGroup ?? category
+
+  const visibleGroups = Object.entries(CATEGORY_GROUPS).filter(
+    ([, subcategories]) =>
+      !availableCategories || subcategories.some((subcategory) => availableCategories.has(subcategory)),
+  )
 
   return (
     <nav
@@ -72,7 +78,7 @@ function ItemSideNav({ category, onCategoryChange }: ItemSideNavProps) {
         All items
       </button>
       <div>
-        {Object.entries(CATEGORY_GROUPS).map(([group, subcategories]) => (
+        {visibleGroups.map(([group, subcategories]) => (
           <section className="pt-4 first:pt-0" key={group}>
             <div className="mb-1 flex items-center gap-1">
               <button
@@ -103,20 +109,22 @@ function ItemSideNav({ category, onCategoryChange }: ItemSideNavProps) {
             </div>
             {openGroups[group] && (
               <div className="grid gap-0.5 pl-3 text-sm">
-                {subcategories.map((name) => (
-                  <button
-                    className={`rounded px-2 py-1 text-left transition-colors ${
-                      category === name
-                        ? 'bg-neutral-800 text-neutral-100'
-                        : 'text-neutral-500 hover:bg-neutral-900 hover:text-neutral-300'
-                    }`}
-                    key={name}
-                    type="button"
-                    onClick={() => onCategoryChange(name)}
-                  >
-                    {CATEGORY_LABELS[name] ?? name}
-                  </button>
-                ))}
+                {subcategories
+                  .filter((name) => !availableCategories || availableCategories.has(name))
+                  .map((name) => (
+                    <button
+                      className={`rounded px-2 py-1 text-left transition-colors ${
+                        category === name
+                          ? 'bg-neutral-800 text-neutral-100'
+                          : 'text-neutral-500 hover:bg-neutral-900 hover:text-neutral-300'
+                      }`}
+                      key={name}
+                      type="button"
+                      onClick={() => onCategoryChange(name)}
+                    >
+                      {CATEGORY_LABELS[name] ?? name}
+                    </button>
+                  ))}
               </div>
             )}
           </section>

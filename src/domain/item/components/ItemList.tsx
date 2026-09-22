@@ -15,6 +15,7 @@ type ItemListProps = {
   activeSkillNames?: Set<string>
   itemSets?: ItemSet[]
   equippedSetInfo?: EquippedSetInfo[]
+  onCreateInstance?: (item: Item) => void
 }
 
 function ItemList({
@@ -30,6 +31,7 @@ function ItemList({
   activeSkillNames,
   itemSets,
   equippedSetInfo,
+  onCreateInstance,
 }: ItemListProps) {
   return (
     <>
@@ -68,6 +70,7 @@ function ItemList({
             activeSkillNames={activeSkillNames}
             itemSets={itemSets}
             equippedSetInfo={equippedSetInfo}
+            onCreateInstance={onCreateInstance}
           />
         ))}
       </section>

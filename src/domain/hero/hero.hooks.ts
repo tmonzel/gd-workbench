@@ -42,7 +42,7 @@ export function useHero(skillsets: Record<string, MasterySkill[]>) {
 
   const equipItem = (item: Item) => {
     setCharacter((current) => {
-      if (!isEquippableItem(item)) return current
+      if (!item.isInstance || !isEquippableItem(item)) return current
       if (item.category === 'Off-Hand' && current.equipment.Weapon?.twoHanded) return current
       const equipment = { ...current.equipment }
       equipment[item.category === 'Ring' ? (equipment['Ring 1'] ? 'Ring 2' : 'Ring 1') : item.category] = item

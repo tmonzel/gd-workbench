@@ -11,6 +11,7 @@ import {
 
 type Item = {
   id: string
+  isInstance?: boolean
   name: string
   qualityTag?: string
   prefix?: string
@@ -68,6 +69,7 @@ type ItemCardProps = {
   equippedSetInfo?: EquippedSetInfo[]
   compact?: boolean
   onSelect?: (item: Item) => void
+  onCreateInstance?: (item: Item) => void
 }
 
 function ItemCard({
@@ -79,6 +81,7 @@ function ItemCard({
   itemSets = [],
   equippedSetInfo = [],
   compact = false,
+  onCreateInstance,
 }: ItemCardProps) {
   const [hoverPoint, setHoverPoint] = useState<{ x: number; y: number } | null>(null)
   const rarityClass = `rarity-${item.rarity.toLowerCase()}`
@@ -276,13 +279,22 @@ function ItemCard({
           Item Level: <strong>{itemLevel}</strong>
         </p>
       </div>
-      {onEquip && isEquippableItem(item) && (
+      {onEquip && item.isInstance && isEquippableItem(item) && (
         <button
           className={`mt-3 rounded-md border px-3 py-1.5 text-xs transition-colors ${isEquipped ? 'border-[#fcd34d] bg-[#fcd34d]/10 text-[#fcd34d] hover:bg-[#fcd34d]/20' : 'border-neutral-700 bg-neutral-900 text-neutral-300 hover:border-neutral-500 hover:bg-neutral-800 hover:text-neutral-100'}`}
           type="button"
           onClick={() => (isEquipped ? onUnequip?.(item) : onEquip(item))}
         >
           {isEquipped ? 'Unequip' : 'Equip'}
+        </button>
+      )}
+      {onCreateInstance && isEquippableItem(item) && !item.isInstance && (
+        <button
+          className="mt-3 rounded-md border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-xs text-neutral-300 hover:border-orange-300/60 hover:text-orange-100"
+          type="button"
+          onClick={() => onCreateInstance(item)}
+        >
+          Add to Collection
         </button>
       )}
     </Card>

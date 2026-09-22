@@ -102,6 +102,7 @@ export function useItemLibrary(level: number) {
   }, [category, hideAboveLevel, level, rarities, requestPage, search])
 
   return {
+    level,
     items,
     itemSets,
     search,
