@@ -674,7 +674,8 @@ const readSkillData = async (
 const records = await readRecords(inputPath)
 const playerRecords = records.filter((record) => {
   const id = typeof record.id === 'string' ? record.id.replaceAll('\\', '/') : ''
-  return !/(^|\/)items\/enemygear\//i.test(id)
+  const description = typeof record.FileDescription === 'string' ? record.FileDescription : ''
+  return !/(^|\/)items\/enemygear\//i.test(id) && !/^BASE BLANK MI\b/i.test(description)
 })
 const localization = await readLocalization(localizationPath)
 const { names: skillNames, records: skillRecords } = await readSkillData(
