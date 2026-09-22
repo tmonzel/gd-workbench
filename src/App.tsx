@@ -7,6 +7,7 @@ import DamagePanel from '@/components/DamagePanel'
 import ResistancePanel from '@/components/ResistancePanel'
 import WorkspaceTabs from '@/components/WorkspaceTabs'
 import ItemPanel from '@/domain/item/components/ItemPanel'
+import CraftingView from '@/domain/item/components/CraftingView'
 import EquipmentPanel from '@/domain/hero/components/EquipmentPanel'
 import SkillsView from '@/domain/skill/components/SkillsView'
 import type { SkillDamageRow } from '@/domain/skill/components/ActiveSkillPanel'
@@ -27,7 +28,7 @@ import { useHero } from '@/domain/hero/hero.hooks'
 function App() {
   const { masteries, skillsets } = useSkillData()
   const { data: devotions, selected: selectedDevotions, setSelected: setSelectedDevotions } = useDevotionData()
-  const [view, setView] = useState<'items' | 'equipment' | 'masteries' | 'devotions'>('masteries')
+  const [view, setView] = useState<'items' | 'equipment' | 'masteries' | 'devotions' | 'crafting'>('masteries')
   const { character, setCharacter, changeLevel, adjustAttribute, equipItem, unequipItem, changeMastery } =
     useHero(skillsets)
   const itemLibrary = useItemLibrary(character.level)
@@ -325,6 +326,19 @@ function App() {
             />
           ) : view === 'devotions' && devotions ? (
             <DevotionPanel data={devotions} selected={selectedDevotions} setSelected={setSelectedDevotions} />
+          ) : view === 'crafting' ? (
+            <CraftingView
+              itemLibrary={itemLibrary}
+              itemSets={itemSets}
+              onCraft={(item) => itemLibrary.addItem(item)}
+              onEquip={equipItem}
+              onUnequip={unequipItem}
+              isEquipped={(item) =>
+                Object.values(character.equipment).some((equippedItem) => equippedItem?.id === item.id)
+              }
+              activeSkillNames={selectedMasterySkillNames}
+              equippedSetInfo={equippedSetInfo}
+            />
           ) : (
             <ItemPanel
               itemLibrary={itemLibrary}
