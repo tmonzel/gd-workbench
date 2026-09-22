@@ -156,6 +156,10 @@ function CraftItemPanel({ item, onPreview }: CraftItemPanelProps) {
   const compatibleComponents = components.filter(isCompatible)
   const compatibleAugments = augments.filter(isCompatible)
   const allowAffixes = item.category !== 'Relic' && !['Epic', 'Legendary'].includes(item.originRarity ?? item.rarity)
+  const showAffixesTab = allowAffixes && (validAffixes.prefixes.length > 0 || validAffixes.suffixes.length > 0)
+  useEffect(() => {
+    if (activeTab === 'affixes' && !showAffixesTab) setActiveTab('components')
+  }, [activeTab, showAffixesTab])
   const preview = useMemo<Item>(() => {
     const selectedAffixes = [selectedPrefix, selectedSuffix].filter(Boolean)
     const affixAttributes = selectedAffixes.flatMap((affix) =>
@@ -181,6 +185,8 @@ function CraftItemPanel({ item, onPreview }: CraftItemPanelProps) {
       suffixId: selectedSuffix?.id,
       componentId: selectedComponent?.id,
       augmentId: selectedAugment?.id,
+      componentImage: selectedComponent?.image,
+      augmentImage: selectedAugment?.image,
       relicBonusId: selectedRelicBonus?.id,
       attributes: [
         ...(item.baseAttributes ?? item.attributes ?? []),
@@ -211,13 +217,13 @@ function CraftItemPanel({ item, onPreview }: CraftItemPanelProps) {
   }, [affixesLoaded, preview])
 
   return (
-    <div className="grid gap-4">
+    <div className="flex h-full min-h-0 flex-col gap-4">
       <nav className="flex gap-1 border-b border-neutral-800" aria-label="Crafting options">
         {(
           [
-            ['affixes', 'Affixes'],
-            ['components', 'Components'],
-            ['augments', 'Augments'],
+            ...(showAffixesTab ? [['affixes', 'Affixes'] as const] : []),
+            ['components', 'Components'] as const,
+            ['augments', 'Augments'] as const,
           ] as const
         ).map(([value, label]) => (
           <button
@@ -230,19 +236,19 @@ function CraftItemPanel({ item, onPreview }: CraftItemPanelProps) {
           </button>
         ))}
       </nav>
-      {activeTab === 'affixes' && allowAffixes && (
-        <div className="grid gap-4 sm:grid-cols-2">
+      {activeTab === 'affixes' && showAffixesTab && (
+        <div className="grid min-h-0 flex-1 gap-4 sm:grid-cols-2">
           {(
             [
               ['Prefix', validAffixes.prefixes, prefixId, setPrefixId],
               ['Suffix', validAffixes.suffixes, suffixId, setSuffixId],
             ] as const
           ).map(([kind, options, selectedId, setSelectedId]) => (
-            <section className="grid gap-2" key={kind}>
+            <section className="grid min-h-0 gap-2" key={kind}>
               <div>
                 <p className="m-0 text-xs uppercase tracking-[0.12em] text-neutral-500">{kind}</p>
               </div>
-              <div className="grid max-h-[42vh] gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
+              <div className="grid min-h-0 flex-1 gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
                 {options.map((affix) => {
                   const stats =
                     affix.attributes.length > 0
@@ -281,9 +287,9 @@ function CraftItemPanel({ item, onPreview }: CraftItemPanelProps) {
         </div>
       )}
       {activeTab === 'components' && (
-        <section className="grid gap-2">
+        <section className="flex min-h-0 flex-1 flex-col gap-2">
           <p className="m-0 text-xs uppercase tracking-[0.12em] text-neutral-500">Components</p>
-          <div className="grid max-h-[55vh] gap-2 overflow-y-auto pr-1 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid min-h-0 flex-1 gap-2 overflow-y-auto pr-1 sm:grid-cols-2 lg:grid-cols-3">
             {compatibleComponents.map((candidate) => {
               const selected = candidate.id === componentId
               return (
@@ -317,9 +323,9 @@ function CraftItemPanel({ item, onPreview }: CraftItemPanelProps) {
         </section>
       )}
       {activeTab === 'augments' && (
-        <section className="grid gap-2">
+        <section className="flex min-h-0 flex-1 flex-col gap-2">
           <p className="m-0 text-xs uppercase tracking-[0.12em] text-neutral-500">Augments</p>
-          <div className="grid max-h-[55vh] gap-2 overflow-y-auto pr-1 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid min-h-0 flex-1 gap-2 overflow-y-auto pr-1 sm:grid-cols-2 lg:grid-cols-3">
             {compatibleAugments.map((candidate) => {
               const selected = candidate.id === augmentId
               return (

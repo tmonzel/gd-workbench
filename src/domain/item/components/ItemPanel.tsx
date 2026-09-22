@@ -66,7 +66,9 @@ function ItemPanel({
   const collectionCategories = useMemo(() => new Set(collectionItems.map((item) => item.category)), [collectionItems])
   const collectionFilteredItems = useMemo(() => {
     const groupMatches = (category: string) =>
-      category === 'All' || category === collectionCategory || CATEGORY_GROUPS[collectionCategory]?.includes(category)
+      collectionCategory === 'All' ||
+      category === collectionCategory ||
+      CATEGORY_GROUPS[collectionCategory]?.includes(category)
     const query = collectionSearch.trim().toLowerCase()
     return collectionItems.filter((item) => {
       const requiredLevel = Number(item.stats?.levelRequirement ?? item.level) || 0

@@ -17,6 +17,8 @@ type Item = {
   qualityTag?: string
   prefix?: string
   suffix?: string
+  componentImage?: string
+  augmentImage?: string
   description: string
   category: string
   rarity: string
@@ -301,6 +303,29 @@ function ItemCard({
                 )
               })}
             </div>
+          </div>
+        )}
+        {(item.componentImage || item.augmentImage) && (
+          <div
+            className="mt-3 flex items-center gap-2 border-t border-neutral-800 pt-3"
+            aria-label="Applied modifications"
+          >
+            {item.componentImage && (
+              <span
+                className="flex size-10 items-center justify-center overflow-hidden rounded border border-neutral-700 bg-neutral-950 p-1"
+                title="Component"
+              >
+                <img className="block max-h-full max-w-full object-contain" src={item.componentImage} alt="Component" />
+              </span>
+            )}
+            {item.augmentImage && (
+              <span
+                className="flex size-10 items-center justify-center overflow-hidden rounded border border-neutral-700 bg-neutral-950 p-1"
+                title="Augment"
+              >
+                <img className="block max-h-full max-w-full object-contain" src={item.augmentImage} alt="Augment" />
+              </span>
+            )}
           </div>
         )}
       </div>

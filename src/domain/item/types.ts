@@ -9,6 +9,8 @@ export type Item = {
   suffixId?: string
   componentId?: string
   augmentId?: string
+  componentImage?: string
+  augmentImage?: string
   relicBonusId?: string
   baseAttributes?: Array<{ label: string; value: string | number }>
   description: string
