@@ -5,9 +5,16 @@ export type Item = {
   qualityTag?: string
   prefix?: string
   suffix?: string
+  prefixId?: string
+  suffixId?: string
+  componentId?: string
+  augmentId?: string
+  relicBonusId?: string
+  baseAttributes?: Array<{ label: string; value: string | number }>
   description: string
   category: string
   rarity: string
+  originRarity?: string
   level: number
   image?: string
   twoHanded?: boolean

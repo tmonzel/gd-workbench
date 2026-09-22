@@ -1,11 +1,14 @@
 import { useMemo, useState } from 'react'
 import { Card } from '@/components/Card'
+import ItemCard from '@/domain/item/components/ItemCard'
 import ItemList from '@/domain/item/components/ItemList'
+import ItemFilters from '@/domain/item/components/ItemFilters'
 import ItemSideNav from '@/domain/item/components/ItemSideNav'
+import CraftItemPanel from '@/domain/item/components/CraftItemPanel'
 import type { Item } from '@/domain/item/types'
 import type { EquippedSetInfo } from '@/domain/item/types'
 import type { ItemLibraryState } from '@/domain/item/item.hooks'
-import { RARITIES, rarityBackgroundClasses, rarityBorderClasses, rarityTextClasses } from '@/domain/item/item.utils'
+import { RARITIES } from '@/domain/item/item.utils'
 import { CATEGORY_GROUPS } from '@/domain/item/components/ItemSideNav'
 
 type ItemPanelProps = {
@@ -17,6 +20,8 @@ type ItemPanelProps = {
   equippedSetInfo?: EquippedSetInfo[]
   collectionItems?: Item[]
   onCreateInstance?: (item: Item) => void
+  onUpdateInstance?: (item: Item) => void
+  onRemoveInstance?: (item: Item) => void
 }
 
 function ItemPanel({
@@ -28,8 +33,12 @@ function ItemPanel({
   equippedSetInfo,
   collectionItems = [],
   onCreateInstance,
+  onUpdateInstance,
+  onRemoveInstance,
 }: ItemPanelProps) {
   const [mode, setMode] = useState<'library' | 'collection'>('library')
+  const [selectedCollectionItem, setSelectedCollectionItem] = useState<Item>()
+  const [draftCollectionItem, setDraftCollectionItem] = useState<Item | undefined>()
   const [collectionSearch, setCollectionSearch] = useState('')
   const [collectionCategory, setCollectionCategory] = useState('All')
   const [collectionRarities, setCollectionRarities] = useState<string[]>([])
@@ -90,207 +99,207 @@ function ItemPanel({
     setCollectionPage(0)
   }
   return (
-    <Card as="section" size="md" variant="filled">
-      <div className="mb-5 flex gap-1 border-b border-neutral-800 pb-3">
-        {(['library', 'collection'] as const).map((value) => (
-          <button
-            className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${mode === value ? 'bg-purple-400/15 text-purple-100' : 'text-purple-300/60 hover:bg-purple-400/10 hover:text-purple-200'}`}
-            key={value}
-            type="button"
-            onClick={() => setMode(value)}
-          >
-            {value === 'library' ? 'Catalog' : `Collection (${collectionItems.length})`}
-          </button>
-        ))}
-      </div>
-      {mode === 'collection' ? (
-        collectionItems.length > 0 ? (
-          <div className="grid gap-6 lg:grid-cols-[180px_minmax(0,1fr)]">
-            <ItemSideNav
-              category={collectionCategory}
-              onCategoryChange={changeCollectionCategory}
-              availableCategories={collectionCategories}
-            />
-            <div className="min-w-0">
-              <section
-                className="mb-4 flex flex-wrap items-center justify-between gap-2"
-                aria-label="Filter collection"
-              >
-                <div className="flex flex-wrap items-center gap-1">
-                  {RARITIES.filter((rarity) => collectionItems.some((item) => item.rarity === rarity)).map((rarity) => (
-                    <label
-                      className={`cursor-pointer rounded border px-2.5 py-1.5 text-xs ${collectionRarities.includes(rarity) ? `${rarityBorderClasses[rarity.toLowerCase()]} ${rarityBackgroundClasses[rarity.toLowerCase()]} ${rarityTextClasses[rarity.toLowerCase()]}` : 'border-neutral-700 bg-neutral-900/80 text-neutral-500'}`}
-                      key={rarity}
-                    >
-                      <input
-                        className="sr-only"
-                        type="checkbox"
-                        checked={collectionRarities.includes(rarity)}
-                        onChange={() => {
-                          setCollectionRarities((current) =>
-                            current.includes(rarity)
-                              ? current.filter((value) => value !== rarity)
-                              : [...current, rarity],
-                          )
-                          setCollectionPage(0)
-                        }}
-                      />
-                      {rarity}
-                    </label>
-                  ))}
+    <div className={mode === 'collection' ? 'grid gap-4' : ''}>
+      <Card as="section" size="md" variant="filled">
+        <div className="mb-5 flex gap-1 border-b border-neutral-800 pb-3">
+          {(['library', 'collection'] as const).map((value) => (
+            <button
+              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${mode === value ? 'bg-purple-400/15 text-purple-100' : 'text-purple-300/60 hover:bg-purple-400/10 hover:text-purple-200'}`}
+              key={value}
+              type="button"
+              onClick={() => setMode(value)}
+            >
+              {value === 'library' ? 'Catalog' : `Collection (${collectionItems.length})`}
+            </button>
+          ))}
+        </div>
+        {mode === 'collection' ? (
+          collectionItems.length > 0 ? (
+            <div className="grid gap-6 lg:grid-cols-[180px_minmax(0,1fr)]">
+              <ItemSideNav
+                category={collectionCategory}
+                onCategoryChange={changeCollectionCategory}
+                availableCategories={collectionCategories}
+              />
+              <div className="min-w-0 flex-1 overflow-hidden">
+                <div className="min-w-0">
+                  <ItemFilters
+                    search={collectionSearch}
+                    onSearchChange={(value) => {
+                      setCollectionSearch(value)
+                      setCollectionPage(0)
+                    }}
+                    searchPlaceholder="Search collection"
+                    rarities={collectionRarities}
+                    availableRarities={RARITIES.filter((rarity) =>
+                      collectionItems.some((item) => item.rarity === rarity),
+                    )}
+                    onRarityToggle={(rarity) => {
+                      setCollectionRarities((current) =>
+                        current.includes(rarity) ? current.filter((value) => value !== rarity) : [...current, rarity],
+                      )
+                      setCollectionPage(0)
+                    }}
+                    hideAboveLevel={collectionHideAboveLevel}
+                    onHideAboveLevelToggle={() => {
+                      setCollectionHideAboveLevel((current) => !current)
+                      setCollectionPage(0)
+                    }}
+                    matchingCount={collectionFilteredItems.length}
+                    page={collectionPage}
+                    pageCount={collectionPageCount}
+                  />
+                  {visibleCollectionItems.length > 0 ? (
+                    <ItemList
+                      items={visibleCollectionItems}
+                      page={collectionPage}
+                      pageCount={collectionPageCount}
+                      pageSize={collectionPageSize}
+                      total={collectionFilteredItems.length}
+                      onPageChange={setCollectionPage}
+                      onEquip={onEquip}
+                      onUnequip={onUnequip}
+                      isEquipped={isEquipped}
+                      activeSkillNames={activeSkillNames}
+                      itemSets={itemSets}
+                      equippedSetInfo={equippedSetInfo}
+                      onSelect={(item) => {
+                        setSelectedCollectionItem(item)
+                        setDraftCollectionItem(item)
+                      }}
+                      onRemoveInstance={(item) => {
+                        onRemoveInstance?.(item)
+                        if (selectedCollectionItem?.id === item.id) setSelectedCollectionItem(undefined)
+                      }}
+                    />
+                  ) : (
+                    <p className="py-12 text-center text-sm text-neutral-500">
+                      No collection items match these filters.
+                    </p>
+                  )}
                 </div>
-                <label className="flex min-w-48 items-center gap-1.5 rounded border border-neutral-700 bg-neutral-900 px-2 text-orange-300 sm:max-w-52">
-                  <span aria-hidden="true">⌕</span>
-                  <input
-                    className="w-full bg-transparent py-1.5 text-xs text-neutral-100 outline-none placeholder:text-neutral-600"
-                    value={collectionSearch}
-                    onChange={(event) => {
-                      setCollectionSearch(event.target.value)
-                      setCollectionPage(0)
-                    }}
-                    placeholder="Search collection"
-                  />
-                </label>
-              </section>
-              <section className="mb-4 flex items-center justify-between text-[0.68rem] uppercase tracking-[0.14em] text-neutral-500">
-                <span>{collectionFilteredItems.length} matching items</span>
-                <label className="flex items-center gap-1.5 normal-case tracking-normal">
-                  <input
-                    type="checkbox"
-                    checked={collectionHideAboveLevel}
-                    onChange={(event) => {
-                      setCollectionHideAboveLevel(event.target.checked)
-                      setCollectionPage(0)
-                    }}
-                  />
-                  Equipable only
-                </label>
-              </section>
-              {visibleCollectionItems.length > 0 ? (
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-neutral-500">
+              No real item instances yet. Create one from the template library.
+            </p>
+          )
+        ) : (
+          <div className="grid gap-6 lg:grid-cols-[180px_minmax(0,1fr)]">
+            <ItemSideNav category={category} onCategoryChange={changeCategory} />
+            <div className="min-w-0">
+              <ItemFilters
+                search={search}
+                onSearchChange={changeSearch}
+                searchPlaceholder="Search the archive"
+                rarities={rarities}
+                onRarityToggle={toggleRarity}
+                hideAboveLevel={hideAboveLevel}
+                onHideAboveLevelToggle={toggleHideAboveLevel}
+                matchingCount={total}
+                page={page}
+                pageCount={pageCount}
+              />
+              {loading ? (
+                <div className="grid gap-2 py-20 text-center text-sm text-neutral-500">
+                  <strong className="text-lg font-medium text-neutral-200">Loading database</strong>
+                  <span>The JSON file is loading in the background.</span>
+                </div>
+              ) : status === 'error' ? (
+                <div className="grid gap-2 py-20 text-center text-sm text-neutral-500">
+                  <strong className="text-lg font-medium text-neutral-200">Could not load items</strong>
+                  <span>Check that public/data/items.json exists.</span>
+                </div>
+              ) : items.length > 0 ? (
                 <ItemList
-                  items={visibleCollectionItems}
-                  page={collectionPage}
-                  pageCount={collectionPageCount}
-                  pageSize={collectionPageSize}
-                  total={collectionFilteredItems.length}
-                  onPageChange={setCollectionPage}
+                  items={items}
+                  page={page}
+                  pageCount={pageCount}
+                  pageSize={pageSize}
+                  total={total}
+                  onPageChange={requestPage}
                   onEquip={onEquip}
                   onUnequip={onUnequip}
                   isEquipped={isEquipped}
                   activeSkillNames={activeSkillNames}
                   itemSets={itemSets}
                   equippedSetInfo={equippedSetInfo}
+                  onCreateInstance={onCreateInstance}
                 />
-              ) : (
-                <p className="py-12 text-center text-sm text-neutral-500">No collection items match these filters.</p>
+              ) : null}
+              {!loading && status === 'ready' && items.length === 0 && (
+                <div className="grid gap-2 py-20 text-center text-sm text-neutral-500">
+                  <strong className="text-lg font-medium text-neutral-200">No records found</strong>
+                  <span>Try a different search or item type.</span>
+                </div>
               )}
             </div>
           </div>
-        ) : (
-          <p className="text-sm text-neutral-500">No real item instances yet. Create one from the template library.</p>
-        )
-      ) : (
-        <div className="grid gap-6 lg:grid-cols-[180px_minmax(0,1fr)]">
-          <ItemSideNav category={category} onCategoryChange={changeCategory} />
-          <div className="min-w-0">
-            <section className="flex flex-wrap items-center justify-between gap-2 mb-4" aria-label="Filter items">
-              <div className="flex flex-wrap items-center gap-1" aria-label="Rarity filters">
-                {RARITIES.map((rarity) => (
-                  <label
-                    className={`cursor-pointer rounded border px-2.5 py-1.5 text-md transition-colors ${
-                      rarities.includes(rarity)
-                        ? `${rarityBorderClasses[rarity.toLowerCase()] ?? 'border-neutral-400/70'} brightness-125 ${rarityBackgroundClasses[rarity.toLowerCase()] ?? 'bg-neutral-800/80'} ${rarityTextClasses[rarity.toLowerCase()] ?? 'text-neutral-100'}`
-                        : 'border-neutral-700 bg-neutral-900/80 text-neutral-500 hover:border-neutral-500 hover:text-neutral-300'
-                    }`}
-                    key={rarity}
-                  >
-                    <input
-                      className="sr-only"
-                      type="checkbox"
-                      checked={rarities.includes(rarity)}
-                      onChange={() => toggleRarity(rarity)}
-                    />
-                    {rarity}
-                  </label>
-                ))}
+        )}
+      </Card>
+      {mode === 'collection' && onUpdateInstance && selectedCollectionItem && draftCollectionItem && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/70 p-4"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="relative my-auto flex h-[calc(100vh-6rem)] max-h-[calc(100vh-6rem)] w-full max-w-6xl flex-col overflow-visible rounded-lg border border-neutral-700 bg-neutral-950 p-5 shadow-2xl shadow-black/60 lg:ml-64">
+            <div className="mb-5 flex shrink-0 items-start justify-between gap-3">
+              <div>
+                <p className="mb-1 text-xs uppercase tracking-[0.16em] text-orange-300">Crafting</p>
+                <h2 className="text-lg font-medium text-neutral-50">Edit selected item</h2>
               </div>
-              <label className="flex min-w-48 flex-1 items-center gap-1.5 rounded border border-neutral-700 bg-neutral-900 px-2 text-orange-300 sm:max-w-52 sm:flex-none">
-                <span aria-hidden="true" className="text-base">
-                  ⌕
-                </span>
-                <input
-                  className="w-full bg-transparent py-1.5 text-xs text-neutral-100 outline-none placeholder:text-neutral-600"
-                  value={search}
-                  onChange={(event) => changeSearch(event.target.value)}
-                  placeholder="Search the archive"
-                />
-              </label>
-            </section>
-            <section className="mt-1 flex flex-wrap items-center justify-end gap-1" aria-label="Additional filters">
-              <label
-                className={`flex cursor-pointer items-center gap-1.5 px-1 py-0.5 text-xs transition-colors ${
-                  hideAboveLevel ? 'text-neutral-200' : 'text-neutral-500 hover:text-neutral-300'
-                }`}
-                htmlFor="equipable-only"
-              >
-                <span className="relative flex size-4 shrink-0 items-center justify-center">
-                  <input
-                    className="peer size-4 appearance-none rounded-sm border border-neutral-700 bg-neutral-950 checked:border-orange-300 checked:bg-orange-300 focus:ring-1 focus:ring-orange-300/50"
-                    type="checkbox"
-                    id="equipable-only"
-                    checked={hideAboveLevel}
-                    onChange={toggleHideAboveLevel}
+            </div>
+            <div className="min-h-0 flex-1 overflow-hidden">
+              <div className="grid h-full gap-6">
+                <section
+                  className="min-w-0 lg:absolute lg:right-full lg:top-0 lg:mr-5 lg:w-80"
+                  aria-label="Item preview"
+                >
+                  <ItemCard
+                    item={draftCollectionItem}
+                    itemSets={itemSets}
+                    equippedSetInfo={equippedSetInfo}
+                    activeSkillNames={activeSkillNames}
                   />
-                  <span className="pointer-events-none absolute text-xs font-bold leading-none text-neutral-950 opacity-0 peer-checked:opacity-100">
-                    ✓
-                  </span>
-                </span>
-                <span>Equipable only</span>
-              </label>
-            </section>
-            <section className="flex items-center justify-between px-1 py-5 text-[0.68rem] uppercase tracking-[0.14em] text-neutral-500">
-              <p className="m-0 text-neutral-300">{total} matching items</p>
-              <span className="tabular-nums">
-                Page {Math.min(page + 1, pageCount)} of {pageCount}
-              </span>
-            </section>
-            {loading ? (
-              <div className="grid gap-2 py-20 text-center text-sm text-neutral-500">
-                <strong className="text-lg font-medium text-neutral-200">Loading database</strong>
-                <span>The JSON file is loading in the background.</span>
+                </section>
+                <section className="min-h-0 min-w-0 overflow-y-auto pr-2" aria-label="Item configuration">
+                  <CraftItemPanel
+                    key={selectedCollectionItem.id}
+                    item={draftCollectionItem}
+                    onPreview={setDraftCollectionItem}
+                  />
+                </section>
               </div>
-            ) : status === 'error' ? (
-              <div className="grid gap-2 py-20 text-center text-sm text-neutral-500">
-                <strong className="text-lg font-medium text-neutral-200">Could not load items</strong>
-                <span>Check that public/data/items.json exists.</span>
-              </div>
-            ) : items.length > 0 ? (
-              <ItemList
-                items={items}
-                page={page}
-                pageCount={pageCount}
-                pageSize={pageSize}
-                total={total}
-                onPageChange={requestPage}
-                onEquip={onEquip}
-                onUnequip={onUnequip}
-                isEquipped={isEquipped}
-                activeSkillNames={activeSkillNames}
-                itemSets={itemSets}
-                equippedSetInfo={equippedSetInfo}
-                onCreateInstance={onCreateInstance}
-              />
-            ) : null}
-            {!loading && status === 'ready' && items.length === 0 && (
-              <div className="grid gap-2 py-20 text-center text-sm text-neutral-500">
-                <strong className="text-lg font-medium text-neutral-200">No records found</strong>
-                <span>Try a different search or item type.</span>
-              </div>
-            )}
+            </div>
+            <div className="mt-5 flex shrink-0 justify-end gap-2 border-t border-neutral-800 pt-4">
+              <button
+                className="rounded-md border border-neutral-700 px-3 py-2 text-sm text-neutral-400 hover:border-neutral-500 hover:text-neutral-100"
+                type="button"
+                onClick={() => {
+                  setSelectedCollectionItem(undefined)
+                  setDraftCollectionItem(undefined)
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                className="rounded-md border border-orange-300/60 bg-orange-300/10 px-3 py-2 text-sm text-orange-100 hover:bg-orange-300/20"
+                type="button"
+                onClick={() => {
+                  onUpdateInstance(draftCollectionItem)
+                  setSelectedCollectionItem(draftCollectionItem)
+                  setDraftCollectionItem(undefined)
+                }}
+              >
+                Save item
+              </button>
+            </div>
           </div>
         </div>
       )}
-    </Card>
+    </div>
   )
 }
 

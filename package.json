@@ -14,6 +14,7 @@
     "extract:item-sets": "tsx --tsconfig tsconfig.scripts.json scripts/extract-item-sets.ts",
     "import:items": "tsx --tsconfig tsconfig.scripts.json scripts/import-items.ts ./data/game/records/items ./public/data/items.json ./data/lang",
     "extract:affixes": "tsx --tsconfig tsconfig.scripts.json scripts/extract-affixes.ts",
+    "extract:relic-bonuses": "tsx --tsconfig tsconfig.scripts.json scripts/extract-relic-bonuses.ts",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"

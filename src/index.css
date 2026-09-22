@@ -25,3 +25,28 @@ button {
 button:disabled {
   cursor: not-allowed;
 }
+
+* {
+  scrollbar-color: #525252 #1f1f1f;
+  scrollbar-width: thin;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: #1f1f1f;
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #525252;
+  border: 2px solid #1f1f1f;
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #737373;
+}

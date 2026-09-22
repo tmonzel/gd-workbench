@@ -37,6 +37,8 @@ const textValue = (record: RawRecord, keys: string[], fallback: string) => {
   return key ? String(record[key]) : fallback
 }
 
+const stripTextFormatting = (value: string) => value.replace(/\^[a-z]/gi, '')
+
 const numberValue = (record: RawRecord, keys: string[], fallback = 0) => {
   const value = Number(textValue(record, keys, String(fallback)))
   return Number.isFinite(value) ? value : fallback
@@ -512,7 +514,16 @@ const gameAttributes = (
 const imagePath = (record: RawRecord): string | undefined => {
   const value = textValue(
     record,
-    ['image', 'imagePath', 'itemBitmap', 'bitmap', 'artifactBitmap', 'artifactFormulaBitmapName'],
+    [
+      'image',
+      'imagePath',
+      'itemBitmap',
+      'bitmap',
+      'relicBitmap',
+      'shardBitmap',
+      'artifactBitmap',
+      'artifactFormulaBitmapName',
+    ],
     '',
   )
   if (!value) return undefined
@@ -559,7 +570,7 @@ const normalize = async (
   const qualityTag = textValue(record, ['itemQualityTag'], '')
   const hidesPrefix = numberValue(record, ['hidePrefixName'], 0) === 1
   const resolvedQualityTag = qualityTag && !hidesPrefix ? (localization.get(qualityTag) ?? '') : undefined
-  const resolvedName = localization.get(rawName) ?? rawName
+  const resolvedName = stripTextFormatting(localization.get(rawName) ?? rawName)
   // Drop zero/blank fields from the output; gameAttributes already read the full stats above.
   const trimmedStats = Object.fromEntries(
     Object.entries(stats).filter(([, value]) => (typeof value === 'number' ? value !== 0 : value.trim() !== '')),
@@ -570,7 +581,7 @@ const normalize = async (
     qualityTag: resolvedQualityTag,
     tier,
     twoHanded,
-    description: localization.get(rawDescription) ?? rawDescription,
+    description: stripTextFormatting(localization.get(rawDescription) ?? rawDescription),
     category: itemTypeFromPath(fallbackId),
     rarity: normalizeRarity(textValue(record, ['rarity', 'quality', 'itemClassification'], 'Common')),
     level: numberValue(record, ['level', 'itemLevel', 'requiredLevel', 'levelRequirement']),

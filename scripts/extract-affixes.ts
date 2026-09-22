@@ -11,6 +11,7 @@ type Affix = {
   attributes: Array<{ label: string; value: string | number }>
   validCategories: string[]
   levelRanges: Array<{ min: number; max: number }>
+  requiredLevel: number
 }
 
 const root = resolve('data/game/records/items/lootaffixes')
@@ -164,6 +165,7 @@ for (const kind of ['prefix', 'suffix'] as const) {
       attributes: attributesFor(record),
       validCategories: [...(pools.get(id)?.categories ?? new Set<string>())],
       levelRanges: pools.get(id)?.levelRanges ?? [],
+      requiredLevel: Math.min(...(pools.get(id)?.levelRanges.map((range) => range.min) ?? [1])),
     })
   }
 }

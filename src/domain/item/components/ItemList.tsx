@@ -16,6 +16,8 @@ type ItemListProps = {
   itemSets?: ItemSet[]
   equippedSetInfo?: EquippedSetInfo[]
   onCreateInstance?: (item: Item) => void
+  onSelect?: (item: Item) => void
+  onRemoveInstance?: (item: Item) => void
 }
 
 function ItemList({
@@ -32,6 +34,8 @@ function ItemList({
   itemSets,
   equippedSetInfo,
   onCreateInstance,
+  onSelect,
+  onRemoveInstance,
 }: ItemListProps) {
   return (
     <>
@@ -71,6 +75,8 @@ function ItemList({
             itemSets={itemSets}
             equippedSetInfo={equippedSetInfo}
             onCreateInstance={onCreateInstance}
+            onSelect={onSelect}
+            onRemoveInstance={onRemoveInstance}
           />
         ))}
       </section>

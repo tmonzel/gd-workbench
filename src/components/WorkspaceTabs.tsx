@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
-import { IconFlask, IconLibrary, IconShield, IconSparkles, IconStars } from '@tabler/icons-react'
+import { IconLibrary, IconShield, IconSparkles, IconStars } from '@tabler/icons-react'
 
-export type WorkspaceView = 'items' | 'equipment' | 'masteries' | 'devotions' | 'crafting'
+export type WorkspaceView = 'items' | 'equipment' | 'masteries' | 'devotions'
 
 type WorkspaceTabsProps = {
   value: WorkspaceView
@@ -23,7 +23,6 @@ const tabs: Array<{ value: WorkspaceView; label: string; icon: ReactNode }> = [
   { value: 'items', label: 'Items', icon: <IconLibrary size={16} stroke={1.8} aria-hidden="true" /> },
   { value: 'equipment', label: 'Equipment', icon: <IconShield size={16} stroke={1.8} aria-hidden="true" /> },
   { value: 'devotions', label: 'Devotions', icon: <IconStars size={16} stroke={1.8} aria-hidden="true" /> },
-  { value: 'crafting', label: 'Crafting', icon: <IconFlask size={16} stroke={1.8} aria-hidden="true" /> },
 ]
 
 function WorkspaceTabs({ value, onChange }: WorkspaceTabsProps) {

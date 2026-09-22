@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { IconPencil, IconTrash } from '@tabler/icons-react'
 import { Card } from '@/components/Card'
 import {
   getSetForItem,
@@ -70,6 +71,7 @@ type ItemCardProps = {
   compact?: boolean
   onSelect?: (item: Item) => void
   onCreateInstance?: (item: Item) => void
+  onRemoveInstance?: (item: Item) => void
 }
 
 function ItemCard({
@@ -81,7 +83,9 @@ function ItemCard({
   itemSets = [],
   equippedSetInfo = [],
   compact = false,
+  onSelect,
   onCreateInstance,
+  onRemoveInstance,
 }: ItemCardProps) {
   const [hoverPoint, setHoverPoint] = useState<{ x: number; y: number } | null>(null)
   const rarityClass = `rarity-${item.rarity.toLowerCase()}`
@@ -157,8 +161,34 @@ function ItemCard({
       as="article"
       size="md"
       variant="elevated"
-      className={`group flex min-w-0 w-full flex-col transition-colors hover:border-neutral-500 hover:bg-neutral-800/60 ${isEquipped ? 'border-neutral-600! bg-neutral-700/20! shadow-[0_0_0_1px_rgb(163_163_163/0.35)] hover:bg-neutral-700/30!' : ''} ${rarityClass}`}
+      className={`group relative flex min-w-0 w-full flex-col transition-colors hover:border-neutral-500 hover:bg-neutral-800/60 ${isEquipped ? 'border-neutral-600! bg-neutral-700/20! shadow-[0_0_0_1px_rgb(163_163_163/0.35)] hover:bg-neutral-700/30!' : ''} ${rarityClass}`}
     >
+      {item.isInstance && (onSelect || onRemoveInstance) && (
+        <div className="absolute right-3 top-3 z-10 flex gap-1">
+          {onSelect && isEquippableItem(item) && (
+            <button
+              className="flex size-7 items-center justify-center rounded border border-neutral-700 bg-neutral-950/80 text-neutral-400 hover:border-orange-300/60 hover:text-orange-100"
+              type="button"
+              onClick={() => onSelect(item)}
+              title="Edit item"
+              aria-label="Edit item"
+            >
+              <IconPencil size={15} stroke={1.8} aria-hidden="true" />
+            </button>
+          )}
+          {onRemoveInstance && (
+            <button
+              className="flex size-7 items-center justify-center rounded border border-neutral-700 bg-neutral-950/80 text-neutral-500 hover:border-red-700 hover:text-red-300"
+              type="button"
+              onClick={() => onRemoveInstance(item)}
+              title="Remove from Collection"
+              aria-label="Remove from Collection"
+            >
+              <IconTrash size={15} stroke={1.8} aria-hidden="true" />
+            </button>
+          )}
+        </div>
+      )}
       <div className="flex-1">
         <div className="flex items-start gap-3">
           <div className="flex shrink-0 items-center justify-center overflow-hidden rounded-md border border-neutral-800 bg-neutral-950 p-2">
@@ -198,8 +228,8 @@ function ItemCard({
             )}
             {primaryStats.length > 0 && (
               <div className="mt-2">
-                {primaryStats.map(({ label, value }) => (
-                  <p className="truncate text-[0.78rem] text-neutral-400" key={label}>
+                {primaryStats.map(({ label, value }, index) => (
+                  <p className="truncate text-[0.78rem] text-neutral-400" key={`${label}-${value}-${index}`}>
                     <strong>{value}</strong> {label}
                   </p>
                 ))}
@@ -209,13 +239,13 @@ function ItemCard({
         </div>
         {bonusStats.length > 0 && (
           <div className="mt-3">
-            {bonusStats.map(({ label, value }) => {
+            {bonusStats.map(({ label, value }, index) => {
               const skillBonus = label === 'Skill Bonus' ? parseSkillBonus(value) : null
               const inactive = skillBonus && activeSkillNames && !activeSkillNames.has(skillBonus.name)
               return (
                 <p
                   className={`truncate text-[0.78rem] ${inactive ? 'text-neutral-600' : 'text-neutral-400'}`}
-                  key={label}
+                  key={`${label}-${value}-${index}`}
                   title={inactive ? 'Not part of your currently selected masteries' : undefined}
                 >
                   <span className={inactive ? 'text-neutral-500' : 'text-white'}>{value}</span> {label}
@@ -234,8 +264,11 @@ function ItemCard({
             )}
             {item.grantedSkill.attributes.length > 0 && (
               <div className="mt-2">
-                {item.grantedSkill.attributes.map(({ label, value }) => (
-                  <p className="truncate text-[0.78rem] leading-snug text-orange-200" key={label}>
+                {item.grantedSkill.attributes.map(({ label, value }, index) => (
+                  <p
+                    className="truncate text-[0.78rem] leading-snug text-orange-200"
+                    key={`${label}-${value}-${index}`}
+                  >
                     <strong>{value}</strong> {label}
                   </p>
                 ))}

@@ -148,7 +148,11 @@ const main = async () => {
   const texconvPath = findTexconv()
   const texFiles = getReferencedTexFiles()
   fs.mkdirSync(OUTPUT_DIR, { recursive: true })
-  fs.rmSync(TEMP_DDS_DIR, { recursive: true, force: true })
+  try {
+    fs.rmSync(TEMP_DDS_DIR, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })
+  } catch (error) {
+    console.warn(`Could not fully remove temporary DDS files: ${error.message}`)
+  }
   console.log(`Converting ${texFiles.length} TEX files with ${texconvPath}`)
 
   let converted = 0

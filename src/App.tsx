@@ -7,7 +7,6 @@ import DamagePanel from '@/components/DamagePanel'
 import ResistancePanel from '@/components/ResistancePanel'
 import WorkspaceTabs from '@/components/WorkspaceTabs'
 import ItemPanel from '@/domain/item/components/ItemPanel'
-import CraftingView from '@/domain/item/components/CraftingView'
 import type { Item } from '@/domain/item/types'
 import EquipmentPanel from '@/domain/hero/components/EquipmentPanel'
 import SkillsView from '@/domain/skill/components/SkillsView'
@@ -29,7 +28,7 @@ import { useHero } from '@/domain/hero/hero.hooks'
 function App() {
   const { masteries, skillsets } = useSkillData()
   const { data: devotions, selected: selectedDevotions, setSelected: setSelectedDevotions } = useDevotionData()
-  const [view, setView] = useState<'items' | 'equipment' | 'masteries' | 'devotions' | 'crafting'>('masteries')
+  const [view, setView] = useState<'items' | 'equipment' | 'masteries' | 'devotions'>('masteries')
   const [collectionItems, setCollectionItems] = useState<Item[]>([])
   const { character, setCharacter, changeLevel, adjustAttribute, equipItem, unequipItem, changeMastery } =
     useHero(skillsets)
@@ -43,7 +42,13 @@ function App() {
   const createItemInstance = (template: Item) =>
     setCollectionItems((current) => [
       ...current,
-      { ...template, id: `${template.id}::instance::${Date.now()}-${current.length}`, isInstance: true },
+      {
+        ...template,
+        id: `${template.id}::instance::${Date.now()}-${current.length}`,
+        isInstance: true,
+        originRarity: template.rarity,
+        baseAttributes: [...(template.attributes ?? [])],
+      },
     ])
   const selectedMasterySkillNames = useMemo(() => {
     const names = new Set<string>()
@@ -333,24 +338,6 @@ function App() {
             />
           ) : view === 'devotions' && devotions ? (
             <DevotionPanel data={devotions} selected={selectedDevotions} setSelected={setSelectedDevotions} />
-          ) : view === 'crafting' ? (
-            <CraftingView
-              itemLibrary={itemLibrary}
-              itemSets={itemSets}
-              onCraft={(item) =>
-                setCollectionItems((current) => [
-                  ...current,
-                  { ...item, id: `${item.id}::instance::${Date.now()}-${current.length}`, isInstance: true },
-                ])
-              }
-              onEquip={equipItem}
-              onUnequip={unequipItem}
-              isEquipped={(item) =>
-                Object.values(character.equipment).some((equippedItem) => equippedItem?.id === item.id)
-              }
-              activeSkillNames={selectedMasterySkillNames}
-              equippedSetInfo={equippedSetInfo}
-            />
           ) : (
             <ItemPanel
               itemLibrary={itemLibrary}
@@ -363,6 +350,14 @@ function App() {
               equippedSetInfo={equippedSetInfo}
               collectionItems={collectionItems}
               onCreateInstance={createItemInstance}
+              onUpdateInstance={(item) =>
+                setCollectionItems((current) =>
+                  current.map((entry) => (entry.id === item.id ? { ...entry, ...item, isInstance: true } : entry)),
+                )
+              }
+              onRemoveInstance={(item) =>
+                setCollectionItems((current) => current.filter((entry) => entry.id !== item.id))
+              }
             />
           )}
         </div>
