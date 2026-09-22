@@ -124,7 +124,7 @@ function SkillList({ skills, character, setCharacter, itemBonuses = {}, masteryI
         </span>
         <span className="flex flex-col items-end gap-1 text-right">
           <span
-            className={`text-[0.68rem] uppercase tracking-[0.1em] ${locked ? 'text-neutral-600' : 'text-orange-300/80'}`}
+            className={`text-[0.68rem] uppercase tracking-widest ${locked ? 'text-neutral-600' : 'text-orange-300/80'}`}
           >
             {skill.masteryLevelRequired} Points required
           </span>

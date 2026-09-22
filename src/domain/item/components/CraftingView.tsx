@@ -58,7 +58,7 @@ function CraftingView({ itemLibrary, itemSets, onCraft, activeSkillNames, equipp
                   <p className="mt-3 text-sm text-neutral-500">Type an item name to see matching results.</p>
                 ) : itemLibrary.items.filter((item) => item.rarity !== 'Legendary').length > 0 ? (
                   <div className="mt-3 max-h-80 overflow-auto rounded border border-neutral-800">
-                    <table className="w-full min-w-[520px] border-collapse text-sm">
+                    <table className="w-full min-w-130 border-collapse text-sm">
                       <thead className="sticky top-0 border-b border-neutral-800 bg-neutral-900 text-left text-[0.65rem] uppercase tracking-[0.12em] text-neutral-500">
                         <tr>
                           <th className="w-14 px-3 py-2 font-normal">Image</th>
