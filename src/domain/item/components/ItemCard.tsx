@@ -97,8 +97,15 @@ function ItemCard({
         .filter(([label, value]) => !hiddenStatLabels.has(label) && !isPathValue(value))
         .slice(0, 8)
         .map(([label, value]) => ({ label, value }))
-  const primaryStats = visibleStats.filter(({ value }) => !String(value).startsWith('+'))
-  const bonusStats = visibleStats.filter(({ value }) => String(value).startsWith('+'))
+  const orderedStats = [...visibleStats].sort((left, right) => {
+    const leftSkill = left.label === 'Skill Bonus' ? 1 : 0
+    const rightSkill = right.label === 'Skill Bonus' ? 1 : 0
+    return leftSkill - rightSkill
+  })
+  const primaryStats = orderedStats.filter(({ value }) => !String(value).startsWith('+'))
+  const bonusStats = orderedStats.filter(({ value }) => String(value).startsWith('+'))
+  const regularBonusStats = bonusStats.filter(({ label }) => label !== 'Skill Bonus')
+  const skillBonusStats = bonusStats.filter(({ label }) => label === 'Skill Bonus')
   const typeLine = item.category
   const rarityTextClass = rarityTextClasses[item.rarity.toLowerCase()] ?? 'text-neutral-400'
   const requiredLevel = Number(item.stats?.levelRequirement ?? item.level)
@@ -239,9 +246,9 @@ function ItemCard({
             )}
           </div>
         </div>
-        {bonusStats.length > 0 && (
+        {(regularBonusStats.length > 0 || skillBonusStats.length > 0) && (
           <div className="mt-3">
-            {bonusStats.map(({ label, value }, index) => {
+            {[...regularBonusStats, ...skillBonusStats].map(({ label, value }, index) => {
               const skillBonus = label === 'Skill Bonus' ? parseSkillBonus(value) : null
               const inactive = skillBonus && activeSkillNames && !activeSkillNames.has(skillBonus.name)
               return (
@@ -250,7 +257,8 @@ function ItemCard({
                   key={`${label}-${value}-${index}`}
                   title={inactive ? 'Not part of your currently selected masteries' : undefined}
                 >
-                  <span className={inactive ? 'text-neutral-500' : 'text-white'}>{value}</span> {label}
+                  <span className={inactive ? 'text-neutral-500' : 'text-white'}>{value}</span>
+                  {label !== 'Skill Bonus' && ` ${label}`}
                 </p>
               )
             })}
