@@ -1,6 +1,13 @@
 let items = []
 const pageSize = 24
-let pendingRequest = { page: 0, search: '', category: 'All', maxLevel: undefined, rarities: [] }
+let pendingRequest = {
+  page: 0,
+  search: '',
+  category: 'All',
+  maxLevel: undefined,
+  rarities: [],
+  monsterInfrequentOnly: false,
+}
 const categoryGroups = {
   Accessories: ['Medal', 'Amulet', 'Ring', 'Belt', 'Relic'],
   Armor: ['Chest Armor', 'Gloves', 'Pants', 'Boots', 'Helm', 'Shoulders'],
@@ -22,19 +29,27 @@ const matchesCategory = (itemCategory, category) =>
 
 const normalizedRarity = (rarity) => (rarity === 'Magical' ? 'Magic' : rarity)
 
-const matches = (item, search, category, maxLevel, rarities) => {
+const matches = (item, search, category, maxLevel, rarities, monsterInfrequentOnly) => {
   const haystack = `${item.qualityTag ?? ''} ${item.name} ${item.description} ${item.category}`.toLowerCase()
   const requiredLevel = Number(item.stats?.levelRequirement ?? item.level) || 0
   return (
     (!search || haystack.includes(search)) &&
     matchesCategory(item.category, category) &&
     (maxLevel == null || requiredLevel <= maxLevel) &&
-    (!rarities.length || rarities.includes(normalizedRarity(item.rarity)))
+    (!rarities.length || rarities.includes(normalizedRarity(item.rarity))) &&
+    (!monsterInfrequentOnly || item.isMonsterInfrequent)
   )
 }
 
-const sendPage = (page, search = '', category = 'All', maxLevel = undefined, rarities = []) => {
-  const filtered = items.filter((item) => matches(item, search, category, maxLevel, rarities))
+const sendPage = (
+  page,
+  search = '',
+  category = 'All',
+  maxLevel = undefined,
+  rarities = [],
+  monsterInfrequentOnly = false,
+) => {
+  const filtered = items.filter((item) => matches(item, search, category, maxLevel, rarities, monsterInfrequentOnly))
   postMessage({
     type: 'page',
     page,
@@ -45,7 +60,16 @@ const sendPage = (page, search = '', category = 'All', maxLevel = undefined, rar
 }
 
 onmessage = (event) => {
-  const { type, page = 0, search = '', category = 'All', maxLevel, rarities = [], item } = event.data
+  const {
+    type,
+    page = 0,
+    search = '',
+    category = 'All',
+    maxLevel,
+    rarities = [],
+    monsterInfrequentOnly = false,
+    item,
+  } = event.data
   if (type === 'load') {
     fetch('/data/items.json')
       .then((response) => response.json())
@@ -62,6 +86,7 @@ onmessage = (event) => {
           pendingRequest.category,
           pendingRequest.maxLevel,
           pendingRequest.rarities,
+          pendingRequest.monsterInfrequentOnly,
         )
       })
       .catch((error) =>
@@ -79,10 +104,11 @@ onmessage = (event) => {
       pendingRequest.category,
       pendingRequest.maxLevel,
       pendingRequest.rarities,
+      pendingRequest.monsterInfrequentOnly,
     )
   }
   if (type === 'page') {
-    pendingRequest = { page, search: search.trim().toLowerCase(), category, maxLevel, rarities }
+    pendingRequest = { page, search: search.trim().toLowerCase(), category, maxLevel, rarities, monsterInfrequentOnly }
     if (items.length)
       sendPage(
         pendingRequest.page,
@@ -90,6 +116,7 @@ onmessage = (event) => {
         pendingRequest.category,
         pendingRequest.maxLevel,
         pendingRequest.rarities,
+        pendingRequest.monsterInfrequentOnly,
       )
   }
 }

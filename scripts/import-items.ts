@@ -4,6 +4,7 @@ import { DAMAGE_OVER_TIME_TYPES, DAMAGE_TYPES, fieldName } from './damage-utils.
 
 type Item = {
   id: string
+  isMonsterInfrequent?: boolean
   name: string
   qualityTag?: string
   description: string
@@ -564,6 +565,8 @@ const normalize = async (
     : /(^|\/)upgraded(\/|$)/.test(fallbackId)
       ? 'Mythical'
       : undefined
+  const isMonsterInfrequent =
+    /(^|\/)items\/gear[^/]*\/(?:.*\/)?b\d{3,}[^/]*\.dbr$/i.test(fallbackId) && !/^b000/i.test(basename(fallbackId))
   const twoHanded = /\/gearweapons\/(melee2h|guns2h)\//i.test(fallbackId) || undefined
   // the game combines a separate quality/material tag (e.g. "Scrapmetal") with the base item name
   // (e.g. "Gladius") to produce the full displayed name, unless the item opts out via hidePrefixName
@@ -580,6 +583,7 @@ const normalize = async (
     name: resolvedName,
     qualityTag: resolvedQualityTag,
     tier,
+    isMonsterInfrequent,
     twoHanded,
     description: stripTextFormatting(localization.get(rawDescription) ?? rawDescription),
     category: itemTypeFromPath(fallbackId),

@@ -28,6 +28,7 @@ export function useItemLibrary(level: number) {
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('All')
   const [hideAboveLevel, setHideAboveLevel] = useState(false)
+  const [monsterInfrequentOnly, setMonsterInfrequentOnly] = useState(false)
   const [rarities, setRarities] = useState<string[]>([])
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(24)
@@ -42,6 +43,7 @@ export function useItemLibrary(level: number) {
       nextCategory = category,
       nextHideAboveLevel = hideAboveLevel,
       nextRarities = rarities,
+      nextMonsterInfrequentOnly = monsterInfrequentOnly,
     ) => {
       setPage(nextPage)
       worker?.postMessage({
@@ -51,9 +53,10 @@ export function useItemLibrary(level: number) {
         category: nextCategory,
         maxLevel: nextHideAboveLevel ? level : undefined,
         rarities: nextRarities,
+        monsterInfrequentOnly: nextMonsterInfrequentOnly,
       })
     },
-    [category, hideAboveLevel, level, rarities, search, worker],
+    [category, hideAboveLevel, level, monsterInfrequentOnly, rarities, search, worker],
   )
 
   useEffect(() => {
@@ -92,6 +95,11 @@ export function useItemLibrary(level: number) {
     setRarities(next)
     requestPage(0, search, category, hideAboveLevel, next)
   }
+  const toggleMonsterInfrequentOnly = () => {
+    const next = !monsterInfrequentOnly
+    setMonsterInfrequentOnly(next)
+    requestPage(0, search, category, hideAboveLevel, rarities, next)
+  }
 
   const addItem = (item: Item) => {
     worker?.postMessage({ type: 'addItem', item })
@@ -108,6 +116,7 @@ export function useItemLibrary(level: number) {
     search,
     category,
     hideAboveLevel,
+    monsterInfrequentOnly,
     rarities,
     page,
     pageSize,
@@ -119,6 +128,7 @@ export function useItemLibrary(level: number) {
     requestPage,
     toggleHideAboveLevel,
     toggleRarity,
+    toggleMonsterInfrequentOnly,
     addItem,
   }
 }

@@ -1,6 +1,7 @@
 export type Item = {
   id: string
   isInstance?: boolean
+  isMonsterInfrequent?: boolean
   name: string
   qualityTag?: string
   prefix?: string

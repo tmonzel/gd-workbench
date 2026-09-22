@@ -43,6 +43,7 @@ function ItemPanel({
   const [collectionCategory, setCollectionCategory] = useState('All')
   const [collectionRarities, setCollectionRarities] = useState<string[]>([])
   const [collectionHideAboveLevel, setCollectionHideAboveLevel] = useState(false)
+  const [collectionMonsterInfrequentOnly, setCollectionMonsterInfrequentOnly] = useState(false)
   const [collectionPage, setCollectionPage] = useState(0)
   const {
     items,
@@ -79,12 +80,14 @@ function ItemPanel({
             .includes(query)) &&
         groupMatches(item.category) &&
         (!collectionHideAboveLevel || requiredLevel <= itemLibrary.level) &&
+        (!collectionMonsterInfrequentOnly || item.isMonsterInfrequent) &&
         (!collectionRarities.length || collectionRarities.includes(item.rarity))
       )
     })
   }, [
     collectionCategory,
     collectionHideAboveLevel,
+    collectionMonsterInfrequentOnly,
     collectionItems,
     collectionRarities,
     collectionSearch,
@@ -143,6 +146,11 @@ function ItemPanel({
                       setCollectionPage(0)
                     }}
                     hideAboveLevel={collectionHideAboveLevel}
+                    monsterInfrequentOnly={collectionMonsterInfrequentOnly}
+                    onMonsterInfrequentToggle={() => {
+                      setCollectionMonsterInfrequentOnly((current) => !current)
+                      setCollectionPage(0)
+                    }}
                     onHideAboveLevelToggle={() => {
                       setCollectionHideAboveLevel((current) => !current)
                       setCollectionPage(0)
@@ -198,6 +206,8 @@ function ItemPanel({
                 rarities={rarities}
                 onRarityToggle={toggleRarity}
                 hideAboveLevel={hideAboveLevel}
+                monsterInfrequentOnly={itemLibrary.monsterInfrequentOnly}
+                onMonsterInfrequentToggle={itemLibrary.toggleMonsterInfrequentOnly}
                 onHideAboveLevelToggle={toggleHideAboveLevel}
                 matchingCount={total}
                 page={page}

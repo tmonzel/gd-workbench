@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { IconPencil, IconTrash } from '@tabler/icons-react'
+import { IconPencil, IconSkull, IconTrash } from '@tabler/icons-react'
 import { Card } from '@/components/Card'
 import {
   getSetForItem,
@@ -13,6 +13,7 @@ import {
 type Item = {
   id: string
   isInstance?: boolean
+  isMonsterInfrequent?: boolean
   name: string
   qualityTag?: string
   prefix?: string
@@ -215,6 +216,11 @@ function ItemCard({
             >
               {item.rarity}
             </span>
+            {item.isMonsterInfrequent && (
+              <span className="ml-1 inline-flex align-middle text-orange-300" title="Monster Infrequent item">
+                <IconSkull size={14} stroke={1.8} aria-label="Monster Infrequent item" />
+              </span>
+            )}
             <h3 className="line-clamp-2 text-[0.92rem] font-medium leading-tight text-neutral-50">
               {item.qualityTag && <span>{item.qualityTag} </span>}
               {item.prefix && <span>{item.prefix} </span>}
