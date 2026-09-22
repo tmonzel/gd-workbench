@@ -672,13 +672,17 @@ const readSkillData = async (
 }
 
 const records = await readRecords(inputPath)
+const playerRecords = records.filter((record) => {
+  const id = typeof record.id === 'string' ? record.id.replaceAll('\\', '/') : ''
+  return !/(^|\/)items\/enemygear\//i.test(id)
+})
 const localization = await readLocalization(localizationPath)
 const { names: skillNames, records: skillRecords } = await readSkillData(
   resolve('data/game/records/skills'),
   localization,
 )
 const items = await Promise.all(
-  records.map(async (record, index) => {
+  playerRecords.map(async (record, index) => {
     const recordId =
       typeof record.id === 'string'
         ? relative(process.cwd(), record.id).replaceAll('\\', '/')
@@ -690,7 +694,7 @@ await mkdir(join(outputPath, '..'), { recursive: true })
 const outputDirectory = join(outputPath, '..')
 await rm(join(outputDirectory, 'item-pages'), { recursive: true, force: true })
 await writeFile(outputPath, `${JSON.stringify(items)}\n`, 'utf8')
-console.log(`Imported ${items.length} items from ${inputPath}`)
+console.log(`Imported ${items.length} player items from ${inputPath}`)
 console.log(`Wrote one item database to ${outputPath}`)
 if (localizationPath) console.log(`Resolved ${localization.size} localization tags from ${localizationPath}`)
 console.log(`Wrote ${outputPath}`)
