@@ -64,9 +64,21 @@ export function useHero(skillsets: Record<string, MasterySkill[]>) {
   const changeMastery = (slot: 'mastery1' | 'mastery2', value: string) =>
     setCharacter((current) => {
       if (slot === 'mastery2' && !current.mastery1) return current
-      if (slot === 'mastery1')
-        return { ...current, mastery1: value || undefined, mastery2: value ? current.mastery2 : undefined }
-      return { ...current, mastery2: value || undefined }
+      const replacedMasteries = slot === 'mastery1' ? [current.mastery1, ...(value ? [] : [current.mastery2])] : [current.mastery2]
+      const masteryLevels = { ...current.masteryLevels }
+      const skillLevels = { ...current.skillLevels }
+      for (const mastery of replacedMasteries) {
+        if (!mastery) continue
+        delete masteryLevels[mastery]
+        for (const skill of skillsets[mastery] ?? []) delete skillLevels[skill.id]
+      }
+      return {
+        ...current,
+        mastery1: slot === 'mastery1' ? value || undefined : current.mastery1,
+        mastery2: slot === 'mastery1' ? (value ? current.mastery2 : undefined) : value || undefined,
+        masteryLevels,
+        skillLevels,
+      }
     })
 
   return {
