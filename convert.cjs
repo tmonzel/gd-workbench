@@ -14,7 +14,18 @@ const TEXCONV_CANDIDATES = [
 ].filter(Boolean)
 
 const findTexconv = () => {
-  const toolPath = TEXCONV_CANDIDATES.find((candidate) => fs.existsSync(candidate))
+  const pathCommand = process.platform === 'win32' ? 'where.exe' : 'which'
+  let pathTool = ''
+  try {
+    pathTool = execFileSync(pathCommand, ['texconv'], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).split(/\r?\n/)[0].trim()
+  } catch {
+    // Fall back to the explicit candidates below when PATH lookup fails.
+  }
+
+  const toolPath = [pathTool, ...TEXCONV_CANDIDATES].find((candidate) => candidate && fs.existsSync(candidate))
   if (!toolPath) throw new Error('texconv.exe not found. Set TEXCONV_PATH or place texconv.exe in the project root.')
   return path.resolve(toolPath)
 }
