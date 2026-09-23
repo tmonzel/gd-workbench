@@ -568,11 +568,16 @@ const normalize = async (
   const isMonsterInfrequent =
     /(^|\/)items\/gear[^/]*\/(?:.*\/)?b\d{3,}[^/]*\.dbr$/i.test(fallbackId) && !/^b000/i.test(basename(fallbackId))
   const twoHanded = /\/gearweapons\/(melee2h|guns2h)\//i.test(fallbackId) || undefined
-  // the game combines a separate quality/material tag (e.g. "Scrapmetal") with the base item name
-  // (e.g. "Gladius") to produce the full displayed name, unless the item opts out via hidePrefixName
+  // The game combines style and quality/material tags with the base item name unless the item opts out.
   const qualityTag = textValue(record, ['itemQualityTag'], '')
+  const styleTag = textValue(record, ['itemStyleTag'], '')
   const hidesPrefix = numberValue(record, ['hidePrefixName'], 0) === 1
-  const resolvedQualityTag = qualityTag && !hidesPrefix ? (localization.get(qualityTag) ?? '') : undefined
+  const resolvedQualityTag = !hidesPrefix
+    ? [styleTag, qualityTag]
+        .map((tag) => (tag ? localization.get(tag) ?? '' : ''))
+        .filter(Boolean)
+        .join(' ') || undefined
+    : undefined
   const resolvedName = stripTextFormatting(localization.get(rawName) ?? rawName)
   // Drop zero/blank fields from the output; gameAttributes already read the full stats above.
   const trimmedStats = Object.fromEntries(
