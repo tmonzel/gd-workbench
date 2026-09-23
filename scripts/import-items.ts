@@ -45,6 +45,53 @@ const numberValue = (record: RawRecord, keys: string[], fallback = 0) => {
   return Number.isFinite(value) ? value : fallback
 }
 
+const derivedRequirements = (record: RawRecord, fallbackId: string) => {
+  const itemLevel = numberValue(record, ['itemLevel', 'levelRequirement', 'level'], 0)
+  if (itemLevel <= 0) return {}
+  const path = fallbackId.replaceAll('\\', '/').toLowerCase()
+  const heavy = textValue(record, ['armorClassification'], '').toLowerCase() === 'heavy'
+  const heavyBase = (multiplier: number, offset: number) =>
+    (2.22 * (itemLevel * 6.55) ** 1.246 - 1.8 * (itemLevel * 5.84) ** 1.2785 + (itemLevel ** 1.5 * 0.0125 - 1) * -5) *
+      multiplier +
+    offset
+  const lightBase = (multiplier: number, offset: number) =>
+    (2.1 * (itemLevel * 6.55) ** 1.25 - 1.8 * (itemLevel * 5.84) ** 1.2785 + (itemLevel ** 1.5 * 0.0125 - 1) * -5) *
+      multiplier +
+    offset
+  const casterDaggerBase =
+    2.44 * (itemLevel * 6.55) ** 1.233 - 1.95 * (itemLevel * 5.84) ** 1.2785 + (itemLevel ** 1.5 * 0.0125 - 1) * -2 + 8
+  const requirements: Record<string, number> = {}
+  const setRequirement = (key: string, value: number) => {
+    if (numberValue(record, [key], 0) <= 0) requirements[key] = Math.round(value)
+  }
+
+  if (/gear(head|torso|legs|hands|feet|shoulders)/.test(path)) {
+    const multiplier = heavy ? 1.17 : path.includes('/gearhead/') || path.includes('/gearshoulders/') ? 0.8 : path.includes('/gearhands/') || path.includes('/gearfeet/') ? 0.56 : 0.98
+    const offset = heavy ? 30 : path.includes('/gearhead/') || path.includes('/gearshoulders/') ? 7 : path.includes('/gearhands/') || path.includes('/gearfeet/') ? 10 : 12
+    setRequirement('strengthRequirement', heavy ? heavyBase(multiplier, offset) : lightBase(multiplier, offset))
+  } else if (path.includes('/gearweapons/caster/') || textValue(record, ['itemCostName'], '').includes('itemcostformulas_caster')) {
+    if (path.includes('/dagger') || textValue(record, ['Class'], '').toLowerCase().includes('dagger')) {
+      setRequirement('dexterityRequirement', casterDaggerBase * 0.8)
+      setRequirement('intelligenceRequirement', casterDaggerBase)
+    } else if (path.includes('/scepter') || textValue(record, ['Class'], '').toLowerCase().includes('scepter')) {
+      setRequirement('intelligenceRequirement', casterDaggerBase)
+      setRequirement('strengthRequirement', casterDaggerBase)
+    }
+  } else if (path.includes('/gearweapons/')) {
+    if (path.includes('/swords1h/') || path.includes('/ranged1h/'))
+      setRequirement('dexterityRequirement', 2.488 * (itemLevel * 6.55) ** 1.22 - 1.8 * (itemLevel * 5.84) ** 1.2785 + (itemLevel ** 1.5 * 0.0125 - 1) * -5 + 13)
+    else if (path.includes('/guns2h/') || path.includes('/bows/'))
+      setRequirement('dexterityRequirement', 2.5 * (itemLevel * 6.55) ** 1.22 - 1.8 * (itemLevel * 5.84) ** 1.2785 + (itemLevel ** 1.5 * 0.0125 - 1) * -5 + 25)
+    else if (path.includes('/melee2h/'))
+      setRequirement('strengthRequirement', 2.79 * (itemLevel * 6.55) ** 1.205 - 1.8 * (itemLevel * 5.84) ** 1.2785 + (itemLevel ** 1.5 * 0.0125 - 1) * -5 + 18)
+    else if (path.includes('/axe1h/') || path.includes('/mace1h/'))
+      setRequirement('strengthRequirement', 2.57 * (itemLevel * 6.55) ** 1.216 - 1.8 * (itemLevel * 5.84) ** 1.2785 + (itemLevel ** 1.5 * 0.0125 - 1) * -5 + 13)
+  } else if (path.includes('/gearaccessories/rings/') || path.includes('/gearaccessories/necklaces/')) {
+    setRequirement('intelligenceRequirement', 0.9 * (2 * (itemLevel * 6.5) ** 1.223 - 1.52 * (itemLevel * 5.8) ** 1.2785 + (itemLevel ** 1.5 / 150 - 1) * 15 + 11))
+  }
+  return requirements
+}
+
 const itemTypeFromPath = (filePath: string) => {
   const normalizedPath = filePath.replaceAll('\\', '/').toLowerCase()
   if (normalizedPath.includes('/gearrelic/')) return 'Relic'
@@ -579,6 +626,7 @@ const normalize = async (
         .join(' ') || undefined
     : undefined
   const resolvedName = stripTextFormatting(localization.get(rawName) ?? rawName)
+  Object.assign(stats, derivedRequirements(record, fallbackId))
   // Drop zero/blank fields from the output; gameAttributes already read the full stats above.
   const trimmedStats = Object.fromEntries(
     Object.entries(stats).filter(([, value]) => (typeof value === 'number' ? value !== 0 : value.trim() !== '')),

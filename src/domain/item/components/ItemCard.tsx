@@ -56,6 +56,7 @@ const hiddenStatLabels = new Set([
   'cannotPickUp',
   'cannotPickUpMultiple',
   'castsShadows',
+  'strengthRequirement',
   'dexterityRequirement',
   'intelligenceRequirement',
   'forcedRelicCompletion',
@@ -111,6 +112,11 @@ function ItemCard({
   const rarityTextClass = rarityTextClasses[item.rarity.toLowerCase()] ?? 'text-neutral-400'
   const requiredLevel = Number(item.stats?.levelRequirement ?? item.level)
   const itemLevel = Number(item.stats?.itemLevel ?? item.level)
+  const requirements = [
+    ['Physique', item.stats?.strengthRequirement],
+    ['Cunning', item.stats?.dexterityRequirement],
+    ['Spirit', item.stats?.intelligenceRequirement],
+  ].filter(([, value]) => Number(value) > 0) as Array<[string, string | number]>
   const itemSet = getSetForItem(item.id, itemSets)
   const equippedCount = itemSet ? (equippedSetInfo.find((info) => info.set.id === itemSet.id)?.equippedCount ?? 0) : 0
 
@@ -350,6 +356,11 @@ function ItemCard({
         <p className="m-0">
           Item Level: <strong>{itemLevel}</strong>
         </p>
+        {requirements.map(([label, value]) => (
+          <p className="m-0" key={label}>
+            Requires {label}: <strong>{value}</strong>
+          </p>
+        ))}
       </div>
       {onEquip && item.isInstance && isEquippableItem(item) && (
         <button
