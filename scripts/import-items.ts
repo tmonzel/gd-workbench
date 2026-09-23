@@ -18,10 +18,18 @@ type Item = {
   stats: Record<string, string | number>
   grantedSkill?: {
     name: string
-    description: string
+    description?: string
     level: number
+    icon?: string
     attributes: Array<{ label: string; value: string | number }>
   }
+  specialSkillBonuses?: Array<{
+    name: string
+    description?: string
+    level: number
+    icon?: string
+    attributes: Array<{ label: string; value: string | number }>
+  }>
 }
 
 type RawRecord = Record<string, unknown>
@@ -122,6 +130,12 @@ const normalizeRarity = (value: string) => (value === 'Magical' ? 'Magic' : valu
 
 const formatNumber = (value: number) =>
   Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/0+$/, '').replace(/\.$/, '')
+
+const skillIconPath = (record: RawRecord) => {
+  const value = typeof record.skillUpBitmapName === 'string' ? record.skillUpBitmapName : ''
+  const normalized = value.replaceAll('\\', '/').replace(/^\/+/, '')
+  return normalized && /\.tex$/i.test(normalized) ? `/assets/${normalized.replace(/\.tex$/i, '.webp')}` : undefined
+}
 
 const humanizeSkillIdentifier = (path: string) => {
   const normalizedPath = path
@@ -292,6 +306,22 @@ const grantedSkillAttributes = (
   const weaponDamagePct = at('weaponDamagePct')
   if (weaponDamagePct) add('Weapon Damage', `${formatNumber(weaponDamagePct)}%`)
 
+  const offensiveAbility = at('characterOffensiveAbility')
+  const offensiveAbilityModifier = at('characterOffensiveAbilityModifier')
+  if (offensiveAbility) add('Offensive Ability', `${offensiveAbility > 0 ? '+' : ''}${formatNumber(offensiveAbility)}`)
+  if (offensiveAbilityModifier)
+    add('Offensive Ability', `${offensiveAbilityModifier > 0 ? '+' : ''}${formatNumber(offensiveAbilityModifier)}`)
+
+  const attackSpeedModifier = at('characterAttackSpeedModifier')
+  if (attackSpeedModifier)
+    add('Attack Speed', `${attackSpeedModifier > 0 ? '+' : ''}${formatNumber(attackSpeedModifier)}%`)
+
+  const conversionInType = String(skillRecord.conversionInType ?? '')
+  const conversionOutType = String(skillRecord.conversionOutType ?? '')
+  const conversionPercentage = at('conversionPercentage')
+  if (conversionPercentage && conversionInType && conversionOutType)
+    add('Damage Conversion', `${formatNumber(conversionPercentage)}% ${conversionInType} to ${conversionOutType}`)
+
   const targetRadius = at('projectileExplosionRadius') || at('skillTargetRadius')
   if (targetRadius) add('Meter Target Area', formatNumber(targetRadius))
 
@@ -430,7 +460,38 @@ const resolveGrantedSkill = async (
     for (const attribute of petAttributes)
       if (/damage$/i.test(attribute.label)) add(`${name} ${attribute.label}`, attribute.value)
   }
-  return { name, description, level: clampedLevel, attributes }
+  return { name, description, level: clampedLevel, icon: skillIconPath(skillRecord), attributes }
+}
+
+const resolveSpecialSkillBonuses = async (
+  stats: Record<string, string | number>,
+  skillNames: Map<string, string>,
+  skillRecords: Map<string, RawRecord>,
+  localization: Map<string, string>,
+): Promise<NonNullable<Item['specialSkillBonuses']>> => {
+  const bonuses: NonNullable<Item['specialSkillBonuses']> = []
+  const itemLevel = Number(stats.itemLevel ?? 1)
+  const level = resolveSkillLevel(stats.itemSkillLevelEq, itemLevel)
+  const indexes = Object.keys(stats)
+    .map((key) => /^modifiedSkillName(\d+)$/.exec(key)?.[1])
+    .filter((index): index is string => Boolean(index))
+  for (const index of indexes) {
+    const skillPath = String(stats[`modifiedSkillName${index}`] ?? '').replaceAll('\\', '/')
+    const modifierPath = String(stats[`modifierSkillName${index}`] ?? '').replaceAll('\\', '/')
+    const modifierRecord = skillRecords.get(modifierPath)
+    if (!skillPath || !modifierRecord) continue
+    const skillRecord = skillRecords.get(skillPath)
+    const nameTag = typeof skillRecord?.skillDisplayName === 'string' ? skillRecord.skillDisplayName : ''
+    const name = nameTag
+      ? (localization.get(nameTag) ?? nameTag)
+      : skillNames.get(skillPath) ?? humanizeSkillIdentifier(skillPath)
+    const maxLevel = Number(modifierRecord.skillMaxLevel ?? 0)
+    const clampedLevel = maxLevel > 0 ? Math.min(level, maxLevel) : level
+    const attributes = grantedSkillAttributes(modifierRecord, clampedLevel)
+    if (attributes.length)
+      bonuses.push({ name, level: clampedLevel, icon: skillRecord ? skillIconPath(skillRecord) : undefined, attributes })
+  }
+  return bonuses
 }
 
 const gameAttributes = (
@@ -654,6 +715,7 @@ const normalize = async (
     attributes: gameAttributes(stats, skillNames, localization),
     stats: trimmedStats,
     grantedSkill: await resolveGrantedSkill(stats, skillRecords, localization),
+    specialSkillBonuses: await resolveSpecialSkillBonuses(stats, skillNames, skillRecords, localization),
   }
 }
 

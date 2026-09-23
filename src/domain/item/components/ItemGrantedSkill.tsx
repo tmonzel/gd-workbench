@@ -1,20 +1,23 @@
 import { useState } from 'react'
 import { IconChevronDown, IconChevronUp } from '@tabler/icons-react'
-import type { Item } from '@/domain/item/types'
+import type { ItemSkillDetails } from '@/domain/item/types'
 
 type ItemGrantedSkillProps = {
-  skill: NonNullable<Item['grantedSkill']>
+  skill: ItemSkillDetails
 }
 
 function ItemGrantedSkill({ skill }: ItemGrantedSkillProps) {
   const [expanded, setExpanded] = useState(false)
 
   return (
-    <div className="mt-3 border-t border-neutral-800 pt-3">
+    <div className="mt-3">
       <div className="flex items-center justify-between gap-2">
-        <p className="m-0 text-xs text-neutral-400">
+        <div className="flex min-w-0 items-center gap-2 text-xs text-neutral-400">
+          {skill.icon && <img className="size-5 shrink-0 rounded object-cover" src={skill.icon} alt="" />}
+          <p className="m-0 truncate">
           <strong>{skill.name}</strong> (Level {skill.level})
-        </p>
+          </p>
+        </div>
         <button
           className="flex size-6 shrink-0 items-center justify-center rounded text-neutral-500 hover:bg-neutral-900 hover:text-neutral-200"
           type="button"

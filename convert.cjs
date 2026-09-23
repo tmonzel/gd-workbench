@@ -46,12 +46,17 @@ const getReferencedTexFiles = () => {
   if (!fs.existsSync(ITEMS_JSON)) return getTexFiles(RESOURCE_DIR)
   const items = JSON.parse(fs.readFileSync(ITEMS_JSON, 'utf8'))
   const paths = new Set()
-  for (const item of items) {
-    if (typeof item.image !== 'string' || !item.image.startsWith('/assets/')) continue
-    const relativePath = item.image.slice('/assets/'.length)
-    if (!relativePath.toLowerCase().endsWith('.png') && !relativePath.toLowerCase().endsWith('.webp')) continue
+  const addAssetReference = (assetPath) => {
+    if (typeof assetPath !== 'string' || !assetPath.startsWith('/assets/')) return
+    const relativePath = assetPath.slice('/assets/'.length)
+    if (!/\.(png|webp)$/i.test(relativePath)) return
     const sourcePath = path.join(RESOURCE_DIR, relativePath.replace(/\.(png|webp)$/i, '.tex'))
     if (fs.existsSync(sourcePath)) paths.add(sourcePath)
+  }
+  for (const item of items) {
+    addAssetReference(item.image)
+    addAssetReference(item.grantedSkill?.icon)
+    for (const skill of item.specialSkillBonuses ?? []) addAssetReference(skill.icon)
   }
   const masterySkillsPath = path.resolve('public/data/mastery-skills.json')
   if (fs.existsSync(masterySkillsPath)) {

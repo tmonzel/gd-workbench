@@ -1,3 +1,11 @@
+export type ItemSkillDetails = {
+  name: string
+  description?: string
+  level: number
+  icon?: string
+  attributes: Array<{ label: string; value: string | number }>
+}
+
 export type Item = {
   id: string
   isInstance?: boolean
@@ -23,12 +31,8 @@ export type Item = {
   twoHanded?: boolean
   attributes?: Array<{ label: string; value: string | number }>
   stats?: Record<string, string | number>
-  grantedSkill?: {
-    name: string
-    description: string
-    level: number
-    attributes: Array<{ label: string; value: string | number }>
-  }
+  grantedSkill?: ItemSkillDetails
+  specialSkillBonuses?: ItemSkillDetails[]
 }
 
 export type ItemSetBonusTier = {

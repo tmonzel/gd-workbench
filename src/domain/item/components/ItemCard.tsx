@@ -5,6 +5,7 @@ import ItemGrantedSkill from '@/domain/item/components/ItemGrantedSkill'
 import ItemPrimaryStats from '@/domain/item/components/ItemPrimaryStats'
 import ItemRequirements from '@/domain/item/components/ItemRequirements'
 import ItemSetInfo from '@/domain/item/components/ItemSetInfo'
+import ItemSkillModifiers from '@/domain/item/components/ItemSkillModifiers'
 import ItemStats from '@/domain/item/components/ItemStats'
 import type { Item } from '@/domain/item/types'
 import {
@@ -183,6 +184,9 @@ function ItemCard({
         <ItemStats attributes={item.attributes} stats={item.stats} activeSkillNames={activeSkillNames} />
         {item.grantedSkill && (
           <ItemGrantedSkill skill={item.grantedSkill} />
+        )}
+        {item.specialSkillBonuses && item.specialSkillBonuses.length > 0 && (
+          <ItemSkillModifiers modifiers={item.specialSkillBonuses} />
         )}
         {itemSet && (
           <ItemSetInfo set={itemSet} equippedCount={equippedCount} />
