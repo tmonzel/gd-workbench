@@ -285,6 +285,13 @@ const grantedSkillAttributes = (
   const elementalMaximum = at('offensiveElementalMax')
   if (elementalMinimum || elementalMaximum) add('Elemental Damage', range(elementalMinimum, elementalMaximum))
 
+  const criticalDamageModifier = at('offensiveCritDamageModifier')
+  if (criticalDamageModifier)
+    add('Critical Damage', `${criticalDamageModifier > 0 ? '+' : ''}${formatNumber(criticalDamageModifier)}%`)
+
+  const weaponDamagePct = at('weaponDamagePct')
+  if (weaponDamagePct) add('Weapon Damage', `${formatNumber(weaponDamagePct)}%`)
+
   const targetRadius = at('projectileExplosionRadius') || at('skillTargetRadius')
   if (targetRadius) add('Meter Target Area', formatNumber(targetRadius))
 
@@ -354,6 +361,7 @@ const resolveGrantedSkill = async (
   const clampedLevel = maxLevel > 0 ? Math.min(level, maxLevel) : level
   const attributes = grantedSkillAttributes(skillRecord, clampedLevel)
   const add = (label: string, value: string | number) => attributes.push({ label, value })
+  if (nameTag === 'tagItemSkillC042Name') add('Chance on Default Attack', '20%')
   const manaCost = skillValueAt(skillRecord, 'skillManaCost', clampedLevel)
   const cooldown = skillValueAt(skillRecord, 'skillCooldownTime', clampedLevel)
   const petLimit = skillValueAt(skillRecord, 'petLimit', clampedLevel)

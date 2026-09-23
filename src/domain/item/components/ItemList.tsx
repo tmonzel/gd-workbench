@@ -63,7 +63,7 @@ function ItemList({
           Next
         </button>
       </nav>
-      <section className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-3 xl:grid-cols-4">
+      <section className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-3 xl:grid-cols-3">
         {items.map((item) => (
           <ItemCard
             item={item}

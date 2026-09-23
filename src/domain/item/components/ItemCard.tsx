@@ -1,68 +1,19 @@
 import { useState } from 'react'
 import { IconPencil, IconSkull, IconTrash } from '@tabler/icons-react'
 import { Card } from '@/components/Card'
+import ItemGrantedSkill from '@/domain/item/components/ItemGrantedSkill'
+import ItemPrimaryStats from '@/domain/item/components/ItemPrimaryStats'
+import ItemRequirements from '@/domain/item/components/ItemRequirements'
+import ItemSetInfo from '@/domain/item/components/ItemSetInfo'
+import ItemStats from '@/domain/item/components/ItemStats'
+import type { Item } from '@/domain/item/types'
 import {
   getSetForItem,
   isEquippableItem,
-  parseSkillBonus,
   rarityTextClasses,
   type EquippedSetInfo,
   type ItemSet,
 } from '@/domain/item/item.utils'
-
-type Item = {
-  id: string
-  isInstance?: boolean
-  isMonsterInfrequent?: boolean
-  name: string
-  qualityTag?: string
-  prefix?: string
-  suffix?: string
-  componentImage?: string
-  augmentImage?: string
-  description: string
-  category: string
-  rarity: string
-  level: number
-  image?: string
-  twoHanded?: boolean
-  attributes?: Array<{ label: string; value: string | number }>
-  stats?: Record<string, string | number>
-  grantedSkill?: {
-    name: string
-    description: string
-    level: number
-    attributes: Array<{ label: string; value: string | number }>
-  }
-}
-
-const isRollRangeValue = (value: string) => /^[+-]?\d+(\.\d+)?\/\d+(\.\d+)?%?$/.test(value)
-
-const isPathValue = (value: string | number) =>
-  typeof value === 'string' &&
-  !isRollRangeValue(value) &&
-  (/[\\/]/.test(value) || /\.(dbr|tex|msh|arc|tpl|wav|mp3)$/i.test(value))
-
-const hiddenStatLabels = new Set([
-  'templateName',
-  'artifactFormulaBitmapName',
-  'artifactName',
-  'baseTexture',
-  'bitmap',
-  'randomizerName',
-  'actorHeight',
-  'actorRadius',
-  'allowTransparency',
-  'cannotPickUp',
-  'cannotPickUpMultiple',
-  'castsShadows',
-  'strengthRequirement',
-  'dexterityRequirement',
-  'intelligenceRequirement',
-  'forcedRelicCompletion',
-  'artifactCreateQuantity',
-  'itemLevel',
-])
 
 type ItemCardProps = {
   item: Item
@@ -93,30 +44,9 @@ function ItemCard({
 }: ItemCardProps) {
   const [hoverPoint, setHoverPoint] = useState<{ x: number; y: number } | null>(null)
   const rarityClass = `rarity-${item.rarity.toLowerCase()}`
-  const visibleStats = item.attributes?.length
-    ? item.attributes.filter(({ label, value }) => !hiddenStatLabels.has(label) && !isPathValue(value))
-    : Object.entries(item.stats ?? {})
-        .filter(([label, value]) => !hiddenStatLabels.has(label) && !isPathValue(value))
-        .slice(0, 8)
-        .map(([label, value]) => ({ label, value }))
-  const orderedStats = [...visibleStats].sort((left, right) => {
-    const leftSkill = left.label === 'Skill Bonus' ? 1 : 0
-    const rightSkill = right.label === 'Skill Bonus' ? 1 : 0
-    return leftSkill - rightSkill
-  })
-  const primaryStats = orderedStats.filter(({ value }) => !String(value).startsWith('+'))
-  const bonusStats = orderedStats.filter(({ value }) => String(value).startsWith('+'))
-  const regularBonusStats = bonusStats.filter(({ label }) => label !== 'Skill Bonus')
-  const skillBonusStats = bonusStats.filter(({ label }) => label === 'Skill Bonus')
   const typeLine = item.category
   const rarityTextClass = rarityTextClasses[item.rarity.toLowerCase()] ?? 'text-neutral-400'
-  const requiredLevel = Number(item.stats?.levelRequirement ?? item.level)
   const itemLevel = Number(item.stats?.itemLevel ?? item.level)
-  const requirements = [
-    ['Physique', item.stats?.strengthRequirement],
-    ['Cunning', item.stats?.dexterityRequirement],
-    ['Spirit', item.stats?.intelligenceRequirement],
-  ].filter(([, value]) => Number(value) > 0) as Array<[string, string | number]>
   const itemSet = getSetForItem(item.id, itemSets)
   const equippedCount = itemSet ? (equippedSetInfo.find((info) => info.set.id === itemSet.id)?.equippedCount ?? 0) : 0
 
@@ -247,83 +177,15 @@ function ItemCard({
                 {itemSet.name} Set · {equippedCount}/{itemSet.members.length}
               </span>
             )}
-            {primaryStats.length > 0 && (
-              <div className="mt-2">
-                {primaryStats.map(({ label, value }, index) => (
-                  <p className="truncate text-[0.78rem] text-neutral-400" key={`${label}-${value}-${index}`}>
-                    <strong>{value}</strong> {label}
-                  </p>
-                ))}
-              </div>
-            )}
+            <ItemPrimaryStats attributes={item.attributes} stats={item.stats} />
           </div>
         </div>
-        {(regularBonusStats.length > 0 || skillBonusStats.length > 0) && (
-          <div className="mt-3">
-            {[...regularBonusStats, ...skillBonusStats].map(({ label, value }, index) => {
-              const skillBonus = label === 'Skill Bonus' ? parseSkillBonus(value) : null
-              const inactive = skillBonus && activeSkillNames && !activeSkillNames.has(skillBonus.name)
-              return (
-                <p
-                  className={`truncate text-[0.78rem] ${inactive ? 'text-neutral-600' : 'text-neutral-400'}`}
-                  key={`${label}-${value}-${index}`}
-                  title={inactive ? 'Not part of your currently selected masteries' : undefined}
-                >
-                  <span className={inactive ? 'text-neutral-500' : 'text-white'}>{value}</span>
-                  {label !== 'Skill Bonus' && ` ${label}`}
-                </p>
-              )
-            })}
-          </div>
-        )}
+        <ItemStats attributes={item.attributes} stats={item.stats} activeSkillNames={activeSkillNames} />
         {item.grantedSkill && (
-          <div className="mt-3 border-t border-neutral-800 pt-3">
-            <p className="m-0 text-xs text-neutral-400">
-              <strong>{item.grantedSkill.name}</strong> (Level {item.grantedSkill.level})
-            </p>
-            {item.grantedSkill.description && (
-              <p className="mt-1 text-[0.7rem] italic leading-snug text-neutral-500">{item.grantedSkill.description}</p>
-            )}
-            {item.grantedSkill.attributes.length > 0 && (
-              <div className="mt-2">
-                {item.grantedSkill.attributes.map(({ label, value }, index) => (
-                  <p
-                    className="truncate text-[0.78rem] leading-snug text-orange-200"
-                    key={`${label}-${value}-${index}`}
-                  >
-                    <strong>{value}</strong> {label}
-                  </p>
-                ))}
-              </div>
-            )}
-          </div>
+          <ItemGrantedSkill skill={item.grantedSkill} />
         )}
         {itemSet && (
-          <div className="mt-3 border-t border-neutral-800 pt-3">
-            <p className="m-0 text-xs text-neutral-400">
-              <strong className="text-neutral-200">{itemSet.name}</strong> Set ({equippedCount}/{itemSet.members.length}{' '}
-              equipped)
-            </p>
-            <div className="mt-1.5 grid gap-1">
-              {itemSet.bonuses.map((tier) => {
-                const active = equippedCount >= tier.count
-                return (
-                  <p
-                    className={`m-0 text-[0.72rem] leading-snug ${active ? 'text-orange-200' : 'text-neutral-600'}`}
-                    key={tier.count}
-                  >
-                    <span className="uppercase tracking-[0.08em]">{tier.count} pieces:</span>{' '}
-                    {[
-                      ...tier.attributes.map((attribute) => `${attribute.value} ${attribute.label}`),
-                      tier.skill && `${tier.skill.name}`,
-                    ]
-                      .filter(Boolean)
-                      .join(', ')}
-                  </p>
-                )
-              })}
-            </div>
-          </div>
+          <ItemSetInfo set={itemSet} equippedCount={equippedCount} />
         )}
         {(item.componentImage || item.augmentImage) && (
           <div
@@ -351,16 +213,9 @@ function ItemCard({
       </div>
       <div className="mt-4 space-y-0.5 border-t border-neutral-800 pt-3 text-[0.72rem] leading-snug text-neutral-500">
         <p className="m-0">
-          Required Level: <strong>{requiredLevel}</strong>
-        </p>
-        <p className="m-0">
           Item Level: <strong>{itemLevel}</strong>
         </p>
-        {requirements.map(([label, value]) => (
-          <p className="m-0" key={label}>
-            Requires {label}: <strong>{value}</strong>
-          </p>
-        ))}
+        <ItemRequirements stats={item.stats} level={item.level} />
       </div>
       {onEquip && item.isInstance && isEquippableItem(item) && (
         <button
