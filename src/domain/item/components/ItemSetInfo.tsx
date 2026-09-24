@@ -12,20 +12,20 @@ function ItemSetInfo({ set, equippedCount }: ItemSetInfoProps) {
 
   return (
     <div className="mt-3 border-t border-neutral-800 pt-3">
-      <div className="flex items-center justify-between gap-2">
-        <p className="m-0 text-xs text-neutral-400">
+      <button
+        className="group flex w-full items-center justify-between gap-2 text-left"
+        type="button"
+        aria-expanded={expanded}
+        aria-label={`${expanded ? 'Collapse' : 'Expand'} ${set.name} set bonuses`}
+        onClick={() => setExpanded((current) => !current)}
+      >
+        <span className="m-0 text-xs text-neutral-400">
           <strong className="text-neutral-200">{set.name}</strong> Set ({equippedCount}/{set.members.length})
-        </p>
-        <button
-          className="flex size-6 shrink-0 items-center justify-center rounded text-neutral-500 hover:bg-neutral-900 hover:text-neutral-200"
-          type="button"
-          aria-expanded={expanded}
-          aria-label={`${expanded ? 'Collapse' : 'Expand'} ${set.name} set bonuses`}
-          onClick={() => setExpanded((current) => !current)}
-        >
+        </span>
+        <span className="flex size-6 shrink-0 items-center justify-center rounded text-neutral-500 group-hover:bg-neutral-900 group-hover:text-neutral-200">
           {expanded ? <IconChevronUp size={15} stroke={2} aria-hidden="true" /> : <IconChevronDown size={15} stroke={2} aria-hidden="true" />}
-        </button>
-      </div>
+        </span>
+      </button>
       {expanded && (
         <div className="mt-2 grid gap-1.5">
           {set.bonuses.map((tier) => {
