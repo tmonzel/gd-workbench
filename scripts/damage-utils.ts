@@ -9,6 +9,7 @@ export const DAMAGE_TYPES: Record<string, string> = {
   aether: 'Aether',
   chaos: 'Chaos',
   life: 'Vitality',
+  elemental: 'Elemental',
 }
 
 export const DAMAGE_OVER_TIME_TYPES: Array<[string, string]> = [

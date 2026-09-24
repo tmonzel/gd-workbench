@@ -263,15 +263,17 @@ const grantedSkillAttributes = (
   for (const [key, label] of Object.entries(DAMAGE_TYPES)) {
     const minimum = at(`${fieldName('offensive', key)}Min`)
     const maximum = at(`${fieldName('offensive', key)}Max`)
+    const chance = at(`${fieldName('offensive', key)}Chance`)
     const modifier = at(`${fieldName('offensive', key)}Modifier`)
     if (minimum || maximum) {
       const damage =
         minimum && maximum ? `${formatNumber(minimum)}-${formatNumber(maximum)}` : formatNumber(minimum || maximum)
-      add(`${label} Damage`, damage)
+      add(`${label} Damage`, chance ? `${formatNumber(chance)}% chance of ${damage}` : damage)
     }
     if (modifier) add(`${label} Damage`, `${modifier > 0 ? '+' : ''}${formatNumber(modifier)}%`)
     const retaliationMinimum = at(`${fieldName('retaliation', key)}Min`)
     const retaliationMaximum = at(`${fieldName('retaliation', key)}Max`)
+    const retaliationChance = at(`${fieldName('retaliation', key)}Chance`)
     const retaliationModifier = at(`${fieldName('retaliation', key)}Modifier`)
     if (retaliationMinimum || retaliationMaximum)
       add(
@@ -280,6 +282,8 @@ const grantedSkillAttributes = (
           ? `${formatNumber(retaliationMinimum)}-${formatNumber(retaliationMaximum)}`
           : formatNumber(retaliationMinimum || retaliationMaximum),
       )
+    if (retaliationChance && (retaliationMinimum || retaliationMaximum))
+      attributes[attributes.length - 1].value = `${formatNumber(retaliationChance)}% chance of ${attributes[attributes.length - 1].value}`
     if (retaliationModifier)
       add(
         `${key === 'poison' ? 'Acid' : label} Retaliation Damage`,
@@ -290,14 +294,16 @@ const grantedSkillAttributes = (
   for (const [key, label] of DAMAGE_OVER_TIME_TYPES) {
     const minimum = at(`offensiveSlow${key}Min`)
     const maximum = atMax(`offensiveSlow${key}Min`)
+    const chance = at(`offensiveSlow${key}Chance`)
     const duration = at(`offensiveSlow${key}DurationMin`)
+    const totalMinimum = duration ? minimum * duration : minimum
+    const totalMaximum = duration ? maximum * duration : maximum
     if (minimum || maximum)
-      add(`${label} Damage${duration ? ` over ${formatNumber(duration)} seconds` : ''}`, range(minimum, maximum))
+      add(
+        `${label} Damage${duration ? ` over ${formatNumber(duration)} seconds` : ''}`,
+        chance ? `${formatNumber(chance)}% chance of ${range(totalMinimum, totalMaximum)}` : range(totalMinimum, totalMaximum),
+      )
   }
-
-  const elementalMinimum = at('offensiveElementalMin')
-  const elementalMaximum = at('offensiveElementalMax')
-  if (elementalMinimum || elementalMaximum) add('Elemental Damage', range(elementalMinimum, elementalMaximum))
 
   const criticalDamageModifier = at('offensiveCritDamageModifier')
   if (criticalDamageModifier)
@@ -315,6 +321,13 @@ const grantedSkillAttributes = (
   const attackSpeedModifier = at('characterAttackSpeedModifier')
   if (attackSpeedModifier)
     add('Attack Speed', `${attackSpeedModifier > 0 ? '+' : ''}${formatNumber(attackSpeedModifier)}%`)
+
+  const runSpeed = at('characterRunSpeed')
+  const runSpeedModifier = at('characterRunSpeedModifier')
+  const totalSpeedModifier = at('characterTotalSpeedModifier')
+  if (runSpeed) add('Movement Speed', `${runSpeed > 0 ? '+' : ''}${formatNumber(runSpeed)}%`)
+  if (runSpeedModifier) add('Movement Speed', `${runSpeedModifier > 0 ? '+' : ''}${formatNumber(runSpeedModifier)}%`)
+  if (totalSpeedModifier) add('Total Speed', `${totalSpeedModifier > 0 ? '+' : ''}${formatNumber(totalSpeedModifier)}%`)
 
   const conversionInType = String(skillRecord.conversionInType ?? '')
   const conversionOutType = String(skillRecord.conversionOutType ?? '')
@@ -409,7 +422,11 @@ const resolveGrantedSkill = async (
   if (targetRadius) add('Meter Target Area', formatNumber(targetRadius))
   const poisonDamage = skillValueAt(skillRecord, 'offensiveSlowPoisonMin', clampedLevel)
   const poisonDuration = skillValueAt(skillRecord, 'offensiveSlowPoisonDurationMin', clampedLevel)
-  if (poisonDamage) add(`Poison Damage over ${formatNumber(poisonDuration)} seconds`, formatNumber(poisonDamage))
+  if (poisonDamage)
+    add(
+      `Poison Damage over ${formatNumber(poisonDuration)} seconds`,
+      formatNumber(poisonDuration ? poisonDamage * poisonDuration : poisonDamage),
+    )
   const resistanceReduction = skillValueAt(skillRecord, 'offensiveTotalResistanceReductionPercentMin', clampedLevel)
   const resistanceDuration = skillValueAt(
     skillRecord,
@@ -513,16 +530,25 @@ const gameAttributes = (
     // weapons store their base damage range under an "offensiveBase..." prefix instead of "offensive..."
     const minimum = numeric(`${fieldName('offensive', key)}Min`) || numeric(`${fieldName('offensiveBase', key)}Min`)
     const maximum = numeric(`${fieldName('offensive', key)}Max`) || numeric(`${fieldName('offensiveBase', key)}Max`)
+    const chance = numeric(`${fieldName('offensive', key)}Chance`)
     const modifier = numeric(`${fieldName('offensive', key)}Modifier`)
+    const modifierChance = numeric(`${fieldName('offensive', key)}ModifierChance`)
     if (minimum || maximum) {
       const damage =
         minimum && maximum ? `${formatNumber(minimum)}-${formatNumber(maximum)}` : formatNumber(minimum || maximum)
-      add(`${label} Damage`, damage)
+      add(`${label} Damage`, chance ? `${formatNumber(chance)}% chance of ${damage}` : damage)
     }
-    if (modifier) add(`${label} Damage`, `${modifier > 0 ? '+' : ''}${formatNumber(modifier)}%`)
+    if (modifier) {
+      const value = modifierChance
+        ? `${formatNumber(modifierChance)}% chance of ${formatNumber(modifier)}%`
+        : `${modifier > 0 ? '+' : ''}${formatNumber(modifier)}%`
+      add(`${label} Damage`, value)
+    }
     const retaliationMinimum = numeric(`${fieldName('retaliation', key)}Min`)
     const retaliationMaximum = numeric(`${fieldName('retaliation', key)}Max`)
+    const retaliationChance = numeric(`${fieldName('retaliation', key)}Chance`)
     const retaliationModifier = numeric(`${fieldName('retaliation', key)}Modifier`)
+    const retaliationModifierChance = numeric(`${fieldName('retaliation', key)}ModifierChance`)
     const retaliationLabel = `${key === 'poison' ? 'Acid' : label} Retaliation Damage`
     if (retaliationMinimum || retaliationMaximum)
       add(
@@ -531,18 +557,39 @@ const gameAttributes = (
           ? `${formatNumber(retaliationMinimum)}-${formatNumber(retaliationMaximum)}`
           : formatNumber(retaliationMinimum || retaliationMaximum),
       )
-    if (retaliationModifier)
-      add(retaliationLabel, `${retaliationModifier > 0 ? '+' : ''}${formatNumber(retaliationModifier)}%`)
+    if (retaliationChance && (retaliationMinimum || retaliationMaximum))
+      attributes[attributes.length - 1].value = `${formatNumber(retaliationChance)}% chance of ${attributes[attributes.length - 1].value}`
+    if (retaliationModifier) {
+      const value = retaliationModifierChance
+        ? `${formatNumber(retaliationModifierChance)}% chance of ${formatNumber(retaliationModifier)}%`
+        : `${retaliationModifier > 0 ? '+' : ''}${formatNumber(retaliationModifier)}%`
+      add(retaliationLabel, value)
+    }
   }
 
   const pierceRatio = numeric('offensivePierceRatioMin') || numeric('offensivePierceRatioMax')
   if (pierceRatio) add('Armor Piercing', `${formatNumber(pierceRatio)}%`)
 
   for (const [key, label] of DAMAGE_OVER_TIME_TYPES) {
+    const minimum = numeric(`offensiveSlow${key}Min`)
+    const maximum = numeric(`offensiveSlow${key}Max`)
+    const chance = numeric(`offensiveSlow${key}Chance`)
+    const duration = numeric(`offensiveSlow${key}DurationMin`)
     const modifier = numeric(`offensiveSlow${key}Modifier`)
-    const duration = numeric(`offensiveSlow${key}DurationModifier`)
+    const durationModifier = numeric(`offensiveSlow${key}DurationModifier`)
+    if (minimum || maximum) {
+      const damage = minimum && maximum ? `${formatNumber(minimum)}-${formatNumber(maximum)}` : formatNumber(minimum || maximum)
+      const totalMinimum = duration ? minimum * duration : minimum
+      const totalMaximum = duration ? maximum * duration : maximum
+      const totalDamage = duration
+        ? totalMinimum && totalMaximum
+          ? `${formatNumber(totalMinimum)}-${formatNumber(totalMaximum)}`
+          : formatNumber(totalMinimum || totalMaximum)
+        : damage
+      add(`${key === 'Poison' ? 'Acid' : label} Damage`, chance ? `${formatNumber(chance)}% chance of ${totalDamage}` : totalDamage)
+    }
     if (!modifier) continue
-    const value = `${modifier > 0 ? '+' : ''}${formatNumber(modifier)}%${duration ? ` with +${formatNumber(duration)}% Increased Duration` : ''}`
+    const value = `${modifier > 0 ? '+' : ''}${formatNumber(modifier)}%${durationModifier ? ` with +${formatNumber(durationModifier)}% Increased Duration` : ''}`
     add(`${key === 'Poison' ? 'Acid' : label} Damage`, value)
   }
 
@@ -591,15 +638,22 @@ const gameAttributes = (
     ['characterIntelligence', 'Spirit', 'number'],
     ['characterLife', 'Health', 'number'],
     ['characterLifeRegen', 'Health Regeneration', 'number'],
+    ['characterLifeRegenModifier', 'Health Regeneration', 'percent'],
     ['characterMana', 'Energy', 'number'],
     ['characterManaRegen', 'Energy Regeneration', 'number'],
+    ['characterManaRegenModifier', 'Energy Regeneration', 'percent'],
+    ['characterManaModifier', 'Energy', 'percent'],
+    ['characterManaLimitReserveModifier', 'Energy Reserved', 'percent'],
+    ['characterManaLimitReserveReductionModifier', 'Energy Reserved Reduction', 'percent'],
     ['characterOffensiveAbility', 'Offensive Ability', 'number'],
     ['characterDefensiveAbility', 'Defensive Ability', 'number'],
+    ['characterDefensiveAbilityModifier', 'Defensive Ability', 'percent'],
     ['characterAttackSpeedModifier', 'Attack Speed', 'percent'],
     ['characterAttackSpeedMaxModifier', 'Attack Speed', 'percent'],
     ['characterCastSpeedModifier', 'Cast Speed', 'percent'],
     ['characterSpellCastSpeedMaxModifier', 'Cast Speed', 'percent'],
-    ['characterMovementSpeedModifier', 'Movement Speed', 'percent'],
+    ['characterRunSpeed', 'Movement Speed', 'percent'],
+    ['characterRunSpeedModifier', 'Movement Speed', 'percent'],
     ['characterTotalSpeedModifier', 'Total Speed', 'percent'],
     ['characterOffensiveAbilityModifier', 'Offensive Ability', 'percent'],
     ['offensiveLifeLeechMin', 'Attack Damage Converted to Health', 'percent'],
@@ -682,7 +736,9 @@ const normalize = async (
       ? 'Mythical'
       : undefined
   const isMonsterInfrequent =
-    /(^|\/)items\/gear[^/]*\/(?:.*\/)?b\d{3,}[^/]*\.dbr$/i.test(fallbackId) && !/^b000/i.test(basename(fallbackId))
+    !/(^|\/)items\/gearrelic\//i.test(fallbackId) &&
+    /(^|\/)items\/gear[^/]*\/(?:.*\/)?b\d{3,}[^/]*\.dbr$/i.test(fallbackId) &&
+    !/^b000/i.test(basename(fallbackId))
   const twoHanded = /\/gearweapons\/(melee2h|guns2h)\//i.test(fallbackId) || undefined
   // The game combines style and quality/material tags with the base item name unless the item opts out.
   const qualityTag = textValue(record, ['itemQualityTag'], '')
