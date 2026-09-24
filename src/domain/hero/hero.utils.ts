@@ -1,4 +1,6 @@
 export const BASE_ATTRIBUTE_VALUE = 50
+export const BASE_HEALTH_VALUE = 250
+export const BASE_ENERGY_VALUE = 250
 // each spent attribute point grants a flat +8 to the chosen stat
 export const ATTRIBUTE_POINT_VALUE = 8
 

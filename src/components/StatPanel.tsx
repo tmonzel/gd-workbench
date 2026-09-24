@@ -1,5 +1,6 @@
 import CollapsiblePanel from '@/components/CollapsiblePanel'
 import type { Character } from '@/domain/hero/types'
+import { BASE_ATTRIBUTE_VALUE, BASE_ENERGY_VALUE, BASE_HEALTH_VALUE } from '@/domain/hero/hero.utils'
 import type { Mastery } from '@/domain/skill/types'
 import type { EquippedSetInfo } from '@/domain/item/types'
 
@@ -51,8 +52,13 @@ function StatPanel({
   const physique = character.physique + (totals.Physique ?? 0)
   const cunning = character.cunning + (totals.Cunning ?? 0)
   const spirit = character.spirit + (totals.Spirit ?? 0)
-  totals.Health = (totals.Health ?? 0) + physique * 2.5 + cunning + spirit
-  totals.Energy = (totals.Energy ?? 0) + spirit * 2
+  totals.Health =
+    BASE_HEALTH_VALUE +
+    (totals.Health ?? 0) +
+    (physique - BASE_ATTRIBUTE_VALUE) * 2.5 +
+    (cunning - BASE_ATTRIBUTE_VALUE) +
+    (spirit - BASE_ATTRIBUTE_VALUE)
+  totals.Energy = BASE_ENERGY_VALUE + (totals.Energy ?? 0) + (spirit - BASE_ATTRIBUTE_VALUE) * 2
   // matches offensiveAbilityEquation/defensiveAbilityEquation in data/game/records/game/combatformulas.dbr
   totals['Offensive Ability'] = (totals['Offensive Ability'] ?? 0) + character.level * 12 + cunning * 0.5 + 53
   totals['Defensive Ability'] = (totals['Defensive Ability'] ?? 0) + character.level * 12 + physique * 0.5 + 53
