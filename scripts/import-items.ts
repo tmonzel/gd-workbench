@@ -138,6 +138,17 @@ const skillIconPath = (record: RawRecord) => {
   return normalized && /\.tex$/i.test(normalized) ? `/assets/${normalized.replace(/\.tex$/i, '.webp')}` : undefined
 }
 
+const skillIconForPath = (path: string, record: RawRecord | undefined, skillRecords: Map<string, RawRecord>) => {
+  const basePath = path.replace(/\.dbr$/i, '')
+  const candidates = [`${basePath}_buff.dbr`, `${basePath}buff.dbr`]
+  for (const candidate of candidates) {
+    const buffRecord = skillRecords.get(candidate) ?? skillRecords.get(candidate.replace(/^records\//, ''))
+    const icon = skillIconPath(buffRecord ?? {})
+    if (icon) return icon
+  }
+  return skillIconPath(record ?? {})
+}
+
 const humanizeSkillIdentifier = (path: string) => {
   const normalizedPath = path
     .replaceAll('\\', '/')
@@ -205,7 +216,7 @@ const humanizeSkillIdentifier = (path: string) => {
     bonechillingcry: 'Bone Chilling Cry',
     spectralarmor: 'Spectral Armor',
     totem: 'Totem',
-    lightningnet: 'Lightning Net',
+    lightningnet: 'Storm Box of Elgoloth',
     eviscerate: 'Eviscerate',
     devouringswarm: 'Devouring Swarm',
     thermitemines: 'Thermite Mines',
@@ -213,10 +224,17 @@ const humanizeSkillIdentifier = (path: string) => {
     icerune: 'Ice Rune',
     mortartrap: 'Mortar Trap',
     elementalinfusion: 'Elemental Infusion',
+    wordofpain: 'Word of Pain',
+    curseoffrailty: 'Curse of Frailty',
+    blastshield: 'Blast Shield',
+    presenceofvirtue: 'Presence of Virtue',
+    bloodypox: 'Bloody Pox',
+    fieldcommand: 'Field Command',
+    auraconviction: 'Aura of Conviction',
+    cadence: 'Cadence',
     illomen: 'Ill Omen',
     soulscythe: 'Soul Scythe',
     bloodborne: 'Bloodborne',
-    blastshield: 'Blast Shield',
   }
   return (
     knownNames[identifier.replace(/\s+/g, '').toLowerCase()] ??
@@ -513,7 +531,7 @@ const resolveSpecialSkillBonuses = async (
     const clampedLevel = maxLevel > 0 ? Math.min(level, maxLevel) : level
     const attributes = grantedSkillAttributes(modifierRecord, clampedLevel)
     if (attributes.length)
-      bonuses.push({ name, level: clampedLevel, icon: skillRecord ? skillIconPath(skillRecord) : undefined, attributes })
+      bonuses.push({ name, level: clampedLevel, icon: skillIconForPath(skillPath, skillRecord, skillRecords), attributes })
   }
   return bonuses
 }
