@@ -45,7 +45,8 @@ function ItemCard({
 }: ItemCardProps) {
   const [hoverPoint, setHoverPoint] = useState<{ x: number; y: number } | null>(null)
   const rarityClass = `rarity-${item.rarity.toLowerCase()}`
-  const typeLine = item.category
+  const armorClassification = String(item.stats?.armorClassification ?? '')
+  const typeLine = armorClassification ? `${armorClassification} ${item.category}` : item.category
   const rarityTextClass = rarityTextClasses[item.rarity.toLowerCase()] ?? 'text-neutral-400'
   const itemLevel = Number(item.stats?.itemLevel ?? item.level)
   const itemSet = getSetForItem(item.id, itemSets)

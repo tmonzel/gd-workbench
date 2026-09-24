@@ -7,6 +7,7 @@ let pendingRequest = {
   maxLevel: undefined,
   rarities: [],
   monsterInfrequentOnly: false,
+  stats: [],
 }
 const categoryGroups = {
   Accessories: ['Medal', 'Amulet', 'Ring', 'Belt', 'Relic'],
@@ -28,8 +29,9 @@ const matchesCategory = (itemCategory, category) =>
   category === 'All' || itemCategory === category || categoryGroups[category]?.includes(itemCategory)
 
 const normalizedRarity = (rarity) => (rarity === 'Magical' ? 'Magic' : rarity)
+const matchesStat = (item, stat) => (item.attributes ?? []).some((attribute) => attribute.label === stat)
 
-const matches = (item, search, category, maxLevel, rarities, monsterInfrequentOnly) => {
+const matches = (item, search, category, maxLevel, rarities, monsterInfrequentOnly, stats) => {
   const haystack = `${item.qualityTag ?? ''} ${item.name} ${item.description} ${item.category}`.toLowerCase()
   const requiredLevel = Number(item.stats?.levelRequirement ?? item.level) || 0
   return (
@@ -37,7 +39,8 @@ const matches = (item, search, category, maxLevel, rarities, monsterInfrequentOn
     matchesCategory(item.category, category) &&
     (maxLevel == null || requiredLevel <= maxLevel) &&
     (!rarities.length || rarities.includes(normalizedRarity(item.rarity))) &&
-    (!monsterInfrequentOnly || item.isMonsterInfrequent)
+    (!monsterInfrequentOnly || item.isMonsterInfrequent) &&
+    (!stats.length || stats.every((stat) => matchesStat(item, stat)))
   )
 }
 
@@ -48,8 +51,9 @@ const sendPage = (
   maxLevel = undefined,
   rarities = [],
   monsterInfrequentOnly = false,
+  stats = [],
 ) => {
-  const filtered = items.filter((item) => matches(item, search, category, maxLevel, rarities, monsterInfrequentOnly))
+  const filtered = items.filter((item) => matches(item, search, category, maxLevel, rarities, monsterInfrequentOnly, stats))
   postMessage({
     type: 'page',
     page,
@@ -68,6 +72,7 @@ onmessage = (event) => {
     maxLevel,
     rarities = [],
     monsterInfrequentOnly = false,
+    stats = [],
     item,
   } = event.data
   if (type === 'load') {
@@ -79,6 +84,7 @@ onmessage = (event) => {
           type: 'ready',
           total: items.length,
           categories: ['All', ...new Set(items.map((item) => item.category))],
+          stats: [...new Set(items.flatMap((item) => (item.attributes ?? []).map((attribute) => attribute.label)))].sort(),
         })
         sendPage(
           pendingRequest.page,
@@ -87,6 +93,7 @@ onmessage = (event) => {
           pendingRequest.maxLevel,
           pendingRequest.rarities,
           pendingRequest.monsterInfrequentOnly,
+          pendingRequest.stats,
         )
       })
       .catch((error) =>
@@ -105,10 +112,19 @@ onmessage = (event) => {
       pendingRequest.maxLevel,
       pendingRequest.rarities,
       pendingRequest.monsterInfrequentOnly,
+      pendingRequest.stats,
     )
   }
   if (type === 'page') {
-    pendingRequest = { page, search: search.trim().toLowerCase(), category, maxLevel, rarities, monsterInfrequentOnly }
+    pendingRequest = {
+      page,
+      search: search.trim().toLowerCase(),
+      category,
+      maxLevel,
+      rarities,
+      monsterInfrequentOnly,
+      stats,
+    }
     if (items.length)
       sendPage(
         pendingRequest.page,
@@ -117,6 +133,7 @@ onmessage = (event) => {
         pendingRequest.maxLevel,
         pendingRequest.rarities,
         pendingRequest.monsterInfrequentOnly,
+        pendingRequest.stats,
       )
   }
 }

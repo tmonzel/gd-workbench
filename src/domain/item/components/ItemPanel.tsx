@@ -44,6 +44,7 @@ function ItemPanel({
   const [collectionRarities, setCollectionRarities] = useState<string[]>([])
   const [collectionHideAboveLevel, setCollectionHideAboveLevel] = useState(false)
   const [collectionMonsterInfrequentOnly, setCollectionMonsterInfrequentOnly] = useState(false)
+  const [collectionStats, setCollectionStats] = useState<string[]>([])
   const [collectionPage, setCollectionPage] = useState(0)
   const {
     items,
@@ -65,12 +66,24 @@ function ItemPanel({
   } = itemLibrary
   const loading = status === 'loading'
   const collectionCategories = useMemo(() => new Set(collectionItems.map((item) => item.category)), [collectionItems])
+  const collectionStatOptions = useMemo(
+    () =>
+      [
+        ...new Set([
+          ...collectionItems.flatMap((item) => (item.attributes ?? []).map((attribute) => attribute.label)),
+        ]),
+      ].sort(),
+    [collectionItems],
+  )
   const collectionFilteredItems = useMemo(() => {
-    const groupMatches = (category: string) =>
+    const query = collectionSearch.trim().toLowerCase()
+    const matchesStat = (item: Item, stat: string) => {
+      return (item.attributes ?? []).some((attribute) => attribute.label === stat)
+    }
+    const matchesCategory = (category: string) =>
       collectionCategory === 'All' ||
       category === collectionCategory ||
       CATEGORY_GROUPS[collectionCategory]?.includes(category)
-    const query = collectionSearch.trim().toLowerCase()
     return collectionItems.filter((item) => {
       const requiredLevel = Number(item.stats?.levelRequirement ?? item.level) || 0
       return (
@@ -78,10 +91,11 @@ function ItemPanel({
           `${item.qualityTag ?? ''} ${item.prefix ?? ''} ${item.name} ${item.suffix ?? ''} ${item.category}`
             .toLowerCase()
             .includes(query)) &&
-        groupMatches(item.category) &&
+        matchesCategory(item.category) &&
         (!collectionHideAboveLevel || requiredLevel <= itemLibrary.level) &&
         (!collectionMonsterInfrequentOnly || item.isMonsterInfrequent) &&
-        (!collectionRarities.length || collectionRarities.includes(item.rarity))
+        (!collectionRarities.length || collectionRarities.includes(item.rarity)) &&
+        (!collectionStats.length || collectionStats.every((stat) => matchesStat(item, stat)))
       )
     })
   }, [
@@ -91,6 +105,7 @@ function ItemPanel({
     collectionItems,
     collectionRarities,
     collectionSearch,
+    collectionStats,
     itemLibrary.level,
   ])
   const collectionPageSize = 24
@@ -151,6 +166,12 @@ function ItemPanel({
                       setCollectionMonsterInfrequentOnly((current) => !current)
                       setCollectionPage(0)
                     }}
+                    stats={collectionStats}
+                    availableStats={collectionStatOptions}
+                    onStatsChange={(value) => {
+                      setCollectionStats(value)
+                      setCollectionPage(0)
+                    }}
                     onHideAboveLevelToggle={() => {
                       setCollectionHideAboveLevel((current) => !current)
                       setCollectionPage(0)
@@ -208,6 +229,9 @@ function ItemPanel({
                 hideAboveLevel={hideAboveLevel}
                 monsterInfrequentOnly={itemLibrary.monsterInfrequentOnly}
                 onMonsterInfrequentToggle={itemLibrary.toggleMonsterInfrequentOnly}
+                stats={itemLibrary.stats}
+                availableStats={itemLibrary.statOptions}
+                onStatsChange={itemLibrary.changeStats}
                 onHideAboveLevelToggle={toggleHideAboveLevel}
                 matchingCount={total}
                 page={page}

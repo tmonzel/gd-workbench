@@ -40,8 +40,11 @@ const formatNumber = (value: number) =>
   Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/0+$/, '').replace(/\.$/, '')
 const knownAttributes: Array<[string, string, 'number' | 'percent']> = [
   ['characterStrength', 'Physique', 'number'],
+  ['characterStrengthModifier', 'Physique', 'percent'],
   ['characterDexterity', 'Cunning', 'number'],
+  ['characterDexterityModifier', 'Cunning', 'percent'],
   ['characterIntelligence', 'Spirit', 'number'],
+  ['characterIntelligenceModifier', 'Spirit', 'percent'],
   ['characterLife', 'Health', 'number'],
   ['characterLifeModifier', 'Health', 'percent'],
   ['characterLifeRegen', 'Health Regenerated per second', 'number'],
@@ -57,7 +60,7 @@ const knownAttributes: Array<[string, string, 'number' | 'percent']> = [
   ['characterAttackSpeedModifier', 'Attack Speed', 'percent'],
   ['characterSpellCastSpeedModifier', 'Cast Speed', 'percent'],
   ['characterRunSpeedModifier', 'Movement Speed', 'percent'],
-  ['offensiveTotalDamageModifier', 'Total Damage', 'percent'],
+  ['offensiveTotalDamageModifier', 'to All Damage', 'percent'],
   ['retaliationTotalDamageModifier', 'Retaliation Damage', 'percent'],
 ]
 // devotion star bonuses use the same skill_passive fields as item modifiers

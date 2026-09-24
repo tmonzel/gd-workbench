@@ -24,25 +24,29 @@ function StatPanel({
   masteries = [],
 }: StatPanelProps) {
   const [activeTab, setActiveTab] = useState<StatTab>('attributes')
-  const totals = Object.values(character.equipment).reduce<Record<string, number>>((result, item) => {
-    for (const attribute of item?.attributes ?? []) {
-      const value = Number(String(attribute.value).replace(/[^0-9.-]/g, ''))
-      if (Number.isFinite(value)) result[attribute.label] = (result[attribute.label] ?? 0) + value
+  const totals: Record<string, number> = {}
+  const attributeModifiers: Record<string, number> = { Physique: 0, Cunning: 0, Spirit: 0 }
+  const addAttribute = (label: string, rawValue: string | number) => {
+    const value = Number(String(rawValue).replace(/[^0-9.-]/g, ''))
+    if (!Number.isFinite(value)) return
+    if (label in attributeModifiers && String(rawValue).trim().endsWith('%')) {
+      attributeModifiers[label] += value
+      return
     }
-    return result
-  }, {})
+    totals[label] = (totals[label] ?? 0) + value
+  }
+  for (const item of Object.values(character.equipment))
+    for (const attribute of item?.attributes ?? []) addAttribute(attribute.label, attribute.value)
   for (const constellation of devotions?.constellations ?? [])
     for (const skill of constellation.skills) {
       if (!selectedDevotions.includes(skill.id)) continue
       for (const attribute of skill.attributes) {
-        const value = Number(String(attribute.value).replace(/[^0-9.-]/g, ''))
-        if (Number.isFinite(value)) totals[attribute.label] = (totals[attribute.label] ?? 0) + value
+        addAttribute(attribute.label, attribute.value)
       }
     }
   for (const { activeTier } of equippedSetInfo)
     for (const attribute of activeTier?.attributes ?? []) {
-      const value = Number(String(attribute.value).replace(/[^0-9.-]/g, ''))
-      if (Number.isFinite(value)) totals[attribute.label] = (totals[attribute.label] ?? 0) + value
+      addAttribute(attribute.label, attribute.value)
     }
   for (const masteryId of [character.mastery1, character.mastery2]) {
     const rank = character.masteryLevels[masteryId ?? ''] ?? 0
@@ -52,9 +56,9 @@ function StatPanel({
       totals[label] = (totals[label] ?? 0) + (values[Math.min(rank, values.length) - 1] ?? 0)
   }
   // Core attributes feed Health, Energy, OA, and DA.
-  const physique = character.physique + (totals.Physique ?? 0)
-  const cunning = character.cunning + (totals.Cunning ?? 0)
-  const spirit = character.spirit + (totals.Spirit ?? 0)
+  const physique = (character.physique + (totals.Physique ?? 0)) * (1 + attributeModifiers.Physique / 100)
+  const cunning = (character.cunning + (totals.Cunning ?? 0)) * (1 + attributeModifiers.Cunning / 100)
+  const spirit = (character.spirit + (totals.Spirit ?? 0)) * (1 + attributeModifiers.Spirit / 100)
   totals.Health =
     BASE_HEALTH_VALUE +
     (totals.Health ?? 0) +
@@ -69,10 +73,27 @@ function StatPanel({
   const attackSpeedMaximum = 200 + (totals['Maximum Attack Speed'] ?? 0)
   const runSpeed = 100 + (totals['Movement Speed'] ?? 0) + (totals['Run Speed'] ?? 0)
   const runSpeedMaximum = 135 + (totals['Maximum Movement Speed'] ?? 0) + (totals['Maximum Run Speed'] ?? 0)
-  const rows: Array<{ label: string; value: string | number; maximum?: number }> = [
-    { label: 'Physique', value: physique },
-    { label: 'Cunning', value: cunning },
-    { label: 'Spirit', value: spirit },
+  const attributeRows = [
+    {
+      label: 'Physique',
+      base: character.physique + (totals.Physique ?? 0),
+      modifier: attributeModifiers.Physique,
+      total: physique,
+    },
+    {
+      label: 'Cunning',
+      base: character.cunning + (totals.Cunning ?? 0),
+      modifier: attributeModifiers.Cunning,
+      total: cunning,
+    },
+    {
+      label: 'Spirit',
+      base: character.spirit + (totals.Spirit ?? 0),
+      modifier: attributeModifiers.Spirit,
+      total: spirit,
+    },
+  ]
+  const rows: Array<{ label: string; value: string | number; modifier?: number; maximum?: number }> = [
     { label: 'Health', value: totals.Health ?? 0 },
     {
       label: 'Health Regeneration',
@@ -91,9 +112,9 @@ function StatPanel({
     { label: 'Damage Conversion', value: Object.keys(character.equipment).length },
   ]
   const rowsByTab: Record<StatTab, typeof rows> = {
-    attributes: rows.slice(0, 3),
-    combat: [rows[7], rows[8], rows[9], rows[10], rows[11], rows[12]],
-    resources: [rows[3], rows[4], rows[5], rows[6]],
+    attributes: [],
+    combat: rows.slice(4),
+    resources: rows.slice(0, 4),
   }
   const tabs: Array<{ value: StatTab; label: string }> = [
     { value: 'attributes', label: 'Attributes' },
@@ -124,14 +145,46 @@ function StatPanel({
           )
         })}
       </nav>
-      <table className="w-full border-collapse text-sm">
-        <tbody>
-          {rowsByTab[activeTab].map(({ label, value, maximum }) => (
+      {activeTab === 'attributes' ? (
+        <table className="w-full border-collapse text-sm">
+          <thead>
+            <tr className="text-[0.62rem] uppercase tracking-[0.08em] text-neutral-600">
+              <th className="pb-1.5 text-left font-normal">Attribute</th>
+              <th className="pb-1.5 text-right font-normal">Base</th>
+              <th className="pb-1.5 pl-2 text-right font-normal">Modifier</th>
+              <th className="pb-1.5 pl-2 text-right font-normal">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {attributeRows.map(({ label, base, modifier, total }) => (
+              <tr className="border-b border-neutral-800 last:border-b-0" key={label}>
+                <td className="py-1.5 text-neutral-300">{label}</td>
+                <td className="py-1.5 text-right tabular-nums text-neutral-400">{Math.round(base * 10) / 10}</td>
+                <td className="py-1.5 pl-2 text-right tabular-nums text-neutral-500">
+                  {modifier ? `${modifier > 0 ? '+' : ''}${Math.round(modifier * 10) / 10}%` : '—'}
+                </td>
+                <td className="py-1.5 pl-2 text-right tabular-nums text-neutral-100">
+                  <strong>{Math.round(total * 10) / 10}</strong>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <table className="w-full border-collapse text-sm">
+          <tbody>
+            {rowsByTab[activeTab].map(({ label, value, modifier, maximum }) => (
             <tr className="border-b border-neutral-800 last:border-b-0" key={label}>
               <td className="py-1.5">
                 <span className="flex items-baseline justify-between gap-3">
                   <span className="text-neutral-500">{label}</span>
                   <strong className="tabular-nums text-neutral-100">
+                    {modifier ? (
+                      <span className="mr-2 font-normal text-neutral-500">
+                        {modifier > 0 ? '+' : ''}
+                        {Math.round(modifier * 10) / 10}%
+                      </span>
+                    ) : null}
                     {typeof value === 'string' ? value : `${Math.round(value * 10) / 10}${maximum !== undefined ? '%' : ''}`}
                     {maximum !== undefined && (
                       <span className="font-normal text-neutral-600"> / {Math.round(maximum * 10) / 10}%</span>
@@ -140,9 +193,10 @@ function StatPanel({
                 </span>
               </td>
             </tr>
-          ))}
-        </tbody>
-      </table>
+            ))}
+          </tbody>
+        </table>
+      )}
     </CollapsiblePanel>
   )
 }

@@ -113,16 +113,17 @@ const itemTypeFromPath = (filePath: string) => {
   if (normalizedPath.includes('/gearweapons/shields/') || normalizedPath.includes('/gearweapons/focus/'))
     return 'Off-Hand'
   if (normalizedPath.includes('/gearweapons/')) return 'Weapon'
-  if (normalizedPath.includes('/gearaccessories/medals/')) return 'Medal'
-  if (normalizedPath.includes('/gearaccessories/necklaces/')) return 'Amulet'
-  if (normalizedPath.includes('/gearaccessories/rings/')) return 'Ring'
-  if (normalizedPath.includes('/gearaccessories/waist/')) return 'Belt'
-  if (normalizedPath.includes('/gearhands/')) return 'Gloves'
-  if (normalizedPath.includes('/geartorso/')) return 'Chest Armor'
-  if (normalizedPath.includes('/gearlegs/')) return 'Pants'
-  if (normalizedPath.includes('/gearhead/')) return 'Helm'
-  if (normalizedPath.includes('/gearfeet/')) return 'Boots'
-  if (normalizedPath.includes('/gearshoulders/')) return 'Shoulders'
+  if (/\/(?:gearaccessories|faction\/accessories)\/medals\//.test(normalizedPath)) return 'Medal'
+  if (/\/(?:gearaccessories|faction\/accessories)\/(?:necklaces|amulets)\//.test(normalizedPath)) return 'Amulet'
+  if (/\/(?:gearaccessories|faction\/accessories)\/rings\//.test(normalizedPath)) return 'Ring'
+  if (/\/(?:gearaccessories|faction\/accessories)\/waist\//.test(normalizedPath)) return 'Belt'
+  if (/(?:\/gearhands\/|\/faction\/hands\/)/.test(normalizedPath)) return 'Gloves'
+  if (/(?:\/geartorso\/|\/faction\/torso\/)/.test(normalizedPath))
+    return 'Chest Armor'
+  if (/(?:\/gearlegs\/|\/faction\/legs\/)/.test(normalizedPath)) return 'Pants'
+  if (/(?:\/gearhead\/|\/faction\/head\/)/.test(normalizedPath)) return 'Helm'
+  if (/(?:\/gearfeet\/|\/faction\/feet\/)/.test(normalizedPath)) return 'Boots'
+  if (/(?:\/gearshoulders\/|\/faction\/shoulders\/)/.test(normalizedPath)) return 'Shoulders'
   return 'Item'
 }
 
@@ -640,8 +641,11 @@ const gameAttributes = (
 
   const knownAttributes: Array<[string, string, string]> = [
     ['characterStrength', 'Physique', 'number'],
+    ['characterStrengthModifier', 'Physique', 'percent'],
     ['characterDexterity', 'Cunning', 'number'],
+    ['characterDexterityModifier', 'Cunning', 'percent'],
     ['characterIntelligence', 'Spirit', 'number'],
+    ['characterIntelligenceModifier', 'Spirit', 'percent'],
     ['characterLife', 'Health', 'number'],
     ['characterLifeRegen', 'Health Regeneration', 'number'],
     ['characterLifeRegenModifier', 'Health Regeneration', 'percent'],
@@ -664,9 +668,11 @@ const gameAttributes = (
     ['characterTotalSpeedModifier', 'Total Speed', 'percent'],
     ['characterOffensiveAbilityModifier', 'Offensive Ability', 'percent'],
     ['offensiveLifeLeechMin', 'Attack Damage Converted to Health', 'percent'],
-    ['offensiveTotalDamageModifier', 'Total Damage', 'percent'],
+    ['offensiveTotalDamageModifier', 'to All Damage', 'percent'],
     ['retaliationTotalDamageModifier', 'Retaliation Damage', 'percent'],
   ]
+  const armorClassification = String(stats.armorClassification ?? '')
+  if (armorClassification) add('Armor Classification', armorClassification)
   for (const [key, label, format] of knownAttributes) {
     const value = numeric(key)
     if (value)

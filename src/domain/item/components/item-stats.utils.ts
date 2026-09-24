@@ -26,6 +26,8 @@ const hiddenStatLabels = new Set([
   'forcedRelicCompletion',
   'artifactCreateQuantity',
   'itemLevel',
+  'armorClassification',
+  'Armor Classification',
 ])
 
 export const getVisibleItemStats = (
