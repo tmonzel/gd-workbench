@@ -321,12 +321,18 @@ const grantedSkillAttributes = (
   const attackSpeedModifier = at('characterAttackSpeedModifier')
   if (attackSpeedModifier)
     add('Attack Speed', `${attackSpeedModifier > 0 ? '+' : ''}${formatNumber(attackSpeedModifier)}%`)
+  const attackSpeedMaxModifier = at('characterAttackSpeedMaxModifier')
+  if (attackSpeedMaxModifier)
+    add('Maximum Attack Speed', `${attackSpeedMaxModifier > 0 ? '+' : ''}${formatNumber(attackSpeedMaxModifier)}%`)
 
   const runSpeed = at('characterRunSpeed')
   const runSpeedModifier = at('characterRunSpeedModifier')
   const totalSpeedModifier = at('characterTotalSpeedModifier')
+  const runSpeedMaxModifier = at('characterRunSpeedMaxModifier')
   if (runSpeed) add('Movement Speed', `${runSpeed > 0 ? '+' : ''}${formatNumber(runSpeed)}%`)
   if (runSpeedModifier) add('Movement Speed', `${runSpeedModifier > 0 ? '+' : ''}${formatNumber(runSpeedModifier)}%`)
+  if (runSpeedMaxModifier)
+    add('Maximum Movement Speed', `${runSpeedMaxModifier > 0 ? '+' : ''}${formatNumber(runSpeedMaxModifier)}%`)
   if (totalSpeedModifier) add('Total Speed', `${totalSpeedModifier > 0 ? '+' : ''}${formatNumber(totalSpeedModifier)}%`)
 
   const conversionInType = String(skillRecord.conversionInType ?? '')
@@ -649,11 +655,12 @@ const gameAttributes = (
     ['characterDefensiveAbility', 'Defensive Ability', 'number'],
     ['characterDefensiveAbilityModifier', 'Defensive Ability', 'percent'],
     ['characterAttackSpeedModifier', 'Attack Speed', 'percent'],
-    ['characterAttackSpeedMaxModifier', 'Attack Speed', 'percent'],
+    ['characterAttackSpeedMaxModifier', 'Maximum Attack Speed', 'percent'],
     ['characterCastSpeedModifier', 'Cast Speed', 'percent'],
     ['characterSpellCastSpeedMaxModifier', 'Cast Speed', 'percent'],
     ['characterRunSpeed', 'Movement Speed', 'percent'],
     ['characterRunSpeedModifier', 'Movement Speed', 'percent'],
+    ['characterRunSpeedMaxModifier', 'Maximum Movement Speed', 'percent'],
     ['characterTotalSpeedModifier', 'Total Speed', 'percent'],
     ['characterOffensiveAbilityModifier', 'Offensive Ability', 'percent'],
     ['offensiveLifeLeechMin', 'Attack Damage Converted to Health', 'percent'],
