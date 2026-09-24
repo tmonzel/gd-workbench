@@ -12,7 +12,7 @@ function ItemSkillModifiers({ modifiers }: ItemSkillModifiersProps) {
   return (
     <div className="mt-3 border-t border-neutral-800 pt-3">
       <div className="flex items-center justify-between gap-2">
-        <p className="m-0 text-xs text-neutral-400">
+        <p className="m-0 text-xs font-bold text-neutral-400">
           Skill Modifiers ({modifiers.length})
         </p>
         <button

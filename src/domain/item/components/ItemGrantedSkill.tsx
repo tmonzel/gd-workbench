@@ -34,8 +34,8 @@ function ItemGrantedSkill({ skill }: ItemGrantedSkillProps) {
           {skill.attributes.length > 0 && (
             <div className="mt-2">
               {skill.attributes.map(({ label, value }, index) => (
-                <p className="truncate text-[0.78rem] leading-snug text-orange-200" key={`${label}-${value}-${index}`}>
-                  <strong>{value}</strong> {label}
+                <p className="truncate text-[0.78rem] leading-snug text-neutral-400" key={`${label}-${value}-${index}`}>
+                  <span className="text-neutral-200">{value}</span> {label}
                 </p>
               ))}
             </div>
