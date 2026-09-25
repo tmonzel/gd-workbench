@@ -130,7 +130,7 @@ for (const file of (await readdir(directory)).filter((name) => /^constellation\d
     if (petBonusPath) {
       const petBonus = await parse(resolve(root, petBonusPath.replace(/^records\//, '')))
       for (const attribute of nodeAttributes(petBonus))
-        attributes.push({ ...attribute, label: `Pet ${attribute.label}` })
+        attributes.push({ label: 'to All Pets', value: `${attribute.value} ${attribute.label}` })
     }
     skills.push({
       id: skillPath.replace(/^records\/skills\/devotion\//, '').replace(/\.dbr$/, ''),
