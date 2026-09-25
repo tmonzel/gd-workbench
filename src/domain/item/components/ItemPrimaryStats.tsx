@@ -6,7 +6,9 @@ type ItemPrimaryStatsProps = {
 }
 
 function ItemPrimaryStats({ attributes, stats }: ItemPrimaryStatsProps) {
-  const primaryStats = getVisibleItemStats(attributes, stats).filter(({ value }) => !String(value).startsWith('+'))
+  const primaryStats = getVisibleItemStats(attributes, stats).filter(
+    ({ label, value }) => !String(value).startsWith('+') && label !== 'to All Pets',
+  )
   if (!primaryStats.length) return null
 
   return (

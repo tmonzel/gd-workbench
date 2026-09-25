@@ -8,7 +8,9 @@ type ItemStatsProps = {
 }
 
 function ItemStats({ attributes, stats, activeSkillNames }: ItemStatsProps) {
-  const bonusStats = getVisibleItemStats(attributes, stats).filter(({ value }) => String(value).startsWith('+'))
+  const bonusStats = getVisibleItemStats(attributes, stats).filter(
+    ({ label, value }) => String(value).startsWith('+') || label === 'to All Pets',
+  )
   const regularBonusStats = bonusStats.filter(({ label }) => label !== 'Skill Bonus')
   const skillBonusStats = bonusStats.filter(({ label }) => label === 'Skill Bonus')
 

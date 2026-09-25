@@ -795,6 +795,12 @@ const normalize = async (
   const trimmedStats = Object.fromEntries(
     Object.entries(stats).filter(([, value]) => (typeof value === 'number' ? value !== 0 : value.trim() !== '')),
   )
+  const attributes = gameAttributes(stats, skillNames, localization)
+  const petBonusPath = String(stats.petBonusName ?? '').replaceAll('\\', '/')
+  const petBonusRecord = petBonusPath ? skillRecords.get(petBonusPath) : undefined
+  if (petBonusRecord)
+    for (const attribute of gameAttributes(petBonusRecord as Record<string, string | number>, skillNames, localization))
+      attributes.push({ label: 'to All Pets', value: `${attribute.value} ${attribute.label}` })
   return {
     id: textValue(record, ['id', 'record', 'path'], fallbackId),
     name: resolvedName,
@@ -807,7 +813,7 @@ const normalize = async (
     rarity: normalizeRarity(textValue(record, ['rarity', 'quality', 'itemClassification'], 'Common')),
     level: numberValue(record, ['level', 'itemLevel', 'requiredLevel', 'levelRequirement']),
     image: imagePath(record),
-    attributes: gameAttributes(stats, skillNames, localization),
+    attributes,
     stats: trimmedStats,
     grantedSkill: await resolveGrantedSkill(stats, skillRecords, localization),
     specialSkillBonuses: await resolveSpecialSkillBonuses(stats, skillNames, skillRecords, localization),
