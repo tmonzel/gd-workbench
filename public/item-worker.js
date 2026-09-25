@@ -12,7 +12,7 @@ let pendingRequest = {
 const categoryGroups = {
   Accessories: ['Medal', 'Amulet', 'Ring', 'Belt', 'Relic'],
   Armor: ['Chest Armor', 'Gloves', 'Pants', 'Boots', 'Helm', 'Shoulders'],
-  Weapon: ['Weapon', 'Off-Hand'],
+  Weapon: ['Weapon', 'Swords', 'Axes', 'Maces', 'Daggers', 'Scepters', 'Spears', 'Ranged', 'Shields', 'Off-Hand'],
   Other: [
     'Augment',
     'Component',
@@ -28,6 +28,21 @@ const categoryGroups = {
 const matchesCategory = (itemCategory, category) =>
   category === 'All' || itemCategory === category || categoryGroups[category]?.includes(itemCategory)
 
+const matchesWeaponType = (item, category) => {
+  if (!['Weapon', 'Off-Hand'].includes(item.category)) return false
+  const itemClass = String(item.stats?.Class ?? '')
+  return (
+    (category === 'Swords' && /WeaponMelee_Sword/i.test(itemClass)) ||
+    (category === 'Axes' && /WeaponMelee_Axe/i.test(itemClass)) ||
+    (category === 'Maces' && /WeaponMelee_Mace/i.test(itemClass)) ||
+    (category === 'Daggers' && /WeaponMelee_Dagger/i.test(itemClass)) ||
+    (category === 'Scepters' && /WeaponMelee_Scepter/i.test(itemClass)) ||
+    (category === 'Spears' && /WeaponMelee_Spear/i.test(itemClass)) ||
+    (category === 'Ranged' && /WeaponHunting_Ranged/i.test(itemClass)) ||
+    (category === 'Shields' && /shield/i.test(itemClass))
+  )
+}
+
 const normalizedRarity = (rarity) => (rarity === 'Magical' ? 'Magic' : rarity)
 const matchesStat = (item, stat) => (item.attributes ?? []).some((attribute) => attribute.label === stat)
 
@@ -36,7 +51,7 @@ const matches = (item, search, category, maxLevel, rarities, monsterInfrequentOn
   const requiredLevel = Number(item.stats?.levelRequirement ?? item.level) || 0
   return (
     (!search || haystack.includes(search)) &&
-    matchesCategory(item.category, category) &&
+    (matchesCategory(item.category, category) || matchesWeaponType(item, category)) &&
     (maxLevel == null || requiredLevel <= maxLevel) &&
     (!rarities.length || rarities.includes(normalizedRarity(item.rarity))) &&
     (!monsterInfrequentOnly || item.isMonsterInfrequent) &&

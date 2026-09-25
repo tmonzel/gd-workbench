@@ -10,7 +10,7 @@ type ItemSideNavProps = {
 export const CATEGORY_GROUPS: Record<string, string[]> = {
   Accessories: ['Medal', 'Amulet', 'Ring', 'Belt', 'Relic'],
   Armor: ['Chest Armor', 'Gloves', 'Pants', 'Boots', 'Helm', 'Shoulders'],
-  Weapon: ['Weapon', 'Off-Hand'],
+  Weapon: ['Swords', 'Axes', 'Maces', 'Daggers', 'Scepters', 'Spears', 'Ranged', 'Shields', 'Off-Hand'],
   Other: [
     'Augment',
     'Component',
@@ -44,6 +44,14 @@ const CATEGORY_LABELS: Record<string, string> = {
   Helm: 'Helms',
   Shoulders: 'Shoulders',
   Weapon: 'Weapons',
+  Swords: 'Swords',
+  Axes: 'Axes',
+  Maces: 'Maces',
+  Daggers: 'Daggers',
+  Scepters: 'Scepters',
+  Spears: 'Spears',
+  Ranged: 'Ranged',
+  Shields: 'Shields',
   'Off-Hand': 'Off-Hands',
 }
 

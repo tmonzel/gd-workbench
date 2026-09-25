@@ -46,7 +46,28 @@ function ItemCard({
   const [hoverPoint, setHoverPoint] = useState<{ x: number; y: number } | null>(null)
   const rarityClass = `rarity-${item.rarity.toLowerCase()}`
   const armorClassification = String(item.stats?.armorClassification ?? '')
-  const typeLine = armorClassification ? `${armorClassification} ${item.category}` : item.category
+  const itemClass = String(item.stats?.Class ?? '')
+  const weaponType =
+    item.category === 'Weapon'
+      ? /sword/i.test(itemClass)
+        ? 'Sword'
+        : /axe/i.test(itemClass)
+          ? 'Axe'
+          : /mace/i.test(itemClass)
+            ? 'Mace'
+            : /dagger/i.test(itemClass)
+              ? 'Dagger'
+              : /scepter/i.test(itemClass)
+                ? 'Scepter'
+                : /spear/i.test(itemClass)
+                  ? 'Spear'
+                  : /ranged/i.test(itemClass)
+                    ? 'Ranged'
+                    : item.category
+      : undefined
+  const itemType =
+    item.category === 'Off-Hand' && /shield/i.test(itemClass) ? 'Shield' : weaponType ?? item.category
+  const typeLine = armorClassification && armorClassification !== 'Light' ? `${armorClassification} ${itemType}` : itemType
   const rarityTextClass = rarityTextClasses[item.rarity.toLowerCase()] ?? 'text-neutral-400'
   const itemLevel = Number(item.stats?.itemLevel ?? item.level)
   const itemSet = getSetForItem(item.id, itemSets)

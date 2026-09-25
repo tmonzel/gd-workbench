@@ -65,7 +65,28 @@ function ItemPanel({
     toggleRarity,
   } = itemLibrary
   const loading = status === 'loading'
-  const collectionCategories = useMemo(() => new Set(collectionItems.map((item) => item.category)), [collectionItems])
+  const collectionCategories = useMemo(() => {
+    const categories = new Set(collectionItems.map((item) => item.category))
+    const weaponTypes: Record<string, RegExp> = {
+      Swords: /WeaponMelee_Sword/i,
+      Axes: /WeaponMelee_Axe/i,
+      Maces: /WeaponMelee_Mace/i,
+      Daggers: /WeaponMelee_Dagger/i,
+      Scepters: /WeaponMelee_Scepter/i,
+      Spears: /WeaponMelee_Spear/i,
+      Ranged: /WeaponHunting_Ranged/i,
+      Shields: /shield/i,
+    }
+    for (const [type, pattern] of Object.entries(weaponTypes))
+      if (
+        collectionItems.some((item) =>
+          (type === 'Shields' ? item.category === 'Off-Hand' : item.category === 'Weapon') &&
+          pattern.test(String(item.stats?.Class ?? '')),
+        )
+      )
+        categories.add(type)
+    return categories
+  }, [collectionItems])
   const collectionStatOptions = useMemo(
     () =>
       [
@@ -80,10 +101,20 @@ function ItemPanel({
     const matchesStat = (item: Item, stat: string) => {
       return (item.attributes ?? []).some((attribute) => attribute.label === stat)
     }
-    const matchesCategory = (category: string) =>
+      const matchesCategory = (item: Item) =>
       collectionCategory === 'All' ||
-      category === collectionCategory ||
-      CATEGORY_GROUPS[collectionCategory]?.includes(category)
+        item.category === collectionCategory ||
+        CATEGORY_GROUPS[collectionCategory]?.includes(item.category) ||
+        (item.category === 'Weapon' && {
+        Swords: /WeaponMelee_Sword/i,
+        Axes: /WeaponMelee_Axe/i,
+        Maces: /WeaponMelee_Mace/i,
+        Daggers: /WeaponMelee_Dagger/i,
+        Scepters: /WeaponMelee_Scepter/i,
+        Spears: /WeaponMelee_Spear/i,
+        Ranged: /WeaponHunting_Ranged/i,
+        Shields: /shield/i,
+      }[collectionCategory]?.test(String(item.stats?.Class ?? '')))
     return collectionItems.filter((item) => {
       const requiredLevel = Number(item.stats?.levelRequirement ?? item.level) || 0
       return (
@@ -91,7 +122,7 @@ function ItemPanel({
           `${item.qualityTag ?? ''} ${item.prefix ?? ''} ${item.name} ${item.suffix ?? ''} ${item.category}`
             .toLowerCase()
             .includes(query)) &&
-        matchesCategory(item.category) &&
+          matchesCategory(item) &&
         (!collectionHideAboveLevel || requiredLevel <= itemLibrary.level) &&
         (!collectionMonsterInfrequentOnly || item.isMonsterInfrequent) &&
         (!collectionRarities.length || collectionRarities.includes(item.rarity)) &&
