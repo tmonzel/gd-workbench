@@ -241,7 +241,7 @@ function ItemCard({
         <p className="m-0">
           Item Level: <strong>{itemLevel}</strong>
         </p>
-        <ItemRequirements stats={item.stats} level={item.level} />
+        <ItemRequirements stats={item.stats} />
       </div>
       {onEquip && item.isInstance && isEquippableItem(item) && (
         <button

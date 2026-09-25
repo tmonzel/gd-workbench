@@ -64,14 +64,16 @@ export const getEquippedSetInfo = (
 export const getSetForItem = (itemId: string, itemSets: ItemSet[]) =>
   itemSets.find((set) => set.members.includes(itemId))
 
-export type SkillBonus = { name: string; amount: number }
+export type SkillBonus = { name: string; amount: number; masteryWide?: boolean; masteryName?: string }
 
 export const parseSkillBonus = (value: string | number): SkillBonus | null => {
   const match = /^\+?(-?\d+(?:\.\d+)?)\s+to\s+(.+)$/i.exec(String(value).trim())
   if (!match) return null
   const amount = Number(match[1])
   if (!Number.isFinite(amount)) return null
-  return { name: match[2].trim(), amount }
+  const name = match[2].trim()
+  const masteryMatch = /^all skills in (.+)$/i.exec(name)
+  return { name, amount, masteryWide: Boolean(masteryMatch), masteryName: masteryMatch?.[1].trim() }
 }
 
 export const getEquippedSkillBonuses = (equipment: Partial<Record<string, Item>>): Record<string, number> => {
@@ -80,7 +82,7 @@ export const getEquippedSkillBonuses = (equipment: Partial<Record<string, Item>>
     for (const attribute of item?.attributes ?? []) {
       if (attribute.label !== 'Skill Bonus') continue
       const parsed = parseSkillBonus(attribute.value)
-      if (parsed) bonuses[parsed.name] = (bonuses[parsed.name] ?? 0) + parsed.amount
+      if (parsed && !parsed.masteryWide) bonuses[parsed.name] = (bonuses[parsed.name] ?? 0) + parsed.amount
     }
   }
   return bonuses

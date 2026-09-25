@@ -17,7 +17,12 @@ function ItemStats({ attributes, stats, activeSkillNames }: ItemStatsProps) {
       <div className="mt-3">
         {[...regularBonusStats, ...skillBonusStats].map(({ label, value }, index) => {
           const skillBonus = label === 'Skill Bonus' ? parseSkillBonus(value) : null
-          const inactive = skillBonus && activeSkillNames && !activeSkillNames.has(skillBonus.name)
+          const inactive =
+            skillBonus &&
+            activeSkillNames &&
+            (skillBonus.masteryWide
+              ? !activeSkillNames.has(skillBonus.masteryName ?? '')
+              : !activeSkillNames.has(skillBonus.name))
           return (
             <p
               className={`truncate text-[0.78rem] ${inactive ? 'text-neutral-600' : 'text-neutral-400'}`}

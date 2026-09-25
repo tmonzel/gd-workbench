@@ -703,6 +703,14 @@ const gameAttributes = (
   }
 
   for (let index = 1; index <= 4; index += 1) {
+    const masteryPath = String(stats[`augmentMasteryName${index}`] ?? '').replaceAll('\\', '/')
+    const masteryLevel = numeric(`augmentMasteryLevel${index}`)
+    if (!masteryPath || !masteryLevel) continue
+    const masteryName = skillNames.get(masteryPath) ?? humanizeSkillIdentifier(masteryPath)
+    add('Skill Bonus', `+${formatNumber(masteryLevel)} to all skills in ${masteryName}`)
+  }
+
+  for (let index = 1; index <= 4; index += 1) {
     const skillPath = String(stats[`augmentSkillName${index}`] ?? '')
     const skillLevel = numeric(`augmentSkillLevel${index}`)
     if (!skillPath || !skillLevel) continue

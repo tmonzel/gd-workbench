@@ -1,10 +1,9 @@
 type ItemRequirementsProps = {
   stats?: Record<string, string | number>
-  level: number
 }
 
-function ItemRequirements({ stats, level }: ItemRequirementsProps) {
-  const requiredLevel = Number(stats?.levelRequirement ?? level)
+function ItemRequirements({ stats }: ItemRequirementsProps) {
+  const requiredLevel = Number(stats?.levelRequirement ?? 0)
   const requirements = [
     ['Physique', stats?.strengthRequirement],
     ['Cunning', stats?.dexterityRequirement],
@@ -13,9 +12,11 @@ function ItemRequirements({ stats, level }: ItemRequirementsProps) {
 
   return (
     <>
-      <p className="m-0">
-        Required Level: <strong>{requiredLevel}</strong>
-      </p>
+      {requiredLevel > 0 && (
+        <p className="m-0">
+          Required Level: <strong>{requiredLevel}</strong>
+        </p>
+      )}
       {requirements.map(([label, value]) => (
         <p className="m-0" key={label}>
           Requires {label}: <strong>{value}</strong>

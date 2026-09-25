@@ -53,9 +53,11 @@ function App() {
   const selectedMasterySkillNames = useMemo(() => {
     const names = new Set<string>()
     for (const id of [character.mastery1, character.mastery2])
+      if (id) names.add(masteries.find((mastery) => mastery.id === id)?.name ?? '')
+    for (const id of [character.mastery1, character.mastery2])
       for (const skill of skillsets[id ?? ''] ?? []) names.add(skill.name)
     return names
-  }, [character.mastery1, character.mastery2, skillsets])
+  }, [character.mastery1, character.mastery2, masteries, skillsets])
   const activeSkills = useMemo(() => {
     const entries = new Map<
       string,
@@ -137,7 +139,7 @@ function App() {
       for (const attribute of item.attributes ?? []) {
         if (attribute.label !== 'Skill Bonus') continue
         const bonus = parseSkillBonus(attribute.value)
-        if (bonus && (!masteryLevels.has(bonus.name) || (masteryLevels.get(bonus.name) ?? 0) > 0))
+        if (bonus && !bonus.masteryWide && (!masteryLevels.has(bonus.name) || (masteryLevels.get(bonus.name) ?? 0) > 0))
           addSkill(bonus.name, bonus.amount, item.name)
       }
     }
