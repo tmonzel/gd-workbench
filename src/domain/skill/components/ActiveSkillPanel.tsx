@@ -2,25 +2,7 @@ import { IconChevronDown, IconChevronUp } from '@tabler/icons-react'
 import { useEffect, useRef, useState } from 'react'
 import { Card } from '@/components/Card'
 import { DAMAGE_COLORS } from '@/domain/skill/skill.utils'
-
-export type SkillDamageRow = {
-  type: string
-  label: string
-  min: number
-  max: number
-  percent: number
-  totalMin: number
-  totalMax: number
-}
-
-export type SkillEntry = {
-  name: string
-  level: number
-  source: string
-  stats: string[]
-  damageRows?: SkillDamageRow[]
-  icon?: string
-}
+import type { SkillDamageRow, SkillEntry } from '@/domain/skill/active-skills.utils'
 
 type ActiveSkillPanelProps = {
   skills: SkillEntry[]

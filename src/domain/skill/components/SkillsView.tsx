@@ -2,7 +2,7 @@ import type { Dispatch, SetStateAction } from 'react'
 import SkillPanel from '@/domain/skill/components/SkillPanel'
 import ActiveSkillPanel from '@/domain/skill/components/ActiveSkillPanel'
 import type { Character } from '@/domain/hero/types'
-import type { SkillEntry } from '@/domain/skill/components/ActiveSkillPanel'
+import type { SkillEntry } from '@/domain/skill/active-skills.utils'
 
 type SkillsViewProps = {
   character: Character
