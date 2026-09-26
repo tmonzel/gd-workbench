@@ -70,15 +70,20 @@ const effectLabel = (key: string) =>
     characterDexterityModifier: 'Cunning',
     characterIntelligence: 'Spirit',
     characterIntelligenceModifier: 'Spirit',
+    characterOffensiveAbility: 'Offensive Ability',
     characterOffensiveAbilityModifier: 'Offensive Ability',
     defensiveChaos: 'Chaos Resistance',
     defensiveAether: 'Aether Resistance',
     characterDefensiveAbility: 'Defensive Ability',
-    offensiveDamageMultModifier: 'Total Damage',
+    offensiveDamageMultModifier: 'to All Damage',
+    offensiveTotalDamageModifier: 'to All Damage',
+    onHitActivationChance: 'Chance of Activating',
+    skillActiveDuration: 'Second Duration',
+    skillCooldownTime: 'Second Skill Recharge',
     weaponDamagePct: 'Weapon Damage',
   })[key] ?? labelFor(key)
 const effectKeys =
-  /^(offensive|defensive|retaliation|character|projectile|block|skillManaCost|skillCooldownTime|skillLife|weaponDamagePct|healing)/i
+  /^(offensive|defensive|retaliation|character|projectile|block|onHitActivationChance|skillActiveDuration|skillManaCost|skillCooldownTime|skillLife|weaponDamagePct|healing)/i
 const extractEffects = (record: Map<string, string>) => {
   const effects: Array<{
     key: string
@@ -91,7 +96,12 @@ const extractEffects = (record: Map<string, string>) => {
     .filter(
       ([key, value]) =>
         effectKeys.test(key) &&
-        (value.includes(';') || key === 'offensiveDamageMultModifier') &&
+        (value.includes(';') ||
+          key === 'offensiveDamageMultModifier' ||
+          key === 'offensiveTotalDamageModifier' ||
+          key === 'onHitActivationChance' ||
+          key === 'skillActiveDuration' ||
+          key === 'skillCooldownTime') &&
         !/^offensive(Slow)?(?:Physical|Fire|Lightning|Cold|Poison|Bleeding)(?:Min|Max|Duration)/i.test(key),
     )
     .map(([key, value]) => ({

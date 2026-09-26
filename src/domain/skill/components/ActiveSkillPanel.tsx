@@ -83,6 +83,10 @@ function ActiveSkillPanel({ skills, onPassiveToggle }: ActiveSkillPanelProps) {
         skills.map((skill) => {
           const skillKey = `${skill.name}-${skill.source}`
           const expanded = expandedSkills.has(skillKey)
+          const rankLabel =
+            skill.allocatedLevel === undefined
+              ? String(skill.level)
+              : `${skill.allocatedLevel}${skill.bonusLevel ? ` ${skill.bonusLevel > 0 ? '+' : ''}${skill.bonusLevel}` : ''}`
           return (
             <Card as="section" size="md" variant="filled" className="transition-colors" key={skillKey}>
               <div className="flex items-start gap-3">
@@ -96,7 +100,7 @@ function ActiveSkillPanel({ skills, onPassiveToggle }: ActiveSkillPanelProps) {
                     onClick={() => toggleSkill(skillKey)}
                   >
                     <span className={`block ${skill.isPassive && !skill.enabled ? 'text-neutral-500' : 'text-neutral-200'}`}>
-                      {skill.name} ({skill.level})
+                      {skill.name} ({rankLabel})
                     </span>
                     <span className="block text-[0.68rem] text-neutral-600">{skill.source}</span>
                   </button>

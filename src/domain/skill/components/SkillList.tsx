@@ -69,7 +69,7 @@ function SkillList({ skills, character, setCharacter, itemBonuses = {}, masteryI
             .map((effect) => {
               const value = effect.values[Math.min(effectiveLevel, effect.values.length) - 1]
               const displayParts = formatSkillEffectParts({ ...effect, value }, effectiveLevel)
-              if (effect.key.startsWith('character') && /Modifier$/i.test(effect.key) && value > 0)
+              if ((effect.key.startsWith('character') || effect.key === 'offensiveTotalDamageModifier') && value > 0)
                 displayParts.value = `+${displayParts.value}`
               return {
                 ...effect,

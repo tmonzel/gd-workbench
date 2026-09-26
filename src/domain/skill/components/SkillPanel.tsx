@@ -1,4 +1,5 @@
 import type { Dispatch, SetStateAction } from 'react'
+import { useState } from 'react'
 import { Card } from '@/components/Card'
 import SkillList from '@/domain/skill/components/SkillList'
 import type { Character } from '@/domain/hero/types'
@@ -12,8 +13,12 @@ type SkillPanelProps = {
 }
 
 function SkillPanel({ character, setCharacter, itemBonuses = {} }: SkillPanelProps) {
+  const [preferredMasteryId, setPreferredMasteryId] = useState('')
   const { masteries, skillsets } = useSkillData()
   const selectedMasteryIds = [character.mastery1, character.mastery2].filter(Boolean) as string[]
+  const activeMasteryId = selectedMasteryIds.includes(preferredMasteryId)
+    ? preferredMasteryId
+    : selectedMasteryIds[0]
   const availablePoints = skillPointsForLevel(character.level) - spentSkillPoints(character)
   const changeMasteryLevel = (masteryId: string, delta: number) =>
     setCharacter((current) => {
@@ -41,8 +46,33 @@ function SkillPanel({ character, setCharacter, itemBonuses = {} }: SkillPanelPro
           Select one or two masteries in the header to view their skill trees.
         </p>
       ) : (
-        <div className="grid gap-8">
-          {selectedMasteryIds.map((masteryId) => {
+        <div className="grid gap-5">
+          {selectedMasteryIds.length > 1 && (
+            <nav className="flex w-full gap-1 border-b border-neutral-800" aria-label="Mastery skill trees">
+              {selectedMasteryIds.map((masteryId) => {
+                const mastery = masteries.find((entry) => entry.id === masteryId)
+                const selected = masteryId === activeMasteryId
+                return (
+                  <button
+                    className={`flex-1 border-b-2 px-3 pb-2 text-xs font-medium transition-colors ${
+                      selected
+                        ? 'border-orange-300 text-orange-200'
+                        : 'border-transparent text-neutral-500 hover:text-neutral-200'
+                    }`}
+                    key={masteryId}
+                    type="button"
+                    role="tab"
+                    aria-selected={selected}
+                    onClick={() => setPreferredMasteryId(masteryId)}
+                  >
+                    {mastery?.name ?? 'Mastery'}
+                  </button>
+                )
+              })}
+            </nav>
+          )}
+          {activeMasteryId && (() => {
+            const masteryId = activeMasteryId
             const mastery = masteries.find((entry) => entry.id === masteryId)
             const skills = skillsets[masteryId] ?? []
             const masteryLevel = character.masteryLevels[masteryId] ?? 0
@@ -58,6 +88,7 @@ function SkillPanel({ character, setCharacter, itemBonuses = {} }: SkillPanelPro
                       type="button"
                       disabled={masteryLevel === 0}
                       onClick={() => changeMasteryLevel(masteryId, -1)}
+                      aria-label={`Decrease ${mastery?.name ?? 'mastery'} rank`}
                     >
                       −
                     </button>
@@ -67,6 +98,7 @@ function SkillPanel({ character, setCharacter, itemBonuses = {} }: SkillPanelPro
                       type="button"
                       disabled={masteryLevel === 50 || availablePoints <= 0}
                       onClick={() => changeMasteryLevel(masteryId, 1)}
+                      aria-label={`Increase ${mastery?.name ?? 'mastery'} rank`}
                     >
                       +
                     </button>
@@ -85,7 +117,7 @@ function SkillPanel({ character, setCharacter, itemBonuses = {} }: SkillPanelPro
                 />
               </section>
             )
-          })}
+          })()}
         </div>
       )}
     </Card>

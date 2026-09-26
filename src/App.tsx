@@ -28,11 +28,25 @@ function App() {
     useHero(skillsets)
   const itemLibrary = useItemLibrary(character.level)
   const { itemSets } = itemLibrary
-  const itemSkillBonuses = useMemo(() => getEquippedSkillBonuses(character.equipment), [character.equipment])
   const equippedSetInfo = useMemo(
     () => getEquippedSetInfo(character.equipment, itemSets),
     [character.equipment, itemSets],
   )
+  const itemSkillBonuses = useMemo(() => {
+    const additionalAttributes = [
+      ...equippedSetInfo.flatMap(({ activeTier }) => activeTier?.attributes ?? []),
+      ...(devotions?.constellations ?? [])
+        .filter((constellation) => constellation.skills.some((skill) => selectedDevotions.includes(skill.id)))
+        .flatMap((constellation) =>
+          constellation.skills.filter((skill) => selectedDevotions.includes(skill.id)).flatMap((skill) => skill.attributes),
+        ),
+    ]
+    return getEquippedSkillBonuses(
+      character.equipment,
+      Object.fromEntries(masteries.map((mastery) => [mastery.name, (skillsets[mastery.id] ?? []).map((skill) => skill.name)])),
+      additionalAttributes,
+    )
+  }, [character.equipment, devotions, equippedSetInfo, masteries, selectedDevotions, skillsets])
   const createItemInstance = (template: Item) =>
     setCollectionItems((current) => [
       ...current,

@@ -64,7 +64,13 @@ export const getEquippedSetInfo = (
 export const getSetForItem = (itemId: string, itemSets: ItemSet[]) =>
   itemSets.find((set) => set.members.includes(itemId))
 
-export type SkillBonus = { name: string; amount: number; masteryWide?: boolean; masteryName?: string }
+export type SkillBonus = {
+  name: string
+  amount: number
+  masteryWide?: boolean
+  masteryName?: string
+  allSkills?: boolean
+}
 
 export const parseSkillBonus = (value: string | number): SkillBonus | null => {
   const match = /^\+?(-?\d+(?:\.\d+)?)\s+to\s+(.+)$/i.exec(String(value).trim())
@@ -73,17 +79,36 @@ export const parseSkillBonus = (value: string | number): SkillBonus | null => {
   if (!Number.isFinite(amount)) return null
   const name = match[2].trim()
   const masteryMatch = /^all skills in (.+)$/i.exec(name)
-  return { name, amount, masteryWide: Boolean(masteryMatch), masteryName: masteryMatch?.[1].trim() }
+  const allSkills = /^all skills$/i.test(name)
+  return {
+    name,
+    amount,
+    masteryWide: Boolean(masteryMatch),
+    masteryName: masteryMatch?.[1].trim(),
+    allSkills,
+  }
 }
 
-export const getEquippedSkillBonuses = (equipment: Partial<Record<string, Item>>): Record<string, number> => {
+export const getEquippedSkillBonuses = (
+  equipment: Partial<Record<string, Item>>,
+  skillNamesByMastery: Record<string, string[]> = {},
+  additionalAttributes: Array<{ label: string; value: string | number }> = [],
+): Record<string, number> => {
   const bonuses: Record<string, number> = {}
-  for (const item of Object.values(equipment)) {
-    for (const attribute of item?.attributes ?? []) {
-      if (attribute.label !== 'Skill Bonus') continue
-      const parsed = parseSkillBonus(attribute.value)
-      if (parsed && !parsed.masteryWide) bonuses[parsed.name] = (bonuses[parsed.name] ?? 0) + parsed.amount
-    }
+  const allSkillNames = [...new Set(Object.values(skillNamesByMastery).flat())]
+  const attributes = [
+    ...Object.values(equipment).flatMap((item) => item?.attributes ?? []),
+    ...additionalAttributes,
+  ]
+  for (const attribute of attributes) {
+    if (attribute.label !== 'Skill Bonus') continue
+    const parsed = parseSkillBonus(attribute.value)
+    if (!parsed) continue
+    const masterySkills = parsed.masteryName
+      ? Object.entries(skillNamesByMastery).find(([name]) => name.toLowerCase() === parsed.masteryName?.toLowerCase())?.[1] ?? []
+      : []
+    const targets = parsed.allSkills ? allSkillNames : parsed.masteryWide ? masterySkills : [parsed.name]
+    for (const name of targets) bonuses[name] = (bonuses[name] ?? 0) + parsed.amount
   }
   return bonuses
 }

@@ -24,6 +24,8 @@ export type SkillDamageRow = {
 export type SkillEntry = {
   name: string
   level: number
+  allocatedLevel?: number
+  bonusLevel?: number
   source: string
   stats: string[]
   damageRows?: SkillDamageRow[]
@@ -56,6 +58,8 @@ export const getActiveSkills = ({
     string,
     {
       level: number
+      allocatedLevel?: number
+      bonusLevel?: number
       sources: Set<string>
       stats: Set<string>
       damageRows: Map<string, SkillDamageRow>
@@ -144,6 +148,7 @@ export const getActiveSkills = ({
       if (
         bonus &&
         !bonus.masteryWide &&
+        !bonus.allSkills &&
         !disabledPassiveNames.has(bonus.name) &&
         (!masteryLevels.has(bonus.name) || (masteryLevels.get(bonus.name) ?? 0) > 0)
       )
@@ -154,9 +159,10 @@ export const getActiveSkills = ({
     for (const skill of skillsets[masteryId ?? ''] ?? []) {
       if (skill.isModifier || skill.isTransmuter) continue
       const passiveEnabled = !character.disabledPassiveSkills?.includes(skill.id)
-      const level = character.skillLevels[skill.id] ?? 0
-      if (level <= 0) continue
-      const effectiveLevel = level + (itemSkillBonuses[skill.name] ?? 0)
+      const allocatedLevel = character.skillLevels[skill.id] ?? 0
+      if (allocatedLevel <= 0) continue
+      const bonusLevel = itemSkillBonuses[skill.name] ?? 0
+      const effectiveLevel = allocatedLevel + bonusLevel
       const activeModifiers = (skillsets[masteryId ?? ''] ?? []).filter(
         (modifier) =>
           modifier.groupId === skill.groupId &&
@@ -195,7 +201,9 @@ export const getActiveSkills = ({
         )
         .map((effect) => {
           const rawValue = effect.values[Math.min(effectiveLevel, effect.values.length) - 1]
-          const isDamage = /^(offensive|weaponDamagePct|retaliation)/i.test(effect.key)
+          const isDamage =
+            /^(offensive|weaponDamagePct|retaliation)/i.test(effect.key) &&
+            effect.key !== 'offensiveTotalDamageModifier'
           const isWeaponDamage = effect.key === 'weaponDamagePct'
           if (isDamage) {
             const typeMatch = effect.key.match(
@@ -239,7 +247,7 @@ export const getActiveSkills = ({
             isDamage ? totalDamageMultiplier : 1,
             label,
           )
-          return effect.key.startsWith('character') && /Modifier$/i.test(effect.key) && rawValue > 0
+          return (effect.key.startsWith('character') || effect.key === 'offensiveTotalDamageModifier') && rawValue > 0
             ? `+${formatted}`
             : formatted
         })
@@ -284,6 +292,10 @@ export const getActiveSkills = ({
       }
       addSkill(skill.name, effectiveLevel, 'Mastery', stats, skill.icon)
       const entry = entries.get(skill.name)
+      if (entry) {
+        entry.allocatedLevel = Math.max(entry.allocatedLevel ?? 0, allocatedLevel)
+        entry.bonusLevel = Math.max(entry.bonusLevel ?? 0, bonusLevel)
+      }
       if (entry && skill.isPassive) {
         entry.isPassive = true
         entry.passiveSkillId = skill.id
@@ -299,6 +311,8 @@ export const getActiveSkills = ({
     .map(([name, entry]) => ({
       name,
       level: entry.level,
+      allocatedLevel: entry.allocatedLevel,
+      bonusLevel: entry.bonusLevel,
       source: [...entry.sources].join(' + '),
       stats: [...entry.stats],
       damageRows: [...entry.damageRows.values()],

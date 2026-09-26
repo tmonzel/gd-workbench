@@ -206,16 +206,16 @@ for (const directory of directories)
       .map((path) => path.replace(/^records\//, 'data/game/records/'))
     if (!members.length) continue
 
-    // granted mastery-skill points, e.g. augmentSkillName1/augmentSkillLevel1 for up to 4 skills, plus the class-training augment
+    // Resolve all augment skill and mastery bonus slots declared by this set.
     const skillBonusSources: Array<{ path: string; levels: string }> = []
-    for (let index = 1; index <= 4; index += 1) {
-      const path = record.get(`augmentSkillName${index}`)
-      const levels = record.get(`augmentSkillLevel${index}`)
+    for (const [key, path] of record) {
+      const skillIndex = /^augmentSkillName(\d+)$/.exec(key)?.[1]
+      const masteryIndex = /^augmentMasteryName(\d+)$/.exec(key)?.[1]
+      const index = skillIndex ?? masteryIndex
+      if (!index) continue
+      const levels = record.get(`${skillIndex ? 'augmentSkillLevel' : 'augmentMasteryLevel'}${index}`)
       if (path && levels) skillBonusSources.push({ path, levels })
     }
-    const masteryPath = record.get('augmentMasteryName1')
-    const masteryLevels = record.get('augmentMasteryLevel1')
-    if (masteryPath && masteryLevels) skillBonusSources.push({ path: masteryPath, levels: masteryLevels })
     const skillBonusNames = await Promise.all(skillBonusSources.map((source) => resolveSkillName(source.path)))
 
     // a fully granted skill unlocked once enough pieces are equipped
@@ -235,6 +235,9 @@ for (const directory of directories)
     const bonuses = []
     for (let count = 1; count <= Math.min(members.length, 5); count += 1) {
       const attributes = attributesAt(record, count)
+      const allSkillLevel = valueAt(record, 'augmentAllLevel', count)
+      if (allSkillLevel)
+        attributes.push({ label: 'Skill Bonus', value: `+${formatNumber(allSkillLevel)} to all skills` })
       for (const [index, source] of skillBonusSources.entries()) {
         const levels = source.levels.split(';')
         const level = Number(levels[Math.min(count, levels.length) - 1]) || 0

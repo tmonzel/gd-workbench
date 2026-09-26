@@ -702,7 +702,10 @@ const gameAttributes = (
       )
   }
 
-  for (let index = 1; index <= 4; index += 1) {
+  const masteryBonusIndexes = Object.keys(stats)
+    .map((key) => /^augmentMasteryName(\d+)$/.exec(key)?.[1])
+    .filter((index): index is string => Boolean(index))
+  for (const index of masteryBonusIndexes) {
     const masteryPath = String(stats[`augmentMasteryName${index}`] ?? '').replaceAll('\\', '/')
     const masteryLevel = numeric(`augmentMasteryLevel${index}`)
     if (!masteryPath || !masteryLevel) continue
@@ -710,13 +713,18 @@ const gameAttributes = (
     add('Skill Bonus', `+${formatNumber(masteryLevel)} to all skills in ${masteryName}`)
   }
 
-  for (let index = 1; index <= 4; index += 1) {
+  const skillBonusIndexes = Object.keys(stats)
+    .map((key) => /^augmentSkillName(\d+)$/.exec(key)?.[1])
+    .filter((index): index is string => Boolean(index))
+  for (const index of skillBonusIndexes) {
     const skillPath = String(stats[`augmentSkillName${index}`] ?? '')
     const skillLevel = numeric(`augmentSkillLevel${index}`)
     if (!skillPath || !skillLevel) continue
     const skillName = skillNames.get(skillPath.replaceAll('\\', '/')) ?? humanizeSkillIdentifier(skillPath)
     add('Skill Bonus', `+${formatNumber(skillLevel)} to ${skillName}`)
   }
+  const allSkillLevel = numeric('augmentAllLevel')
+  if (allSkillLevel) add('Skill Bonus', `+${formatNumber(allSkillLevel)} to all skills`)
 
   return attributes
 }
