@@ -26,8 +26,50 @@ button:disabled {
   cursor: not-allowed;
 }
 
+.app-checkbox {
+  display: inline-grid;
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+  appearance: none;
+  place-content: center;
+  border: 1px solid #525252;
+  border-radius: 3px;
+  background: #171717;
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.app-checkbox::before {
+  width: 0.55rem;
+  height: 0.32rem;
+  content: '';
+  transform: rotate(-45deg) scale(0);
+  border: solid #171717;
+  border-width: 0 0 2px 2px;
+}
+
+.app-checkbox:checked {
+  border-color: #fdba74;
+  background: #fdba74;
+}
+
+.app-checkbox:checked::before {
+  transform: rotate(-45deg) scale(1);
+}
+
+.app-checkbox:focus-visible {
+  outline: 2px solid rgb(253 186 116 / 50%);
+  outline-offset: 2px;
+}
+
+.app-checkbox:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
 * {
-  scrollbar-color: #525252 #1f1f1f;
+  scrollbar-color: #fb923c #1f1f1f;
   scrollbar-width: thin;
 }
 
@@ -42,11 +84,15 @@ button:disabled {
 }
 
 *::-webkit-scrollbar-thumb {
-  background: #525252;
+  background: #fb923c;
   border: 2px solid #1f1f1f;
   border-radius: 999px;
 }
 
 *::-webkit-scrollbar-thumb:hover {
-  background: #737373;
+  background: #fdba74;
+}
+
+*::-webkit-scrollbar-button {
+  background-color: #fb923c;
 }

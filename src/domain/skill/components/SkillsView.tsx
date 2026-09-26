@@ -12,10 +12,18 @@ type SkillsViewProps = {
 }
 
 function SkillsView({ character, setCharacter, itemBonuses, activeSkills }: SkillsViewProps) {
+  const togglePassive = (skillId: string) =>
+    setCharacter((current) => {
+      const disabled = new Set(current.disabledPassiveSkills ?? [])
+      if (disabled.has(skillId)) disabled.delete(skillId)
+      else disabled.add(skillId)
+      return { ...current, disabledPassiveSkills: [...disabled] }
+    })
+
   return (
     <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(420px,520px)]">
       <SkillPanel character={character} setCharacter={setCharacter} itemBonuses={itemBonuses} />
-      <ActiveSkillPanel skills={activeSkills} />
+      <ActiveSkillPanel skills={activeSkills} onPassiveToggle={togglePassive} />
     </div>
   )
 }

@@ -14,6 +14,7 @@ export type MasterySkill = {
   masteryLevelRequired: number
   isModifier: boolean
   isTransmuter: boolean
+  isPassive: boolean
   isWeaponDefaultAttack: boolean
   icon?: string
   effects: Array<{

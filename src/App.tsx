@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react'
 import './App.css'
-import AttributePanel from '@/components/AttributePanel'
 import Header from '@/components/Header'
 import StatPanel from '@/components/StatPanel'
 import DamagePanel from '@/components/DamagePanel'
@@ -78,10 +77,11 @@ function App() {
         onMasteryChange={changeMastery}
         difficulty={difficulty}
         onDifficultyChange={setDifficulty}
+        character={character}
+        onAttributeChange={adjustAttribute}
       />
       <WorkspaceTabs value={view} onChange={setView} />
-      <div className="grid items-start gap-4 lg:grid-cols-[240px_minmax(0,1fr)_minmax(300px,360px)]">
-        <AttributePanel character={character} onAttributeChange={adjustAttribute} />
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(300px,360px)]">
         <div className="min-w-0">
           {view === 'equipment' ? (
             <EquipmentPanel
@@ -141,6 +141,8 @@ function App() {
           <StatPanel
             character={character}
             masteries={masteries}
+            skillsets={skillsets}
+            itemSkillBonuses={itemSkillBonuses}
             devotions={devotions}
             selectedDevotions={selectedDevotions}
             equippedSetInfo={equippedSetInfo}

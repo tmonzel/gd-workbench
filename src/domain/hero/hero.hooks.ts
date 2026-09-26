@@ -13,6 +13,7 @@ const initialCharacter: Character = {
   spirit: BASE_ATTRIBUTE_VALUE,
   masteryLevels: {},
   skillLevels: {},
+  disabledPassiveSkills: [],
   equipment: {},
 }
 
@@ -67,10 +68,17 @@ export function useHero(skillsets: Record<string, MasterySkill[]>) {
       const replacedMasteries = slot === 'mastery1' ? [current.mastery1, ...(value ? [] : [current.mastery2])] : [current.mastery2]
       const masteryLevels = { ...current.masteryLevels }
       const skillLevels = { ...current.skillLevels }
+      const disabledPassiveSkills = [...(current.disabledPassiveSkills ?? [])]
       for (const mastery of replacedMasteries) {
         if (!mastery) continue
         delete masteryLevels[mastery]
-        for (const skill of skillsets[mastery] ?? []) delete skillLevels[skill.id]
+        for (const skill of skillsets[mastery] ?? []) {
+          delete skillLevels[skill.id]
+          if (skill.isPassive) {
+            const disabledIndex = disabledPassiveSkills.indexOf(skill.id)
+            if (disabledIndex >= 0) disabledPassiveSkills.splice(disabledIndex, 1)
+          }
+        }
       }
       return {
         ...current,
@@ -78,6 +86,7 @@ export function useHero(skillsets: Record<string, MasterySkill[]>) {
         mastery2: slot === 'mastery1' ? (value ? current.mastery2 : undefined) : value || undefined,
         masteryLevels,
         skillLevels,
+        disabledPassiveSkills,
       }
     })
 

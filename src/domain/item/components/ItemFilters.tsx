@@ -90,31 +90,16 @@ function ItemFilters({
         aria-label="Additional filters"
       >
         <label className="flex cursor-pointer items-center gap-1.5 px-1 py-0.5 transition-colors">
-          <span className="relative flex size-4 shrink-0 items-center justify-center">
-            <input
-              className="peer size-4 appearance-none rounded-sm border border-neutral-700 bg-neutral-950 checked:border-orange-300 checked:bg-orange-300 focus:ring-1 focus:ring-orange-300/50"
-              type="checkbox"
-              checked={hideAboveLevel}
-              onChange={onHideAboveLevelToggle}
-            />
-            <span className="pointer-events-none absolute text-xs font-bold leading-none text-neutral-950 opacity-0 peer-checked:opacity-100">
-              ✓
-            </span>
-          </span>
+          <input className="app-checkbox" type="checkbox" checked={hideAboveLevel} onChange={onHideAboveLevelToggle} />
           <span>Equipable only</span>
         </label>
         <label className="flex cursor-pointer items-center gap-1.5 px-1 py-0.5 transition-colors">
-          <span className="relative flex size-4 shrink-0 items-center justify-center">
-            <input
-              className="peer size-4 appearance-none rounded-sm border border-neutral-700 bg-neutral-950 checked:border-orange-300 checked:bg-orange-300 focus:ring-1 focus:ring-orange-300/50"
-              type="checkbox"
-              checked={monsterInfrequentOnly}
-              onChange={onMonsterInfrequentToggle}
-            />
-            <span className="pointer-events-none absolute text-xs font-bold leading-none text-neutral-950 opacity-0 peer-checked:opacity-100">
-              ✓
-            </span>
-          </span>
+          <input
+            className="app-checkbox"
+            type="checkbox"
+            checked={monsterInfrequentOnly}
+            onChange={onMonsterInfrequentToggle}
+          />
           <span>Monster Infrequent only</span>
         </label>
       </section>
@@ -177,7 +162,7 @@ function ItemFilters({
                     key={stat}
                   >
                     <input
-                      className="size-3.5 accent-orange-300"
+                      className="app-checkbox"
                       type="checkbox"
                       checked={selected}
                       onChange={() =>

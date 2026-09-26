@@ -28,6 +28,9 @@ export type SkillEntry = {
   stats: string[]
   damageRows?: SkillDamageRow[]
   icon?: string
+  isPassive?: boolean
+  passiveSkillId?: string
+  enabled?: boolean
 }
 
 type ActiveSkillsInput = {
@@ -57,11 +60,20 @@ export const getActiveSkills = ({
       stats: Set<string>
       damageRows: Map<string, SkillDamageRow>
       icon?: string
+      isPassive?: boolean
+      passiveSkillId?: string
+      enabled?: boolean
     }
   >()
   const masteryLevels = new Map<string, number>()
   const masteryIcons = new Map<string, string>()
   const excludedSkillNames = new Set<string>()
+  const disabledPassiveNames = new Set(
+    Object.values(skillsets)
+      .flat()
+      .filter((skill) => skill.isPassive && character.disabledPassiveSkills?.includes(skill.id))
+      .map((skill) => skill.name),
+  )
   const weaponDamage = new Map<string, { min: number; max: number }>()
   for (const attribute of character.equipment.Weapon?.attributes ?? []) {
     const match = /^(Physical|Fire|Cold|Lightning|Poison|Piercing|Bleeding|Aether|Chaos|Vitality) Damage$/i.exec(
@@ -117,6 +129,7 @@ export const getActiveSkills = ({
     if (!item) continue
     if (
       item.grantedSkill &&
+        !disabledPassiveNames.has(item.grantedSkill.name) &&
       (!masteryLevels.has(item.grantedSkill.name) || (masteryLevels.get(item.grantedSkill.name) ?? 0) > 0)
     )
       addSkill(
@@ -128,13 +141,19 @@ export const getActiveSkills = ({
     for (const attribute of item.attributes ?? []) {
       if (attribute.label !== 'Skill Bonus') continue
       const bonus = parseSkillBonus(attribute.value)
-      if (bonus && !bonus.masteryWide && (!masteryLevels.has(bonus.name) || (masteryLevels.get(bonus.name) ?? 0) > 0))
+      if (
+        bonus &&
+        !bonus.masteryWide &&
+        !disabledPassiveNames.has(bonus.name) &&
+        (!masteryLevels.has(bonus.name) || (masteryLevels.get(bonus.name) ?? 0) > 0)
+      )
         addSkill(bonus.name, bonus.amount, item.name)
     }
   }
   for (const masteryId of [character.mastery1, character.mastery2])
     for (const skill of skillsets[masteryId ?? ''] ?? []) {
       if (skill.isModifier || skill.isTransmuter) continue
+      const passiveEnabled = !character.disabledPassiveSkills?.includes(skill.id)
       const level = character.skillLevels[skill.id] ?? 0
       if (level <= 0) continue
       const effectiveLevel = level + (itemSkillBonuses[skill.name] ?? 0)
@@ -213,14 +232,16 @@ export const getActiveSkills = ({
             ? effect.label.replace(/Lightning/gi, 'Aether')
             : effect.label
           const value = isDamage ? rawValue * totalDamageMultiplier : rawValue
-          return Number.isFinite(value) && value !== 0
-            ? formatSkillEffect(
-                { ...effect, value: rawValue },
-                effectiveLevel,
-                isDamage ? totalDamageMultiplier : 1,
-                label,
-              )
-            : ''
+          if (!Number.isFinite(value) || value === 0) return ''
+          const formatted = formatSkillEffect(
+            { ...effect, value: rawValue },
+            effectiveLevel,
+            isDamage ? totalDamageMultiplier : 1,
+            label,
+          )
+          return effect.key.startsWith('character') && /Modifier$/i.test(effect.key) && rawValue > 0
+            ? `+${formatted}`
+            : formatted
         })
         .filter(Boolean)
       for (const summon of skill.summonEffects)
@@ -263,6 +284,11 @@ export const getActiveSkills = ({
       }
       addSkill(skill.name, effectiveLevel, 'Mastery', stats, skill.icon)
       const entry = entries.get(skill.name)
+      if (entry && skill.isPassive) {
+        entry.isPassive = true
+        entry.passiveSkillId = skill.id
+        entry.enabled = passiveEnabled
+      }
       const convertedDamageRows = applyArmorPiercingConversion(damageRows, armorPiercingPercent).map((row) => ({
         ...row,
         label: row.type === 'Piercing' ? 'Piercing Damage' : row.label,
@@ -277,6 +303,9 @@ export const getActiveSkills = ({
       stats: [...entry.stats],
       damageRows: [...entry.damageRows.values()],
       icon: entry.icon,
+      isPassive: entry.isPassive,
+      passiveSkillId: entry.passiveSkillId,
+      enabled: entry.enabled,
     }))
     .sort((left, right) => left.name.localeCompare(right.name))
 }

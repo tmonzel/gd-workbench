@@ -11,6 +11,7 @@ type Skill = {
   masteryLevelRequired: number
   isModifier: boolean
   isTransmuter: boolean
+  isPassive: boolean
   isWeaponDefaultAttack: boolean
   icon?: string
   effects: Array<{ key: string; label: string; values: number[]; suffix?: string }>
@@ -59,6 +60,17 @@ const effectLabel = (key: string) =>
   ({
     skillLifeBonus: 'Health Restoration',
     skillLifePercent: 'Health Restoration',
+    characterLife: 'Health',
+    characterLifeModifier: 'Health',
+    characterMana: 'Energy',
+    characterManaModifier: 'Energy',
+    characterStrength: 'Physique',
+    characterStrengthModifier: 'Physique',
+    characterDexterity: 'Cunning',
+    characterDexterityModifier: 'Cunning',
+    characterIntelligence: 'Spirit',
+    characterIntelligenceModifier: 'Spirit',
+    characterOffensiveAbilityModifier: 'Offensive Ability',
     defensiveChaos: 'Chaos Resistance',
     defensiveAether: 'Aether Resistance',
     characterDefensiveAbility: 'Defensive Ability',
@@ -189,6 +201,7 @@ for (let classNumber = 1; classNumber <= 10; classNumber += 1) {
           : explicitMasteryRequirement,
       isModifier: Boolean(suffix && suffix !== 'A'),
       isTransmuter: record.get('templateName')?.toLowerCase().endsWith('/skill_transmuter.tpl') ?? false,
+      isPassive: record.get('Class') === 'Skill_Passive',
       isWeaponDefaultAttack: record.get('templateName')?.toLowerCase().includes('/skill_weaponpool') ?? false,
       effects,
       summonEffects,

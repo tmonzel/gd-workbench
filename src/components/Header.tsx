@@ -1,7 +1,9 @@
 import LevelProgressControl from '@/components/LevelProgressControl'
-import { IconChevronDown } from '@tabler/icons-react'
+import { IconChevronDown, IconMinus, IconPlus } from '@tabler/icons-react'
 import type { Mastery } from '@/domain/skill/types'
 import { DIFFICULTY_MODES, type DifficultyMode } from '@/domain/hero/difficulty'
+import type { Character } from '@/domain/hero/types'
+import { ATTRIBUTE_POINT_VALUE, BASE_ATTRIBUTE_VALUE } from '@/domain/hero/hero.utils'
 
 type HeaderProps = {
   level: number
@@ -13,6 +15,8 @@ type HeaderProps = {
   onMasteryChange: (slot: 'mastery1' | 'mastery2', value: string) => void
   difficulty: DifficultyMode
   onDifficultyChange: (difficulty: DifficultyMode) => void
+  character: Character
+  onAttributeChange: (field: 'physique' | 'cunning' | 'spirit', delta: number) => void
 }
 
 function Header({
@@ -25,22 +29,18 @@ function Header({
   onMasteryChange,
   difficulty,
   onDifficultyChange,
+  character,
+  onAttributeChange,
 }: HeaderProps) {
+  const attributes = ['physique', 'cunning', 'spirit'] as const
+  const spentPoints =
+    (character.physique + character.cunning + character.spirit - BASE_ATTRIBUTE_VALUE * 3) / ATTRIBUTE_POINT_VALUE
+  const remainingPoints = character.level - spentPoints
+
   return (
     <header>
-      <div className="-mx-4 flex items-center justify-end  px-4 py-2 text-[0.68rem] text-neutral-600 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 xl:-mx-10 xl:px-10">
-        <span className="flex items-center gap-2">
-          GD Workbench <span className="size-1 rounded-full bg-neutral-600" aria-hidden="true" /> Game Version 1.3.0.8
-        </span>
-      </div>
-      <section className="flex items-end justify-between gap-6 py-5">
-        <div>
-          <p className="mb-1 text-xs uppercase tracking-[0.16em] text-orange-300">Hero class</p>
-          <h1 className="text-4xl font-medium tracking-tight text-neutral-50">
-            {combinedClassName ?? 'Choose a mastery'}
-          </h1>
-        </div>
-        <div className="flex flex-wrap items-center justify-end gap-2">
+      <div className="-mx-4 flex flex-wrap items-center justify-between gap-2 px-4 py-2 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 xl:-mx-10 xl:px-10">
+        <div className="flex flex-wrap items-center gap-2">
           <span className="relative">
             <select
               className="w-auto appearance-none rounded-md border border-neutral-700 bg-neutral-900 py-1.5 pl-2 pr-7 text-xs text-neutral-200 outline-none focus:border-orange-300"
@@ -84,6 +84,50 @@ function Header({
                 aria-hidden="true"
               />
             </span>
+          ))}
+        </div>
+        <span className="flex items-center gap-2 text-[0.68rem] text-neutral-600">
+          GD Workbench <span className="size-1 rounded-full bg-neutral-600" aria-hidden="true" /> Game Version 1.3.0.8
+        </span>
+      </div>
+      <section className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4 py-4">
+        <div>
+          <p className="mb-1 text-xs uppercase tracking-[0.16em] text-orange-300">Hero class</p>
+          <h1 className="text-4xl font-medium tracking-tight text-neutral-50">
+            {combinedClassName ?? 'Choose a mastery'}
+          </h1>
+        </div>
+        <div className="flex flex-wrap items-end gap-2">
+          <span className="mr-1 pb-1 text-[0.65rem] text-neutral-500" title="Unspent attribute points">
+            {remainingPoints} points left
+          </span>
+          {attributes.map((field) => (
+            <div className="flex items-end gap-1 rounded border border-neutral-800 bg-neutral-950/60 px-2 py-1" key={field}>
+              <div className="grid justify-items-start leading-none">
+                <span className="text-[0.58rem] capitalize text-neutral-500">{field}</span>
+                <strong className="mt-1 text-xl font-medium tabular-nums text-neutral-100">{character[field]}</strong>
+              </div>
+              <div className="ml-1 flex gap-0.5 pb-0.5">
+                <button
+                  className="flex size-6 items-center justify-center rounded text-neutral-500 transition-colors hover:bg-neutral-800 hover:text-orange-200 disabled:cursor-not-allowed disabled:opacity-30"
+                  type="button"
+                  disabled={character[field] <= BASE_ATTRIBUTE_VALUE}
+                  onClick={() => onAttributeChange(field, -1)}
+                  aria-label={`Decrease ${field}`}
+                >
+                  <IconMinus size={14} stroke={2.2} aria-hidden="true" />
+                </button>
+                <button
+                  className="flex size-6 items-center justify-center rounded text-neutral-500 transition-colors hover:bg-neutral-800 hover:text-orange-200 disabled:cursor-not-allowed disabled:opacity-30"
+                  type="button"
+                  disabled={remainingPoints <= 0}
+                  onClick={() => onAttributeChange(field, 1)}
+                  aria-label={`Increase ${field}`}
+                >
+                  <IconPlus size={14} stroke={2.2} aria-hidden="true" />
+                </button>
+              </div>
+            </div>
           ))}
         </div>
       </section>

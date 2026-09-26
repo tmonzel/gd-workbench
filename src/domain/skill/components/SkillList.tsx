@@ -50,6 +50,12 @@ function SkillList({ skills, character, setCharacter, itemBonuses = {}, masteryI
     const bonus = itemBonuses[skill.name] ?? 0
     const locked =
       (skill.isModifier && (character.skillLevels[baseSkillId] ?? 0) < 1) || masteryLevel < skill.masteryLevelRequired
+    const allocated = level > 0
+    const allocatedStyle = grouped
+      ? ''
+      : allocated
+        ? 'border-orange-300/70 outline outline-1 outline-orange-300/40'
+        : 'border-neutral-800 bg-neutral-900/70'
     const effectiveLevel = level + bonus
     const rankEffects =
       effectiveLevel > 0
@@ -62,10 +68,13 @@ function SkillList({ skills, character, setCharacter, itemBonuses = {}, masteryI
             )
             .map((effect) => {
               const value = effect.values[Math.min(effectiveLevel, effect.values.length) - 1]
+              const displayParts = formatSkillEffectParts({ ...effect, value }, effectiveLevel)
+              if (effect.key.startsWith('character') && /Modifier$/i.test(effect.key) && value > 0)
+                displayParts.value = `+${displayParts.value}`
               return {
                 ...effect,
                 value,
-                displayParts: formatSkillEffectParts({ ...effect, value }, effectiveLevel),
+                displayParts,
               }
             })
             .filter((effect) => Number.isFinite(effect.value) && effect.value !== 0)
@@ -83,30 +92,30 @@ function SkillList({ skills, character, setCharacter, itemBonuses = {}, masteryI
             .filter((effect) => Number.isFinite(effect.value) && effect.value !== 0)
         : []
     return (
-      <button
-        className={`grid h-fit w-full break-inside-avoid self-start content-start grid-cols-[auto_minmax(0,1fr)_auto] gap-x-3 gap-y-1 p-3 text-left transition-colors ${skill.isModifier ? 'ml-0 border-t border-neutral-800 pt-3' : ''} ${grouped ? 'rounded-none border-0 bg-transparent' : 'rounded-md border'} ${locked ? 'cursor-not-allowed opacity-45' : grouped ? 'hover:bg-neutral-900/50' : 'border-neutral-800 bg-neutral-900/70 hover:border-neutral-500 hover:bg-neutral-800/70'} ${locked && !grouped ? 'border-neutral-900 bg-neutral-950/40' : ''}`}
-        key={skill.id}
-        type="button"
-        disabled={locked}
-        onClick={() => changeSkillLevel(skill, 1, baseSkillId)}
-        onContextMenu={(event) => {
-          event.preventDefault()
-          changeSkillLevel(skill, -1, baseSkillId)
-        }}
-        title={
-          locked
-            ? 'Allocate at least 1 point in the base skill first'
-            : masteryLevel < skill.masteryLevelRequired
-              ? `Requires mastery level ${skill.masteryLevelRequired}`
-              : 'Left click to increase, right click to decrease'
-        }
-      >
+      <div className="h-fit break-inside-avoid" key={skill.id}>
+        <button
+          className={`grid h-fit w-full self-start content-start grid-cols-[auto_minmax(0,1fr)_auto] gap-x-3 gap-y-1 p-3 text-left transition-colors ${skill.isModifier ? 'ml-0 border-t border-neutral-800 pt-3' : ''} ${grouped ? 'rounded-none border-0' : 'rounded-md border'} ${allocatedStyle} ${locked ? 'cursor-not-allowed opacity-45' : grouped ? 'hover:bg-neutral-800/70' : allocated ? 'hover:border-orange-300' : 'hover:border-neutral-500 hover:bg-neutral-800/70'} ${locked && !grouped ? 'border-neutral-900 bg-neutral-950/40' : ''}`}
+          type="button"
+          disabled={locked}
+          onClick={() => changeSkillLevel(skill, 1, baseSkillId)}
+          onContextMenu={(event) => {
+            event.preventDefault()
+            changeSkillLevel(skill, -1, baseSkillId)
+          }}
+          title={
+            locked
+              ? 'Allocate at least 1 point in the base skill first'
+              : masteryLevel < skill.masteryLevelRequired
+                ? `Requires mastery level ${skill.masteryLevelRequired}`
+                : 'Left click to increase, right click to decrease'
+          }
+        >
         <span className="row-span-3 flex w-8 items-start justify-center">
           {skill.icon && <img className="size-8 shrink-0 object-cover" src={skill.icon} alt="" />}
         </span>
         <span className="min-w-0 text-sm text-neutral-100">
           <span className="flex min-w-0 items-center gap-2">
-            <span className="truncate">{skill.name}</span>
+            <span className="truncate text-neutral-100">{skill.name}</span>
             <span className="shrink-0">
               ({level} / {skill.maxLevel})
             </span>
@@ -155,7 +164,8 @@ function SkillList({ skills, character, setCharacter, itemBonuses = {}, masteryI
             ))}
           </span>
         )}
-      </button>
+        </button>
+      </div>
     )
   }
 
@@ -168,7 +178,11 @@ function SkillList({ skills, character, setCharacter, itemBonuses = {}, masteryI
           renderSkill(base, base.id)
         ) : (
           <div
-            className="h-fit break-inside-avoid self-start content-start rounded-md border border-neutral-800 bg-neutral-950/35 p-1"
+            className={`h-fit break-inside-avoid self-start content-start rounded-md border p-1 transition-colors ${
+              (character.skillLevels[base.id] ?? 0) > 0
+                ? 'border-orange-300/70 outline outline-1 outline-orange-300/40'
+                : 'border-neutral-800 bg-neutral-950/35'
+            }`}
             key={base.groupId}
           >
             {renderSkill(base, base.id, true)}

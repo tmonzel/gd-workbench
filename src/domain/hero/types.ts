@@ -9,5 +9,6 @@ export type Character = {
   mastery2?: string
   masteryLevels: Record<string, number>
   skillLevels: Record<string, number>
+  disabledPassiveSkills?: string[]
   equipment: Partial<Record<string, Item>>
 }

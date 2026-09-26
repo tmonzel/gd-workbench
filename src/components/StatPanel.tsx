@@ -3,6 +3,7 @@ import { useState } from 'react'
 import type { Character } from '@/domain/hero/types'
 import { BASE_ATTRIBUTE_VALUE, BASE_ENERGY_VALUE, BASE_HEALTH_VALUE } from '@/domain/hero/hero.utils'
 import type { Mastery } from '@/domain/skill/types'
+import type { MasterySkill } from '@/domain/skill/types'
 import type { EquippedSetInfo } from '@/domain/item/types'
 
 type Devotion = { skills: Array<{ id: string; attributes: Array<{ label: string; value: string }> }> }
@@ -14,6 +15,8 @@ type StatPanelProps = {
   selectedDevotions?: string[]
   equippedSetInfo?: EquippedSetInfo[]
   masteries?: Mastery[]
+  skillsets?: Record<string, MasterySkill[]>
+  itemSkillBonuses?: Record<string, number>
 }
 
 function StatPanel({
@@ -22,10 +25,20 @@ function StatPanel({
   selectedDevotions = [],
   equippedSetInfo = [],
   masteries = [],
+  skillsets = {},
+  itemSkillBonuses = {},
 }: StatPanelProps) {
   const [activeTab, setActiveTab] = useState<StatTab>('attributes')
   const totals: Record<string, number> = {}
-  const attributeModifiers: Record<string, number> = { Physique: 0, Cunning: 0, Spirit: 0 }
+  const attributeModifiers: Record<string, number> = {
+    Physique: 0,
+    Cunning: 0,
+    Spirit: 0,
+    Health: 0,
+    Energy: 0,
+    'Offensive Ability': 0,
+    'Defensive Ability': 0,
+  }
   const addAttribute = (label: string, rawValue: string | number) => {
     const value = Number(String(rawValue).replace(/[^0-9.-]/g, ''))
     if (!Number.isFinite(value)) return
@@ -48,6 +61,43 @@ function StatPanel({
     for (const attribute of activeTier?.attributes ?? []) {
       addAttribute(attribute.label, attribute.value)
     }
+  for (const masteryId of [character.mastery1, character.mastery2])
+    for (const skill of skillsets[masteryId ?? ''] ?? []) {
+      if (!skill.isPassive || character.disabledPassiveSkills?.includes(skill.id)) continue
+      const level = (character.skillLevels[skill.id] ?? 0) + (itemSkillBonuses[skill.name] ?? 0)
+      if (level <= 0) continue
+      for (const effect of skill.effects) {
+        const value = effect.values[Math.min(level, effect.values.length) - 1] ?? 0
+        if (!Number.isFinite(value) || value === 0) continue
+        const labels: Record<string, string> = {
+          characterStrength: 'Physique',
+          characterStrengthModifier: 'Physique',
+          characterDexterity: 'Cunning',
+          characterDexterityModifier: 'Cunning',
+          characterIntelligence: 'Spirit',
+          characterIntelligenceModifier: 'Spirit',
+          characterLife: 'Health',
+          characterLifeModifier: 'Health',
+          characterLifeRegen: 'Health Regenerated per second',
+          characterLifeRegenModifier: 'Health Regeneration',
+          characterMana: 'Energy',
+          characterManaModifier: 'Energy',
+          characterManaRegen: 'Energy Regenerated per second',
+          characterManaRegenModifier: 'Energy Regeneration',
+          characterOffensiveAbility: 'Offensive Ability',
+          characterOffensiveAbilityModifier: 'Offensive Ability',
+          characterDefensiveAbility: 'Defensive Ability',
+          characterDefensiveAbilityModifier: 'Defensive Ability',
+          characterAttackSpeedModifier: 'Attack Speed',
+          characterAttackSpeedMaxModifier: 'Maximum Attack Speed',
+          characterRunSpeedModifier: 'Movement Speed',
+          characterTotalSpeedModifier: 'Total Speed',
+        }
+        const label = labels[effect.key]
+        if (!label) continue
+        addAttribute(label, `${value > 0 ? '+' : ''}${value}${effect.suffix ?? ''}`)
+      }
+    }
   for (const masteryId of [character.mastery1, character.mastery2]) {
     const rank = character.masteryLevels[masteryId ?? ''] ?? 0
     const progression = masteries.find((mastery) => mastery.id === masteryId)?.progression
@@ -65,10 +115,18 @@ function StatPanel({
     (physique - BASE_ATTRIBUTE_VALUE) * 2.5 +
     (cunning - BASE_ATTRIBUTE_VALUE) +
     (spirit - BASE_ATTRIBUTE_VALUE)
-  totals.Energy = BASE_ENERGY_VALUE + (totals.Energy ?? 0) + (spirit - BASE_ATTRIBUTE_VALUE) * 2
+  totals.Health *= 1 + attributeModifiers.Health / 100
+  totals.Energy = (BASE_ENERGY_VALUE + (totals.Energy ?? 0) + (spirit - BASE_ATTRIBUTE_VALUE) * 2) *
+    (1 + attributeModifiers.Energy / 100)
   // matches offensiveAbilityEquation/defensiveAbilityEquation in data/game/records/game/combatformulas.dbr
-  totals['Offensive Ability'] = (totals['Offensive Ability'] ?? 0) + character.level * 12 + cunning * 0.5 + 53
-  totals['Defensive Ability'] = (totals['Defensive Ability'] ?? 0) + character.level * 12 + physique * 0.5 + 53
+  totals['Offensive Ability'] =
+    ((totals['Offensive Ability'] ?? 0) + character.level * 12 + cunning * 0.5) *
+      (1 + attributeModifiers['Offensive Ability'] / 100) +
+    53
+  totals['Defensive Ability'] =
+    ((totals['Defensive Ability'] ?? 0) + character.level * 12 + physique * 0.5) *
+      (1 + attributeModifiers['Defensive Ability'] / 100) +
+    53
   const attackSpeed = 100 + (totals['Attack Speed'] ?? 0)
   const attackSpeedMaximum = 200 + (totals['Maximum Attack Speed'] ?? 0)
   const runSpeed = 100 + (totals['Movement Speed'] ?? 0) + (totals['Run Speed'] ?? 0)
