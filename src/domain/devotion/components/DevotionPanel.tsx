@@ -139,8 +139,11 @@ function DevotionPanel({ data, selected, setSelected }: Props) {
                                     )}
                                     {skill.attributes.length > 0 && (
                                       <ul className="mt-1 space-y-0.5">
-                                        {skill.attributes.map((attribute) => (
-                                          <li className="text-[11px] text-neutral-300" key={attribute.label}>
+                                        {skill.attributes.map((attribute, attributeIndex) => (
+                                          <li
+                                            className="text-[11px] text-neutral-300"
+                                            key={`${attribute.label}-${attribute.value}-${attributeIndex}`}
+                                          >
                                             {attribute.label}: {attribute.value}
                                           </li>
                                         ))}
