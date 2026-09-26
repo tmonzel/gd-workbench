@@ -2,6 +2,7 @@ import CollapsiblePanel from '@/components/CollapsiblePanel'
 import type { Character } from '@/domain/hero/types'
 import type { EquippedSetInfo } from '@/domain/item/types'
 import { DAMAGE_COLORS, DAMAGE_TYPES, resistanceLabel } from '@/domain/skill/skill.utils'
+import { DIFFICULTY_RESISTANCE_PENALTIES, type DifficultyMode } from '@/domain/hero/difficulty'
 
 type Devotion = { skills: Array<{ id: string; attributes: Array<{ label: string; value: string }> }> }
 
@@ -10,9 +11,16 @@ type ResistancePanelProps = {
   devotions?: { constellations: Devotion[] } | null
   selectedDevotions?: string[]
   equippedSetInfo?: EquippedSetInfo[]
+  difficulty: DifficultyMode
 }
 
-function ResistancePanel({ character, devotions, selectedDevotions = [], equippedSetInfo = [] }: ResistancePanelProps) {
+function ResistancePanel({
+  character,
+  devotions,
+  selectedDevotions = [],
+  equippedSetInfo = [],
+  difficulty,
+}: ResistancePanelProps) {
   const attributes: Array<{ label: string; value: string }> = []
   for (const item of Object.values(character.equipment))
     for (const attribute of item?.attributes ?? [])
@@ -32,6 +40,7 @@ function ResistancePanel({ character, devotions, selectedDevotions = [], equippe
     .filter((attribute) => attribute.label === 'Elemental Resistance')
     .reduce((total, attribute) => total + (Number.parseFloat(attribute.value) || 0), 0)
   const elementalShare = elementalResistance / 3
+  const difficultyPenalty = DIFFICULTY_RESISTANCE_PENALTIES[difficulty]
   const totals = Object.fromEntries(
     DAMAGE_TYPES.map((type) => [
       type,
@@ -39,7 +48,8 @@ function ResistancePanel({ character, devotions, selectedDevotions = [], equippe
         .filter((attribute) => attribute.label === resistanceLabel(type))
         .reduce((total, attribute) => total + (Number.parseFloat(attribute.value) || 0), 0) +
         allResistance +
-        (type === 'Fire' || type === 'Cold' || type === 'Lightning' ? elementalShare : 0),
+        (type === 'Fire' || type === 'Cold' || type === 'Lightning' ? elementalShare : 0) +
+        difficultyPenalty,
     ]),
   )
   const caps = Object.fromEntries(
@@ -54,10 +64,10 @@ function ResistancePanel({ character, devotions, selectedDevotions = [], equippe
 
   return (
     <CollapsiblePanel eyebrow="Defense" title="Resistances">
-      {DAMAGE_TYPES.some((type) => (totals[type] ?? 0) > 0) || allResistance !== 0 ? (
+      {DAMAGE_TYPES.some((type) => (totals[type] ?? 0) !== 0) || allResistance !== 0 ? (
         <table className="w-full border-collapse text-sm">
           <tbody>
-            {DAMAGE_TYPES.filter((type) => (totals[type] ?? 0) > 0).map((type) => (
+            {DAMAGE_TYPES.filter((type) => (totals[type] ?? 0) !== 0).map((type) => (
               <tr className="border-b border-neutral-800 last:border-b-0" key={type}>
                 <td className="py-1.5">
                   <span className="flex items-center gap-2 text-neutral-300">
@@ -79,6 +89,14 @@ function ResistancePanel({ character, devotions, selectedDevotions = [], equippe
                 <td className="py-1.5 text-neutral-500">All Resistances</td>
                 <td className="py-1.5 text-right tabular-nums text-neutral-100">
                   <strong>{Math.round(allResistance * 10) / 10}%</strong>
+                </td>
+              </tr>
+            )}
+            {difficultyPenalty !== 0 && (
+              <tr className="border-b border-neutral-800 last:border-b-0">
+                <td className="py-1.5 text-neutral-500">{difficulty} Penalty</td>
+                <td className="py-1.5 text-right tabular-nums text-neutral-500">
+                  {difficultyPenalty}%
                 </td>
               </tr>
             )}

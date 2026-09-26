@@ -1,6 +1,7 @@
 import LevelProgressControl from '@/components/LevelProgressControl'
 import { IconChevronDown } from '@tabler/icons-react'
 import type { Mastery } from '@/domain/skill/types'
+import { DIFFICULTY_MODES, type DifficultyMode } from '@/domain/hero/difficulty'
 
 type HeaderProps = {
   level: number
@@ -10,6 +11,8 @@ type HeaderProps = {
   mastery2?: string
   combinedClassName?: string
   onMasteryChange: (slot: 'mastery1' | 'mastery2', value: string) => void
+  difficulty: DifficultyMode
+  onDifficultyChange: (difficulty: DifficultyMode) => void
 }
 
 function Header({
@@ -20,6 +23,8 @@ function Header({
   mastery2,
   combinedClassName,
   onMasteryChange,
+  difficulty,
+  onDifficultyChange,
 }: HeaderProps) {
   return (
     <header>
@@ -35,7 +40,27 @@ function Header({
             {combinedClassName ?? 'Choose a mastery'}
           </h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <span className="relative">
+            <select
+              className="w-auto appearance-none rounded-md border border-neutral-700 bg-neutral-900 py-1.5 pl-2 pr-7 text-xs text-neutral-200 outline-none focus:border-orange-300"
+              value={difficulty}
+              onChange={(event) => onDifficultyChange(event.target.value as DifficultyMode)}
+              aria-label="Difficulty"
+            >
+              {DIFFICULTY_MODES.map((mode) => (
+                <option key={mode} value={mode}>
+                  {mode}
+                </option>
+              ))}
+            </select>
+            <IconChevronDown
+              className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-neutral-500"
+              size={14}
+              stroke={2}
+              aria-hidden="true"
+            />
+          </span>
           {(['mastery1', 'mastery2'] as const).map((slot) => (
             <span className="relative" key={slot}>
               <select

@@ -17,11 +17,13 @@ import { getEquippedSkillBonuses, getEquippedSetInfo } from '@/domain/item/item.
 import { useItemLibrary } from '@/domain/item/item.hooks'
 import { useHero } from '@/domain/hero/hero.hooks'
 import { getActiveSkills } from '@/domain/skill/active-skills.utils'
+import type { DifficultyMode } from '@/domain/hero/difficulty'
 
 function App() {
   const { masteries, skillsets } = useSkillData()
   const { data: devotions, selected: selectedDevotions, setSelected: setSelectedDevotions } = useDevotionData()
   const [view, setView] = useState<'items' | 'equipment' | 'masteries' | 'devotions'>('masteries')
+  const [difficulty, setDifficulty] = useState<DifficultyMode>('Normal')
   const [collectionItems, setCollectionItems] = useState<Item[]>([])
   const { character, setCharacter, changeLevel, adjustAttribute, equipItem, unequipItem, changeMastery } =
     useHero(skillsets)
@@ -74,6 +76,8 @@ function App() {
         mastery2={character.mastery2}
         combinedClassName={selectedCombination?.name ?? firstMasteryName}
         onMasteryChange={changeMastery}
+        difficulty={difficulty}
+        onDifficultyChange={setDifficulty}
       />
       <WorkspaceTabs value={view} onChange={setView} />
       <div className="grid items-start gap-4 lg:grid-cols-[240px_minmax(0,1fr)_minmax(300px,360px)]">
@@ -132,6 +136,7 @@ function App() {
             devotions={devotions}
             selectedDevotions={selectedDevotions}
             equippedSetInfo={equippedSetInfo}
+            difficulty={difficulty}
           />
           <StatPanel
             character={character}
