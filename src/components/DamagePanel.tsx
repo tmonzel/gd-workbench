@@ -10,6 +10,8 @@ import {
   getWeaponArmorPiercingPercent,
 } from '@/domain/skill/damage.utils'
 import type { MasteryProgression } from '@/domain/skill/damage.utils'
+import type { MasterySkill } from '@/domain/skill/types'
+import { isChanceTriggeredSkill } from '@/domain/skill/skill.utils'
 
 type Devotion = { skills: Array<{ id: string; attributes: Array<{ label: string; value: string }> }> }
 
@@ -19,6 +21,8 @@ type DamagePanelProps = {
   selectedDevotions?: string[]
   equippedSetInfo?: EquippedSetInfo[]
   masteries?: MasteryProgression[]
+  skillsets?: Record<string, MasterySkill[]>
+  itemSkillBonuses?: Record<string, number>
 }
 
 const formatRange = (min: number, max: number) => {
@@ -44,6 +48,8 @@ function DamagePanel({
   selectedDevotions = [],
   equippedSetInfo = [],
   masteries = [],
+  skillsets = {},
+  itemSkillBonuses = {},
 }: DamagePanelProps) {
   const { cunning, spirit } = getCharacterAttributeTotals(character, masteries)
 
@@ -58,6 +64,23 @@ function DamagePanel({
     }
   for (const { activeTier } of equippedSetInfo)
     for (const attribute of activeTier?.attributes ?? []) sourceAttributes.push(attribute)
+  for (const masteryId of [character.mastery1, character.mastery2])
+    for (const skill of skillsets[masteryId ?? ''] ?? []) {
+      const isProc = isChanceTriggeredSkill(skill)
+      const isEnabled = isProc
+        ? character.enabledProcSkills?.includes(skill.id) ?? false
+        : !character.disabledPassiveSkills?.includes(skill.id)
+      if ((!skill.isPassive && !isProc) || !isEnabled) continue
+      const allocatedLevel = character.skillLevels[skill.id] ?? 0
+      if (allocatedLevel <= 0) continue
+      const level = allocatedLevel + (itemSkillBonuses[skill.name] ?? 0)
+      for (const effect of skill.effects) {
+        if (effect.key !== 'offensiveTotalDamageModifier') continue
+        const value = effect.values[Math.min(level, effect.values.length) - 1] ?? 0
+        if (Number.isFinite(value) && value !== 0)
+          sourceAttributes.push({ label: 'to All Damage', value: `${value}${effect.suffix ?? ''}` })
+      }
+    }
 
   // keep the flat base range and the % modifiers separate, then apply the modifiers on top of the base
   const calculateDamage = (labelSuffix: string, damageOverTime = false) =>
@@ -77,6 +100,7 @@ function DamagePanel({
           labelSuffix === ' Retaliation' && type === 'Poison' && attribute.label === 'Acid Retaliation Damage'
         if (
           attribute.label !== label &&
+          attribute.label !== 'to All Damage' &&
           !(labelSuffix === ' Retaliation' && attribute.label === 'Retaliation Damage') &&
           !acidRetaliation
         )

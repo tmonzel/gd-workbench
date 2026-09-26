@@ -8,6 +8,7 @@ export type ItemSkillDetails = {
 
 export type Item = {
   id: string
+  templateId?: string
   isInstance?: boolean
   isMonsterInfrequent?: boolean
   name: string

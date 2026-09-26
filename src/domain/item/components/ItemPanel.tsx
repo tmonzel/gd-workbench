@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Card } from '@/components/Card'
 import ItemCard from '@/domain/item/components/ItemCard'
 import ItemList from '@/domain/item/components/ItemList'
@@ -22,6 +22,9 @@ type ItemPanelProps = {
   onCreateInstance?: (item: Item) => void
   onUpdateInstance?: (item: Item) => void
   onRemoveInstance?: (item: Item) => void
+  categoryOverride?: string
+  embedded?: boolean
+  allowTemplateEquip?: boolean
 }
 
 function ItemPanel({
@@ -35,6 +38,9 @@ function ItemPanel({
   onCreateInstance,
   onUpdateInstance,
   onRemoveInstance,
+  categoryOverride,
+  embedded = false,
+  allowTemplateEquip = false,
 }: ItemPanelProps) {
   const [mode, setMode] = useState<'library' | 'collection'>('library')
   const [selectedCollectionItem, setSelectedCollectionItem] = useState<Item>()
@@ -64,6 +70,10 @@ function ItemPanel({
     toggleHideAboveLevel,
     toggleRarity,
   } = itemLibrary
+  useEffect(() => {
+    if (categoryOverride && categoryOverride !== category) changeCategory(categoryOverride)
+  }, [category, categoryOverride, changeCategory])
+  const displayMode = embedded ? 'library' : mode
   const loading = status === 'loading'
   const collectionCategories = useMemo(() => {
     const categories = new Set(collectionItems.map((item) => item.category))
@@ -150,21 +160,23 @@ function ItemPanel({
     setCollectionPage(0)
   }
   return (
-    <div className={mode === 'collection' ? 'grid gap-4' : ''}>
+    <div className={displayMode === 'collection' ? 'grid gap-4' : ''}>
       <Card as="section" size="md" variant="filled">
-        <div className="mb-5 flex gap-1 border-b border-neutral-800 pb-3">
-          {(['library', 'collection'] as const).map((value) => (
-            <button
-              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${mode === value ? 'bg-purple-400/15 text-purple-100' : 'text-purple-300/60 hover:bg-purple-400/10 hover:text-purple-200'}`}
-              key={value}
-              type="button"
-              onClick={() => setMode(value)}
-            >
-              {value === 'library' ? 'Catalog' : `Collection (${collectionItems.length})`}
-            </button>
-          ))}
-        </div>
-        {mode === 'collection' ? (
+        {!embedded && (
+          <div className="mb-5 flex gap-1 border-b border-neutral-800 pb-3">
+            {(['library', 'collection'] as const).map((value) => (
+              <button
+                className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${mode === value ? 'bg-purple-400/15 text-purple-100' : 'text-purple-300/60 hover:bg-purple-400/10 hover:text-purple-200'}`}
+                key={value}
+                type="button"
+                onClick={() => setMode(value)}
+              >
+                {value === 'library' ? 'Catalog' : `Collection (${collectionItems.length})`}
+              </button>
+            ))}
+          </div>
+        )}
+        {displayMode === 'collection' ? (
           collectionItems.length > 0 ? (
             <div className="grid gap-6 lg:grid-cols-[180px_minmax(0,1fr)]">
               <ItemSideNav
@@ -233,6 +245,7 @@ function ItemPanel({
                         onRemoveInstance?.(item)
                         if (selectedCollectionItem?.id === item.id) setSelectedCollectionItem(undefined)
                       }}
+                      allowTemplateEquip={allowTemplateEquip}
                     />
                   ) : (
                     <p className="py-12 text-center text-sm text-neutral-500">
@@ -248,8 +261,8 @@ function ItemPanel({
             </p>
           )
         ) : (
-          <div className="grid gap-6 lg:grid-cols-[180px_minmax(0,1fr)]">
-            <ItemSideNav category={category} onCategoryChange={changeCategory} />
+          <div className={embedded ? 'min-w-0' : 'grid gap-6 lg:grid-cols-[180px_minmax(0,1fr)]'}>
+            {!embedded && <ItemSideNav category={category} onCategoryChange={changeCategory} />}
             <div className="min-w-0">
               <ItemFilters
                 search={search}
@@ -293,6 +306,7 @@ function ItemPanel({
                   itemSets={itemSets}
                   equippedSetInfo={equippedSetInfo}
                   onCreateInstance={onCreateInstance}
+                  allowTemplateEquip={allowTemplateEquip}
                 />
               ) : null}
               {!loading && status === 'ready' && items.length === 0 && (

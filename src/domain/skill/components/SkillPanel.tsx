@@ -9,10 +9,9 @@ import { useSkillData } from '@/domain/skill/skill.hooks'
 type SkillPanelProps = {
   character: Character
   setCharacter: Dispatch<SetStateAction<Character>>
-  itemBonuses?: Record<string, number>
 }
 
-function SkillPanel({ character, setCharacter, itemBonuses = {} }: SkillPanelProps) {
+function SkillPanel({ character, setCharacter }: SkillPanelProps) {
   const [preferredMasteryId, setPreferredMasteryId] = useState('')
   const { masteries, skillsets } = useSkillData()
   const selectedMasteryIds = [character.mastery1, character.mastery2].filter(Boolean) as string[]
@@ -111,7 +110,6 @@ function SkillPanel({ character, setCharacter, itemBonuses = {} }: SkillPanelPro
                   skills={skills}
                   character={character}
                   setCharacter={setCharacter}
-                  itemBonuses={itemBonuses}
                   masteryId={masteryId}
                   masteryLevel={masteryLevel}
                 />

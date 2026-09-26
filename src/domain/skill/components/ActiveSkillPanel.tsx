@@ -6,10 +6,10 @@ import type { SkillDamageRow, SkillEntry } from '@/domain/skill/active-skills.ut
 
 type ActiveSkillPanelProps = {
   skills: SkillEntry[]
-  onPassiveToggle: (skillId: string) => void
+  onSkillToggle: (skillId: string, isProc: boolean) => void
 }
 
-function ActiveSkillPanel({ skills, onPassiveToggle }: ActiveSkillPanelProps) {
+function ActiveSkillPanel({ skills, onSkillToggle }: ActiveSkillPanelProps) {
   const [expandedSkills, setExpandedSkills] = useState<Set<string>>(new Set())
   const initializedExpansion = useRef(false)
 
@@ -99,17 +99,17 @@ function ActiveSkillPanel({ skills, onPassiveToggle }: ActiveSkillPanelProps) {
                     aria-expanded={expanded}
                     onClick={() => toggleSkill(skillKey)}
                   >
-                    <span className={`block ${skill.isPassive && !skill.enabled ? 'text-neutral-500' : 'text-neutral-200'}`}>
+                    <span className={`block ${skill.isToggleable && !skill.enabled ? 'text-neutral-500' : 'text-neutral-200'}`}>
                       {skill.name} ({rankLabel})
                     </span>
                     <span className="block text-[0.68rem] text-neutral-600">{skill.source}</span>
                   </button>
-                  {skill.isPassive && skill.passiveSkillId && (
+                  {skill.isToggleable && skill.toggleSkillId && (
                     <input
                       className="app-checkbox mt-1"
                       type="checkbox"
                       checked={skill.enabled ?? true}
-                      onChange={() => onPassiveToggle(skill.passiveSkillId!)}
+                      onChange={() => onSkillToggle(skill.toggleSkillId!, skill.isProc ?? false)}
                       aria-label={`${skill.enabled ? 'Disable' : 'Enable'} ${skill.name}`}
                       title={`${skill.enabled ? 'Disable' : 'Enable'} ${skill.name}`}
                     />
@@ -133,14 +133,14 @@ function ActiveSkillPanel({ skills, onPassiveToggle }: ActiveSkillPanelProps) {
               </div>
               {expanded && skill.damageRows && skill.damageRows.length > 0 && (
                 <div
-                  className={`mt-2 border-t border-neutral-800 px-1 pt-2 ${skill.isPassive && !skill.enabled ? 'opacity-40' : ''}`}
+                  className={`mt-2 border-t border-neutral-800 px-1 pt-2 ${skill.isToggleable && !skill.enabled ? 'opacity-40' : ''}`}
                 >
                   {renderDamageTable(skill.damageRows)}
                 </div>
               )}
               {expanded && skill.stats.length > 0 && (
                 <div
-                  className={`mt-2 grid gap-0.5 border-t border-neutral-800 px-1 pt-2 text-xs text-neutral-400 ${skill.isPassive && !skill.enabled ? 'opacity-40' : ''}`}
+                  className={`mt-2 grid gap-0.5 border-t border-neutral-800 px-1 pt-2 text-xs text-neutral-400 ${skill.isToggleable && !skill.enabled ? 'opacity-40' : ''}`}
                 >
                   {skill.stats.map((stat) => (
                     <span key={stat}>{stat}</span>

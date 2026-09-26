@@ -14,6 +14,7 @@ const initialCharacter: Character = {
   masteryLevels: {},
   skillLevels: {},
   disabledPassiveSkills: [],
+  enabledProcSkills: [],
   equipment: {},
 }
 
@@ -41,12 +42,13 @@ export function useHero(skillsets: Record<string, MasterySkill[]>) {
     })
   }
 
-  const equipItem = (item: Item) => {
+  const equipItem = (item: Item, targetSlot?: string) => {
     setCharacter((current) => {
       if (!item.isInstance || !isEquippableItem(item)) return current
       if (item.category === 'Off-Hand' && current.equipment.Weapon?.twoHanded) return current
       const equipment = { ...current.equipment }
-      equipment[item.category === 'Ring' ? (equipment['Ring 1'] ? 'Ring 2' : 'Ring 1') : item.category] = item
+      const slot = targetSlot ?? (item.category === 'Ring' ? (equipment['Ring 1'] ? 'Ring 2' : 'Ring 1') : item.category)
+      equipment[slot] = item
       if (item.category === 'Weapon' && item.twoHanded) delete equipment['Off-Hand']
       return { ...current, equipment }
     })
@@ -69,6 +71,7 @@ export function useHero(skillsets: Record<string, MasterySkill[]>) {
       const masteryLevels = { ...current.masteryLevels }
       const skillLevels = { ...current.skillLevels }
       const disabledPassiveSkills = [...(current.disabledPassiveSkills ?? [])]
+      const enabledProcSkills = [...(current.enabledProcSkills ?? [])]
       for (const mastery of replacedMasteries) {
         if (!mastery) continue
         delete masteryLevels[mastery]
@@ -77,6 +80,10 @@ export function useHero(skillsets: Record<string, MasterySkill[]>) {
           if (skill.isPassive) {
             const disabledIndex = disabledPassiveSkills.indexOf(skill.id)
             if (disabledIndex >= 0) disabledPassiveSkills.splice(disabledIndex, 1)
+          }
+          if (skill.effects.some((effect) => effect.key === 'onHitActivationChance')) {
+            const enabledIndex = enabledProcSkills.indexOf(skill.id)
+            if (enabledIndex >= 0) enabledProcSkills.splice(enabledIndex, 1)
           }
         }
       }
@@ -87,6 +94,7 @@ export function useHero(skillsets: Record<string, MasterySkill[]>) {
         masteryLevels,
         skillLevels,
         disabledPassiveSkills,
+        enabledProcSkills,
       }
     })
 

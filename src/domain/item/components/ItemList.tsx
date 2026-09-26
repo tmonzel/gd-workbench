@@ -18,6 +18,7 @@ type ItemListProps = {
   onCreateInstance?: (item: Item) => void
   onSelect?: (item: Item) => void
   onRemoveInstance?: (item: Item) => void
+  allowTemplateEquip?: boolean
 }
 
 function ItemList({
@@ -36,6 +37,7 @@ function ItemList({
   onCreateInstance,
   onSelect,
   onRemoveInstance,
+  allowTemplateEquip = false,
 }: ItemListProps) {
   return (
     <>
@@ -77,6 +79,7 @@ function ItemList({
             onCreateInstance={onCreateInstance}
             onSelect={onSelect}
             onRemoveInstance={onRemoveInstance}
+            allowTemplateEquip={allowTemplateEquip}
           />
         ))}
       </section>

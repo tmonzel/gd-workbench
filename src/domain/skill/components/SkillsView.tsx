@@ -7,13 +7,18 @@ import type { SkillEntry } from '@/domain/skill/active-skills.utils'
 type SkillsViewProps = {
   character: Character
   setCharacter: Dispatch<SetStateAction<Character>>
-  itemBonuses?: Record<string, number>
   activeSkills: SkillEntry[]
 }
 
-function SkillsView({ character, setCharacter, itemBonuses, activeSkills }: SkillsViewProps) {
-  const togglePassive = (skillId: string) =>
+function SkillsView({ character, setCharacter, activeSkills }: SkillsViewProps) {
+  const toggleSkill = (skillId: string, isProc: boolean) =>
     setCharacter((current) => {
+      if (isProc) {
+        const enabled = new Set(current.enabledProcSkills ?? [])
+        if (enabled.has(skillId)) enabled.delete(skillId)
+        else enabled.add(skillId)
+        return { ...current, enabledProcSkills: [...enabled] }
+      }
       const disabled = new Set(current.disabledPassiveSkills ?? [])
       if (disabled.has(skillId)) disabled.delete(skillId)
       else disabled.add(skillId)
@@ -22,8 +27,8 @@ function SkillsView({ character, setCharacter, itemBonuses, activeSkills }: Skil
 
   return (
     <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(420px,520px)]">
-      <SkillPanel character={character} setCharacter={setCharacter} itemBonuses={itemBonuses} />
-      <ActiveSkillPanel skills={activeSkills} onPassiveToggle={togglePassive} />
+      <SkillPanel character={character} setCharacter={setCharacter} />
+      <ActiveSkillPanel skills={activeSkills} onSkillToggle={toggleSkill} />
     </div>
   )
 }

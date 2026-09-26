@@ -4,6 +4,7 @@ import type { Character } from '@/domain/hero/types'
 import { BASE_ATTRIBUTE_VALUE, BASE_ENERGY_VALUE, BASE_HEALTH_VALUE } from '@/domain/hero/hero.utils'
 import type { Mastery } from '@/domain/skill/types'
 import type { MasterySkill } from '@/domain/skill/types'
+import { isChanceTriggeredSkill } from '@/domain/skill/skill.utils'
 import type { EquippedSetInfo } from '@/domain/item/types'
 
 type Devotion = { skills: Array<{ id: string; attributes: Array<{ label: string; value: string }> }> }
@@ -63,9 +64,17 @@ function StatPanel({
     }
   for (const masteryId of [character.mastery1, character.mastery2])
     for (const skill of skillsets[masteryId ?? ''] ?? []) {
-      if (!skill.isPassive || character.disabledPassiveSkills?.includes(skill.id)) continue
-      const level = (character.skillLevels[skill.id] ?? 0) + (itemSkillBonuses[skill.name] ?? 0)
-      if (level <= 0) continue
+      const isProc = isChanceTriggeredSkill(skill)
+      if (!skill.isPassive && !isProc) continue
+      if (
+        isProc
+          ? !character.enabledProcSkills?.includes(skill.id)
+          : character.disabledPassiveSkills?.includes(skill.id)
+      )
+        continue
+      const allocatedLevel = character.skillLevels[skill.id] ?? 0
+      if (allocatedLevel <= 0) continue
+      const level = allocatedLevel + (itemSkillBonuses[skill.name] ?? 0)
       for (const effect of skill.effects) {
         const value = effect.values[Math.min(level, effect.values.length) - 1] ?? 0
         if (!Number.isFinite(value) || value === 0) continue

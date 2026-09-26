@@ -47,17 +47,30 @@ function App() {
       additionalAttributes,
     )
   }, [character.equipment, devotions, equippedSetInfo, masteries, selectedDevotions, skillsets])
-  const createItemInstance = (template: Item) =>
-    setCollectionItems((current) => [
-      ...current,
-      {
-        ...template,
-        id: `${template.id}::instance::${Date.now()}-${current.length}`,
-        isInstance: true,
-        originRarity: template.rarity,
-        baseAttributes: [...(template.attributes ?? [])],
-      },
-    ])
+  const createItemInstance = (template: Item) => {
+    const instance = {
+      ...template,
+      id: `${template.id}::instance::${Date.now()}-${collectionItems.length}`,
+      templateId: template.id,
+      isInstance: true,
+      originRarity: template.rarity,
+      baseAttributes: [...(template.attributes ?? [])],
+    }
+    setCollectionItems((current) => [...current, instance])
+    return instance
+  }
+  const equipAvailableItem = (item: Item, targetSlot?: string) =>
+    equipItem(item.isInstance ? item : createItemInstance(item), targetSlot)
+  const isEquipmentItem = (item: Item) =>
+    Object.values(character.equipment).some(
+      (equippedItem) => equippedItem?.id === item.id || equippedItem?.templateId === item.id,
+    )
+  const unequipAvailableItem = (item: Item) => {
+    const equippedItem = Object.values(character.equipment).find(
+      (candidate) => candidate?.id === item.id || candidate?.templateId === item.id,
+    )
+    if (equippedItem) unequipItem(equippedItem)
+  }
   const selectedMasterySkillNames = useMemo(() => {
     const names = new Set<string>()
     for (const id of [character.mastery1, character.mastery2])
@@ -101,15 +114,17 @@ function App() {
             <EquipmentPanel
               character={character}
               setCharacter={setCharacter}
+              itemLibrary={itemLibrary}
+              onEquip={equipAvailableItem}
+              onUnequip={unequipAvailableItem}
+              isEquipped={isEquipmentItem}
               equippedSetInfo={equippedSetInfo}
-              itemSets={itemSets}
               activeSkillNames={selectedMasterySkillNames}
             />
           ) : view === 'masteries' ? (
             <SkillsView
               character={character}
               setCharacter={setCharacter}
-              itemBonuses={itemSkillBonuses}
               activeSkills={activeSkills}
             />
           ) : view === 'devotions' && devotions ? (
@@ -144,6 +159,8 @@ function App() {
             selectedDevotions={selectedDevotions}
             equippedSetInfo={equippedSetInfo}
             masteries={masteries}
+            skillsets={skillsets}
+            itemSkillBonuses={itemSkillBonuses}
           />
           <ResistancePanel
             character={character}

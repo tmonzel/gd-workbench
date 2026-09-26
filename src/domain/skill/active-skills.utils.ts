@@ -1,6 +1,5 @@
 import type { Character } from '@/domain/hero/types'
 import type { EquippedSetInfo } from '@/domain/item/types'
-import { parseSkillBonus } from '@/domain/item/item.utils'
 import type { DevotionData } from '@/domain/devotion/types'
 import type { Mastery, MasterySkill } from '@/domain/skill/types'
 import {
@@ -9,7 +8,7 @@ import {
   applyArmorPiercingConversion,
   getWeaponArmorPiercingPercent,
 } from '@/domain/skill/damage.utils'
-import { formatSkillEffect, formatSkillValue } from '@/domain/skill/skill.utils'
+import { formatSkillEffect, formatSkillValue, isChanceTriggeredSkill } from '@/domain/skill/skill.utils'
 
 export type SkillDamageRow = {
   type: string
@@ -31,7 +30,9 @@ export type SkillEntry = {
   damageRows?: SkillDamageRow[]
   icon?: string
   isPassive?: boolean
-  passiveSkillId?: string
+  isProc?: boolean
+  isToggleable?: boolean
+  toggleSkillId?: string
   enabled?: boolean
 }
 
@@ -65,17 +66,23 @@ export const getActiveSkills = ({
       damageRows: Map<string, SkillDamageRow>
       icon?: string
       isPassive?: boolean
-      passiveSkillId?: string
+      isProc?: boolean
+      isToggleable?: boolean
+      toggleSkillId?: string
       enabled?: boolean
     }
   >()
   const masteryLevels = new Map<string, number>()
   const masteryIcons = new Map<string, string>()
   const excludedSkillNames = new Set<string>()
-  const disabledPassiveNames = new Set(
+  const disabledToggleNames = new Set(
     Object.values(skillsets)
       .flat()
-      .filter((skill) => skill.isPassive && character.disabledPassiveSkills?.includes(skill.id))
+      .filter((skill) =>
+        isChanceTriggeredSkill(skill)
+          ? !character.enabledProcSkills?.includes(skill.id)
+          : skill.isPassive && character.disabledPassiveSkills?.includes(skill.id),
+      )
       .map((skill) => skill.name),
   )
   const weaponDamage = new Map<string, { min: number; max: number }>()
@@ -133,7 +140,7 @@ export const getActiveSkills = ({
     if (!item) continue
     if (
       item.grantedSkill &&
-        !disabledPassiveNames.has(item.grantedSkill.name) &&
+        !disabledToggleNames.has(item.grantedSkill.name) &&
       (!masteryLevels.has(item.grantedSkill.name) || (masteryLevels.get(item.grantedSkill.name) ?? 0) > 0)
     )
       addSkill(
@@ -142,23 +149,14 @@ export const getActiveSkills = ({
         item.name,
         item.grantedSkill.attributes.map((attribute) => `${attribute.value} ${attribute.label}`),
       )
-    for (const attribute of item.attributes ?? []) {
-      if (attribute.label !== 'Skill Bonus') continue
-      const bonus = parseSkillBonus(attribute.value)
-      if (
-        bonus &&
-        !bonus.masteryWide &&
-        !bonus.allSkills &&
-        !disabledPassiveNames.has(bonus.name) &&
-        (!masteryLevels.has(bonus.name) || (masteryLevels.get(bonus.name) ?? 0) > 0)
-      )
-        addSkill(bonus.name, bonus.amount, item.name)
-    }
   }
   for (const masteryId of [character.mastery1, character.mastery2])
     for (const skill of skillsets[masteryId ?? ''] ?? []) {
       if (skill.isModifier || skill.isTransmuter) continue
-      const passiveEnabled = !character.disabledPassiveSkills?.includes(skill.id)
+      const isProc = isChanceTriggeredSkill(skill)
+      const skillEnabled = isProc
+        ? character.enabledProcSkills?.includes(skill.id) ?? false
+        : !character.disabledPassiveSkills?.includes(skill.id)
       const allocatedLevel = character.skillLevels[skill.id] ?? 0
       if (allocatedLevel <= 0) continue
       const bonusLevel = itemSkillBonuses[skill.name] ?? 0
@@ -296,10 +294,12 @@ export const getActiveSkills = ({
         entry.allocatedLevel = Math.max(entry.allocatedLevel ?? 0, allocatedLevel)
         entry.bonusLevel = Math.max(entry.bonusLevel ?? 0, bonusLevel)
       }
-      if (entry && skill.isPassive) {
-        entry.isPassive = true
-        entry.passiveSkillId = skill.id
-        entry.enabled = passiveEnabled
+      if (entry && (skill.isPassive || isProc)) {
+        entry.isPassive = skill.isPassive
+        entry.isProc = isProc
+        entry.isToggleable = true
+        entry.toggleSkillId = skill.id
+        entry.enabled = skillEnabled
       }
       const convertedDamageRows = applyArmorPiercingConversion(damageRows, armorPiercingPercent).map((row) => ({
         ...row,
@@ -318,7 +318,9 @@ export const getActiveSkills = ({
       damageRows: [...entry.damageRows.values()],
       icon: entry.icon,
       isPassive: entry.isPassive,
-      passiveSkillId: entry.passiveSkillId,
+      isProc: entry.isProc,
+      isToggleable: entry.isToggleable,
+      toggleSkillId: entry.toggleSkillId,
       enabled: entry.enabled,
     }))
     .sort((left, right) => left.name.localeCompare(right.name))

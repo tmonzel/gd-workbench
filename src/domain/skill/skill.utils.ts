@@ -14,6 +14,8 @@ export const DAMAGE_COLORS: Record<string, string> = {
   Vitality: '#db2777',
 }
 export const DAMAGE_TYPES = Object.keys(DAMAGE_COLORS)
+export const isChanceTriggeredSkill = (skill: Pick<MasterySkill, 'effects'>) =>
+  skill.effects.some((effect) => effect.key === 'onHitActivationChance')
 export const damageLabel = (type: string) => `${type} Damage`
 export const resistanceLabel = (type: string) => `${type} Resistance`
 export const formatSkillValue = (value: number) => (Number.isInteger(value) ? String(value) : value.toFixed(1))

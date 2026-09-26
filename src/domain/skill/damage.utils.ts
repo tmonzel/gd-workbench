@@ -73,7 +73,7 @@ export const getDamageTypeModifierPercent = (
   const label = `${type} Damage`
   let percent = 0
   for (const attribute of sourceAttributes) {
-    if (attribute.label !== label) continue
+    if (attribute.label !== label && attribute.label !== 'to All Damage') continue
     percent += parseDamageValue(String(attribute.value)).percent
   }
   return percent + getAttributeDamageMultiplier(type, damageOverTime, cunning, spirit) * 100

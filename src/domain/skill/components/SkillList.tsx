@@ -13,12 +13,11 @@ type SkillListProps = {
   skills: MasterySkill[]
   character: Character
   setCharacter: Dispatch<SetStateAction<Character>>
-  itemBonuses?: Record<string, number>
   masteryId: string
   masteryLevel: number
 }
 
-function SkillList({ skills, character, setCharacter, itemBonuses = {}, masteryId, masteryLevel }: SkillListProps) {
+function SkillList({ skills, character, setCharacter, masteryId, masteryLevel }: SkillListProps) {
   const skillGroups = [...new Set(skills.map((skill) => skill.groupId))]
     .map((groupId) => ({
       base:
@@ -46,8 +45,6 @@ function SkillList({ skills, character, setCharacter, itemBonuses = {}, masteryI
 
   const renderSkill = (skill: MasterySkill, baseSkillId: string, grouped = false) => {
     const level = character.skillLevels[skill.id] ?? 0
-    // items granting "+X to <skill>" add virtual points on top of allocated ones
-    const bonus = itemBonuses[skill.name] ?? 0
     const locked =
       (skill.isModifier && (character.skillLevels[baseSkillId] ?? 0) < 1) || masteryLevel < skill.masteryLevelRequired
     const allocated = level > 0
@@ -56,7 +53,7 @@ function SkillList({ skills, character, setCharacter, itemBonuses = {}, masteryI
       : allocated
         ? 'border-orange-300/70 outline outline-1 outline-orange-300/40'
         : 'border-neutral-800 bg-neutral-900/70'
-    const effectiveLevel = level + bonus
+    const effectiveLevel = level
     const rankEffects =
       effectiveLevel > 0
         ? skill.effects
