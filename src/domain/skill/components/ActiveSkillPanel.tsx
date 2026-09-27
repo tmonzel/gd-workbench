@@ -87,6 +87,33 @@ function ActiveSkillPanel({ skills, onSkillToggle, compact = false }: ActiveSkil
       </span>
     )
   }
+  const renderChildDetails = (child: SkillEntry) => {
+    const rankLabel =
+      child.allocatedLevel === undefined
+        ? String(child.level)
+        : `${child.allocatedLevel}${child.bonusLevel ? ` +${child.bonusLevel}` : ''}`
+    return (
+      <div className="mt-3 border-t border-orange-300/20 pt-3" key={`${child.name}-${child.source}`}>
+        <div className="flex items-start gap-2">
+          {child.icon && <img className="size-6 shrink-0 object-contain" src={child.icon} alt="" />}
+          <div className="min-w-0">
+            <p className="m-0 text-xs font-medium text-orange-200">
+              {child.name} ({rankLabel})
+            </p>
+            <p className="m-0 text-[0.65rem] text-neutral-600">{child.source}</p>
+          </div>
+        </div>
+        {child.damageRows && child.damageRows.length > 0 && (
+          <div className="mt-2">{renderDamageTable(child.damageRows)}</div>
+        )}
+        {child.stats.length > 0 && (
+          <div className="mt-2 grid gap-0.5 text-xs text-neutral-400">
+            {child.stats.map((stat) => <span key={stat}>{renderSkillStat(stat)}</span>)}
+          </div>
+        )}
+      </div>
+    )
+  }
 
   if (compact) {
     return (
@@ -138,6 +165,7 @@ function ActiveSkillPanel({ skills, onSkillToggle, compact = false }: ActiveSkil
                       {skill.stats.map((stat) => <span key={stat}>{renderSkillStat(stat)}</span>)}
                     </div>
                   )}
+                  {expanded && skill.children?.map(renderChildDetails)}
                 </div>
               )
             })}
@@ -221,6 +249,7 @@ function ActiveSkillPanel({ skills, onSkillToggle, compact = false }: ActiveSkil
                   ))}
                 </div>
               )}
+              {expanded && skill.children?.map(renderChildDetails)}
             </Card>
           )
         })

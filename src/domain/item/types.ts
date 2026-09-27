@@ -4,6 +4,7 @@ export type ItemSkillDetails = {
   level: number
   icon?: string
   attributes: Array<{ label: string; value: string | number }>
+  subSkills?: ItemSkillDetails[]
 }
 
 export type Item = {

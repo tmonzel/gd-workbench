@@ -16,23 +16,19 @@ type Item = {
   twoHanded?: boolean
   attributes: Array<{ label: string; value: string | number }>
   stats: Record<string, string | number>
-  grantedSkill?: {
-    name: string
-    description?: string
-    level: number
-    icon?: string
-    attributes: Array<{ label: string; value: string | number }>
-  }
-  specialSkillBonuses?: Array<{
-    name: string
-    description?: string
-    level: number
-    icon?: string
-    attributes: Array<{ label: string; value: string | number }>
-  }>
+  grantedSkill?: ItemSkillDetails
+  specialSkillBonuses?: ItemSkillDetails[]
 }
 
 type RawRecord = Record<string, unknown>
+type ItemSkillDetails = {
+  name: string
+  description?: string
+  level: number
+  icon?: string
+  attributes: Array<{ label: string; value: string | number }>
+  subSkills?: ItemSkillDetails[]
+}
 
 const inputPath = resolve(process.argv[2])
 const outputPath = resolve(process.argv[3] ?? 'public/data/items.json')
@@ -495,6 +491,7 @@ const resolveGrantedSkill = async (
     if (energy) add(`${name} Energy`, formatNumber(energy))
   }
   const petSkillPaths = petRecord?.skillName2 ? [String(petRecord.skillName2)] : []
+  const subSkills: NonNullable<Item['grantedSkill']>['subSkills'] = []
   for (const petSkillPath of petSkillPaths) {
     const petSkill = skillRecords.get(petSkillPath)
     if (!petSkill) continue
@@ -502,7 +499,36 @@ const resolveGrantedSkill = async (
     for (const attribute of petAttributes)
       if (/damage$/i.test(attribute.label)) add(`${name} ${attribute.label}`, attribute.value)
   }
-  return { name, description, level: clampedLevel, icon: skillIconPath(skillRecord), attributes }
+  const visitedRecords = new Set<RawRecord>()
+  const collectSubSkills = (record: RawRecord | undefined, depth: number) => {
+    if (!record || depth > 3) return
+    if (visitedRecords.has(record)) return
+    visitedRecords.add(record)
+    for (const [key, rawValue] of Object.entries(record)) {
+      if (!/^skillName\d+$/.test(key) && key !== 'spawnObjects') continue
+      for (const childPath of String(rawValue ?? '').split(';').filter(Boolean)) {
+        const normalizedPath = childPath.replaceAll('\\', '/')
+        const childRecord = skillRecords.get(normalizedPath)
+        if (!childRecord) continue
+        if (/^skillName\d+$/.test(key)) {
+          const subNameTag = typeof childRecord.skillDisplayName === 'string' ? childRecord.skillDisplayName : ''
+          const subName = subNameTag ? (localization.get(subNameTag) ?? subNameTag) : ''
+          if (subName)
+            subSkills.push({
+              name: subName,
+              description: '',
+              level: clampedLevel,
+              icon: skillIconPath(childRecord),
+              attributes: grantedSkillAttributes(childRecord, clampedLevel),
+            })
+        }
+        collectSubSkills(childRecord, depth + 1)
+      }
+    }
+  }
+  collectSubSkills(skillRecord, 0)
+  collectSubSkills(petRecord, 0)
+  return { name, description, level: clampedLevel, icon: skillIconPath(skillRecord), attributes, subSkills }
 }
 
 const resolveSpecialSkillBonuses = async (
