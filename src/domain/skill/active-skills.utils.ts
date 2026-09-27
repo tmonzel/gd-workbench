@@ -148,6 +148,7 @@ export const getActiveSkills = ({
         item.grantedSkill.level,
         item.name,
         item.grantedSkill.attributes.map((attribute) => `${attribute.value} ${attribute.label}`),
+        item.grantedSkill.icon,
       )
   }
   for (const masteryId of [character.mastery1, character.mastery2])
@@ -195,19 +196,26 @@ export const getActiveSkills = ({
       const stats = skill.effects
         .filter(
           (effect) =>
+            effect.key !== 'offensiveDamageMultModifier' &&
             !(convertsAllLightningToAether && /electrocute|slowLightning/i.test(`${effect.key} ${effect.label}`)),
         )
         .map((effect) => {
           const rawValue = effect.values[Math.min(effectiveLevel, effect.values.length) - 1]
           const isDamage =
             /^(offensive|weaponDamagePct|retaliation)/i.test(effect.key) &&
-            effect.key !== 'offensiveTotalDamageModifier'
+            effect.key !== 'offensiveTotalDamageModifier' &&
+            effect.key !== 'offensiveDamageMultModifier'
           const isWeaponDamage = effect.key === 'weaponDamagePct'
           if (isDamage) {
-            const typeMatch = effect.key.match(
-              /offensive(?:Base)?(Physical|Fire|Cold|Lightning|Poison|Piercing|Bleeding|Aether|Chaos|Vitality)/i,
+            const typeMatch = `${effect.key} ${effect.label}`.match(
+              /(?:offensive(?:Base)?|retaliation|weaponDamagePct)?(Physical|Fire|Cold|Lightning|Poison|Piercing|Bleeding|Aether|Chaos|Vitality)\s*Damage?/i,
             )
-            const type = typeMatch ? `${typeMatch[1][0].toUpperCase()}${typeMatch[1].slice(1)}` : 'Physical'
+            const type = typeMatch
+              ? `${typeMatch[1][0].toUpperCase()}${typeMatch[1].slice(1)}`
+              : isWeaponDamage
+                ? 'Physical'
+                : undefined
+            const damageType = convertsAllLightningToAether && type === 'Lightning' ? 'Aether' : type
             if (isWeaponDamage) weaponDamagePercent += rawValue
             const min =
               effect.minValues?.[Math.min(effectiveLevel, effect.minValues.length) - 1] ??
@@ -219,12 +227,12 @@ export const getActiveSkills = ({
               : isWeaponDamage
                 ? 0
                 : min
-            if (!isWeaponDamage) {
-              const modifierPercent = getDamageModifierPercent(type)
+            if (!isWeaponDamage && damageType) {
+              const modifierPercent = getDamageModifierPercent(damageType)
               const flatMultiplier = (1 + modifierPercent / 100) * totalDamageMultiplier
               damageRows.push({
-                type,
-                label: type === 'Poison' ? 'Poison Damage' : `${type} Damage`,
+                type: damageType,
+                label: damageType === 'Poison' ? 'Poison Damage' : `${damageType} Damage`,
                 min,
                 max,
                 percent: modifierPercent,

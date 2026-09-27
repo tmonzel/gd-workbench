@@ -207,7 +207,7 @@ function DamagePanel({
   )
 
   return (
-    <CollapsiblePanel eyebrow="Damage" title="Damage breakdown">
+    <CollapsiblePanel eyebrow="Offense" title="Damage breakdown">
       {damageStats.length === 0 && damageOverTimeStats.length === 0 && retaliationStats.length === 0 ? (
         <p className="m-0 border-t border-neutral-800 pt-3 text-sm text-neutral-500">
           No damage bonuses or flat damage are currently available.

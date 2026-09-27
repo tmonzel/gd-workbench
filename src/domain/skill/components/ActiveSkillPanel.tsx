@@ -1,25 +1,29 @@
 import { IconChevronDown, IconChevronUp } from '@tabler/icons-react'
 import { useEffect, useRef, useState } from 'react'
 import { Card } from '@/components/Card'
+import CollapsiblePanel from '@/components/CollapsiblePanel'
 import { DAMAGE_COLORS } from '@/domain/skill/skill.utils'
 import type { SkillDamageRow, SkillEntry } from '@/domain/skill/active-skills.utils'
 
 type ActiveSkillPanelProps = {
   skills: SkillEntry[]
   onSkillToggle: (skillId: string, isProc: boolean) => void
+  compact?: boolean
 }
 
-function ActiveSkillPanel({ skills, onSkillToggle }: ActiveSkillPanelProps) {
+function ActiveSkillPanel({ skills, onSkillToggle, compact = false }: ActiveSkillPanelProps) {
   const [expandedSkills, setExpandedSkills] = useState<Set<string>>(new Set())
   const initializedExpansion = useRef(false)
 
   useEffect(() => {
     if (initializedExpansion.current || skills.length === 0) return
     setExpandedSkills(
-      new Set(skills.filter((skill) => skill.stats.length > 0).map((skill) => `${skill.name}-${skill.source}`)),
+      compact
+        ? new Set()
+        : new Set(skills.filter((skill) => skill.stats.length > 0).map((skill) => `${skill.name}-${skill.source}`)),
     )
     initializedExpansion.current = true
-  }, [skills])
+  }, [compact, skills])
 
   const toggleSkill = (skillKey: string) => {
     setExpandedSkills((current) => {
@@ -72,6 +76,76 @@ function ActiveSkillPanel({ skills, onSkillToggle }: ActiveSkillPanelProps) {
       </tbody>
     </table>
   )
+  const renderSkillStat = (stat: string) => {
+    const match = /^(.*?)([+-]?\d+(?:\.\d+)?(?:-\d+(?:\.\d+)?)?%?)(.*)$/.exec(stat)
+    if (!match) return <span>{stat}</span>
+    return (
+      <span>
+        {match[1]}
+        <strong className="text-neutral-200">{match[2]}</strong>
+        <span className="text-neutral-500">{match[3]}</span>
+      </span>
+    )
+  }
+
+  if (compact) {
+    return (
+      <CollapsiblePanel eyebrow="Skills" title="Active skills">
+        {skills.length === 0 ? (
+          <p className="m-0 text-sm text-neutral-500">No active skills.</p>
+        ) : (
+          <div className="max-h-80 overflow-y-auto">
+            {skills.map((skill) => {
+              const skillKey = `${skill.name}-${skill.source}`
+              const expanded = expandedSkills.has(skillKey)
+              const rankLabel =
+                skill.allocatedLevel === undefined
+                  ? String(skill.level)
+                  : `${skill.allocatedLevel}${skill.bonusLevel ? ` +${skill.bonusLevel}` : ''}`
+              return (
+                <div className="border-b border-neutral-800 last:border-b-0" key={skillKey}>
+                  <div className="flex items-center gap-2 px-1 py-1.5">
+                    <button
+                      className={`flex min-w-0 flex-1 items-center gap-2 text-left ${skill.isToggleable && !skill.enabled ? 'text-neutral-500' : 'text-neutral-200'}`}
+                      type="button"
+                      disabled={skill.stats.length === 0 && !(skill.damageRows?.length ?? 0)}
+                      aria-expanded={expanded}
+                      onClick={() => toggleSkill(skillKey)}
+                    >
+                      {skill.stats.length > 0 || (skill.damageRows?.length ?? 0) > 0 ? (
+                        expanded ? <IconChevronUp size={14} stroke={2} aria-hidden="true" /> : <IconChevronDown size={14} stroke={2} aria-hidden="true" />
+                      ) : <span className="size-3.5" />}
+                      <span className="min-w-0 truncate text-xs">{skill.name}</span>
+                      <span className="shrink-0 text-[0.65rem] tabular-nums text-neutral-500">{rankLabel}</span>
+                    </button>
+                    {skill.isToggleable && skill.toggleSkillId && (
+                      <input
+                        className="app-checkbox"
+                        type="checkbox"
+                        checked={skill.enabled ?? true}
+                        onChange={() => onSkillToggle(skill.toggleSkillId!, skill.isProc ?? false)}
+                        aria-label={`${skill.enabled ? 'Disable' : 'Enable'} ${skill.name}`}
+                      />
+                    )}
+                  </div>
+                  {expanded && skill.damageRows && skill.damageRows.length > 0 && (
+                    <div className={`border-t border-neutral-800 px-1 py-2 ${skill.isToggleable && !skill.enabled ? 'opacity-40' : ''}`}>
+                      {renderDamageTable(skill.damageRows)}
+                    </div>
+                  )}
+                  {expanded && skill.stats.length > 0 && (
+                    <div className={`grid gap-0.5 border-t border-neutral-800 px-1 py-2 text-xs text-neutral-400 ${skill.isToggleable && !skill.enabled ? 'opacity-40' : ''}`}>
+                      {skill.stats.map((stat) => <span key={stat}>{renderSkillStat(stat)}</span>)}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </CollapsiblePanel>
+    )
+  }
 
   return (
     <div className="grid gap-3">
@@ -143,7 +217,7 @@ function ActiveSkillPanel({ skills, onSkillToggle }: ActiveSkillPanelProps) {
                   className={`mt-2 grid gap-0.5 border-t border-neutral-800 px-1 pt-2 text-xs text-neutral-400 ${skill.isToggleable && !skill.enabled ? 'opacity-40' : ''}`}
                 >
                   {skill.stats.map((stat) => (
-                    <span key={stat}>{stat}</span>
+                    <span key={stat}>{renderSkillStat(stat)}</span>
                   ))}
                 </div>
               )}

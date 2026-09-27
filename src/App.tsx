@@ -16,6 +16,7 @@ import { getEquippedSkillBonuses, getEquippedSetInfo } from '@/domain/item/item.
 import { useItemLibrary } from '@/domain/item/item.hooks'
 import { useHero } from '@/domain/hero/hero.hooks'
 import { getActiveSkills } from '@/domain/skill/active-skills.utils'
+import ActiveSkillPanel from '@/domain/skill/components/ActiveSkillPanel'
 import type { DifficultyMode } from '@/domain/hero/difficulty'
 
 function App() {
@@ -83,6 +84,19 @@ function App() {
     () => getActiveSkills({ character, itemSkillBonuses, skillsets, devotions, selectedDevotions, equippedSetInfo, masteries }),
     [character, itemSkillBonuses, skillsets, devotions, selectedDevotions, equippedSetInfo, masteries],
   )
+  const toggleSkill = (skillId: string, isProc: boolean) =>
+    setCharacter((current) => {
+      if (isProc) {
+        const enabled = new Set(current.enabledProcSkills ?? [])
+        if (enabled.has(skillId)) enabled.delete(skillId)
+        else enabled.add(skillId)
+        return { ...current, enabledProcSkills: [...enabled] }
+      }
+      const disabled = new Set(current.disabledPassiveSkills ?? [])
+      if (disabled.has(skillId)) disabled.delete(skillId)
+      else disabled.add(skillId)
+      return { ...current, disabledPassiveSkills: [...disabled] }
+    })
   const masteryCombinations = masteries.flatMap((mastery) => mastery.combinations)
   const selectedCombination =
     character.mastery1 && character.mastery2
@@ -108,7 +122,7 @@ function App() {
         onAttributeChange={adjustAttribute}
       />
       <WorkspaceTabs value={view} onChange={setView} />
-      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(300px,360px)]">
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(380px,480px)]">
         <div className="min-w-0">
           {view === 'equipment' ? (
             <EquipmentPanel
@@ -117,7 +131,14 @@ function App() {
               itemLibrary={itemLibrary}
               onEquip={equipAvailableItem}
               onUnequip={unequipAvailableItem}
-              isEquipped={isEquipmentItem}
+              isEquipped={(item, slot) =>
+                slot
+                  ? Boolean(
+                      character.equipment[slot] &&
+                        (character.equipment[slot]?.id === item.id || character.equipment[slot]?.templateId === item.id),
+                    )
+                  : isEquipmentItem(item)
+              }
               equippedSetInfo={equippedSetInfo}
               activeSkillNames={selectedMasterySkillNames}
             />
@@ -126,6 +147,7 @@ function App() {
               character={character}
               setCharacter={setCharacter}
               activeSkills={activeSkills}
+              onSkillToggle={toggleSkill}
             />
           ) : view === 'devotions' && devotions ? (
             <DevotionPanel data={devotions} selected={selectedDevotions} setSelected={setSelectedDevotions} />
@@ -153,6 +175,7 @@ function App() {
           )}
         </div>
         <div className="grid gap-4 lg:sticky lg:top-4">
+          <ActiveSkillPanel skills={activeSkills} onSkillToggle={toggleSkill} compact />
           <DamagePanel
             character={character}
             devotions={devotions}

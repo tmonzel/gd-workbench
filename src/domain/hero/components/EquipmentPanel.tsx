@@ -13,7 +13,7 @@ type EquipmentPanelProps = {
   itemLibrary: ItemLibraryState
   onEquip: (item: Item, slot?: string) => void
   onUnequip: (item: Item) => void
-  isEquipped: (item: Item) => boolean
+  isEquipped: (item: Item, slot?: string) => boolean
 }
 
 function EquipmentPanel({
@@ -36,9 +36,12 @@ function EquipmentPanel({
     const item = character.equipment[slot]
     const blocked = slot === 'Off-Hand' && character.equipment.Weapon?.twoHanded
     return (
-      <div className="flex gap-1" key={slot}>
+      <div
+        className={`flex min-w-0 max-w-full overflow-hidden rounded-md border ${selectedSlot === slot ? 'border-orange-300/70 bg-orange-300/10' : 'border-neutral-700 bg-neutral-950/45'} ${blocked ? 'opacity-60' : ''}`}
+        key={slot}
+      >
         <button
-          className={`min-w-0 flex-1 rounded-md border px-3 py-2 text-left ${selectedSlot === slot ? 'border-orange-300/70 bg-orange-300/10' : 'border-neutral-700 bg-neutral-950/45'} ${blocked ? 'opacity-60' : ''}`}
+          className="min-w-0 flex-1 overflow-hidden rounded-md px-3 py-2 text-left"
           type="button"
           onClick={() => setSelectedSlot(slot)}
         >
@@ -49,7 +52,7 @@ function EquipmentPanel({
         </button>
         {item && !blocked && (
           <button
-            className="flex size-9 shrink-0 items-center justify-center self-stretch rounded-md border border-neutral-800 text-neutral-600 transition-colors hover:border-neutral-600 hover:text-neutral-200"
+            className="flex size-9 shrink-0 items-center justify-center self-stretch border-l border-neutral-800 text-neutral-600 transition-colors hover:border-neutral-600 hover:text-neutral-200"
             type="button"
             aria-label={`Remove ${slot}`}
             title={`Remove ${slot}`}
@@ -65,6 +68,17 @@ function EquipmentPanel({
         )}
       </div>
     )
+  }
+  const unequipSelectedItem = (item: Item) => {
+    const equippedItem = character.equipment[selectedSlot]
+    if (equippedItem && (equippedItem.id === item.id || equippedItem.templateId === item.id)) {
+      setCharacter((current) => ({
+        ...current,
+        equipment: { ...current.equipment, [selectedSlot]: undefined },
+      }))
+      return
+    }
+    onUnequip(item)
   }
 
   return (
@@ -126,8 +140,8 @@ function EquipmentPanel({
         itemLibrary={itemLibrary}
         categoryOverride={selectedSlot === 'Ring 1' || selectedSlot === 'Ring 2' ? 'Ring' : selectedSlot}
         onEquip={(item) => onEquip(item, selectedSlot)}
-        onUnequip={onUnequip}
-        isEquipped={isEquipped}
+        onUnequip={unequipSelectedItem}
+        isEquipped={(item) => isEquipped(item, selectedSlot)}
         equippedSetInfo={equippedSetInfo}
         activeSkillNames={activeSkillNames}
         embedded

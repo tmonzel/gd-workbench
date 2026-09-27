@@ -8,9 +8,10 @@ type SkillsViewProps = {
   character: Character
   setCharacter: Dispatch<SetStateAction<Character>>
   activeSkills: SkillEntry[]
+  onSkillToggle?: (skillId: string, isProc: boolean) => void
 }
 
-function SkillsView({ character, setCharacter, activeSkills }: SkillsViewProps) {
+function SkillsView({ character, setCharacter, activeSkills, onSkillToggle }: SkillsViewProps) {
   const toggleSkill = (skillId: string, isProc: boolean) =>
     setCharacter((current) => {
       if (isProc) {
@@ -28,7 +29,7 @@ function SkillsView({ character, setCharacter, activeSkills }: SkillsViewProps) 
   return (
     <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(420px,520px)]">
       <SkillPanel character={character} setCharacter={setCharacter} />
-      <ActiveSkillPanel skills={activeSkills} onSkillToggle={toggleSkill} />
+      <ActiveSkillPanel skills={activeSkills} onSkillToggle={onSkillToggle ?? toggleSkill} />
     </div>
   )
 }
