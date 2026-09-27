@@ -24,6 +24,7 @@ export type MasterySkill = {
     suffix?: string
     minValues?: number[]
     maxValues?: number[]
+    durationValues?: number[]
   }>
   summonEffects: Array<{
     name: string
@@ -34,6 +35,7 @@ export type MasterySkill = {
       suffix?: string
       minValues?: number[]
       maxValues?: number[]
+      durationValues?: number[]
     }>
   }>
 }

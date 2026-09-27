@@ -284,13 +284,22 @@ export const getActiveSkills = ({
             : effect.label
           const value = isDamage ? rawValue * totalDamageMultiplier : rawValue
           if (!Number.isFinite(value) || value === 0) return ''
+          if (effect.key === 'offensiveSlowAttackSpeedMin') {
+            const duration = effect.durationValues?.[Math.min(effectiveLevel, effect.durationValues.length) - 1]
+            return `${formatSkillValue(rawValue)}% Slower Enemy Attack${duration ? ` for ${formatSkillValue(duration)} ${duration === 1 ? 'Second' : 'Seconds'}` : ''}`
+          }
           const formatted = formatSkillEffect(
             { ...effect, value: rawValue },
             effectiveLevel,
             isDamage ? totalDamageMultiplier : 1,
             label,
           )
-          return (effect.key.startsWith('character') || effect.key === 'offensiveTotalDamageModifier') && rawValue > 0
+          return (
+            effect.key.startsWith('character') ||
+            effect.key === 'offensiveTotalDamageModifier' ||
+            effect.key === 'offensiveElementalModifier' ||
+            effect.key === 'offensivePierceModifier'
+          ) && rawValue > 0
             ? `+${formatted}`
             : formatted
         })

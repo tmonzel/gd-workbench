@@ -48,11 +48,23 @@ function SkillItem({
           )
           .map((effect) => {
             const value = effect.values[Math.min(effectiveLevel, effect.values.length) - 1]
+            const slowDuration = effect.durationValues?.[Math.min(effectiveLevel, effect.durationValues.length) - 1]
             const displayParts =
-              effect.key === 'offensiveDamageMultModifier'
-                ? { value: `Total Damage Modified by ${formatSkillValue(value)}${effect.suffix ?? ''}`, label: '' }
-                : formatSkillEffectParts({ ...effect, value }, effectiveLevel)
-            if ((effect.key.startsWith('character') || effect.key === 'offensiveTotalDamageModifier') && value > 0)
+              effect.key === 'offensiveSlowAttackSpeedMin'
+                ? {
+                    value: `${formatSkillValue(value)}% Slower Enemy Attack${slowDuration ? ` for ${formatSkillValue(slowDuration)} ${slowDuration === 1 ? 'Second' : 'Seconds'}` : ''}`,
+                    label: '',
+                  }
+                : effect.key === 'offensiveDamageMultModifier'
+                  ? { value: `Total Damage Modified by ${formatSkillValue(value)}${effect.suffix ?? ''}`, label: '' }
+                  : formatSkillEffectParts({ ...effect, value }, effectiveLevel)
+            if (
+              (effect.key.startsWith('character') ||
+                effect.key === 'offensiveTotalDamageModifier' ||
+                effect.key === 'offensiveElementalModifier' ||
+                effect.key === 'offensivePierceModifier') &&
+              value > 0
+            )
               displayParts.value = `+${displayParts.value}`
             return {
               ...effect,

@@ -72,11 +72,16 @@ const effectLabel = (key: string) =>
     characterIntelligenceModifier: 'Spirit',
     characterOffensiveAbility: 'Offensive Ability',
     characterOffensiveAbilityModifier: 'Offensive Ability',
+    characterAttackSpeedModifier: 'Attack Speed',
+    characterRunSpeedMaxModifier: 'Max Movement Speed',
     defensiveChaos: 'Chaos Resistance',
     defensiveAether: 'Aether Resistance',
     characterDefensiveAbility: 'Defensive Ability',
     offensiveDamageMultModifier: 'to All Damage',
     offensiveTotalDamageModifier: 'to All Damage',
+    offensiveElementalModifier: 'Elemental Damage',
+    offensivePierceMin: 'Piercing Damage',
+    offensivePierceModifier: 'Pierce Damage',
     onHitActivationChance: 'Chance of Activating',
     skillActiveDuration: 'Second Duration',
     skillCooldownTime: 'Second Skill Recharge',
@@ -92,6 +97,7 @@ const extractEffects = (record: Map<string, string>) => {
     suffix?: string
     minValues?: number[]
     maxValues?: number[]
+    durationValues?: number[]
   }> = [...record.entries()]
     .filter(
       ([key, value]) =>
@@ -109,6 +115,9 @@ const extractEffects = (record: Map<string, string>) => {
       label: effectLabel(key),
       values: value.split(';').map(Number),
       suffix: /pct|percent|modifier|chance/i.test(key) ? '%' : undefined,
+      durationValues: key.startsWith('offensiveSlow')
+        ? record.get(key.replace(/Min$/, 'DurationMin'))?.split(';').map(Number).filter(Number.isFinite)
+        : undefined,
     }))
     .filter((effect) => effect.values.some((value) => Number.isFinite(value) && value !== 0))
   for (const [type, dotType] of DAMAGE_OVER_TIME_TYPES) {
