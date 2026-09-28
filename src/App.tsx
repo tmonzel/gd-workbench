@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { IconBolt, IconChartBar, IconShield, IconSparkles } from '@tabler/icons-react'
 import './App.css'
 import Header from '@/components/Header'
 import StatPanel from '@/components/StatPanel'
@@ -23,6 +24,7 @@ function App() {
   const { masteries, skillsets } = useSkillData()
   const { data: devotions, selected: selectedDevotions, setSelected: setSelectedDevotions } = useDevotionData()
   const [view, setView] = useState<'items' | 'equipment' | 'masteries' | 'devotions'>('masteries')
+  const [rightPanel, setRightPanel] = useState<'offense' | 'defense' | 'skills' | 'general'>('skills')
   const [difficulty, setDifficulty] = useState<DifficultyMode>('Normal')
   const [collectionItems, setCollectionItems] = useState<Item[]>([])
   const { character, setCharacter, changeLevel, adjustAttribute, equipItem, unequipItem, changeMastery } =
@@ -174,33 +176,72 @@ function App() {
             />
           )}
         </div>
-        <div className="grid gap-4 lg:sticky lg:top-4">
-          <ActiveSkillPanel skills={activeSkills} onSkillToggle={toggleSkill} compact />
-          <DamagePanel
-            character={character}
-            devotions={devotions}
-            selectedDevotions={selectedDevotions}
-            equippedSetInfo={equippedSetInfo}
-            masteries={masteries}
-            skillsets={skillsets}
-            itemSkillBonuses={itemSkillBonuses}
-          />
-          <ResistancePanel
-            character={character}
-            devotions={devotions}
-            selectedDevotions={selectedDevotions}
-            equippedSetInfo={equippedSetInfo}
-            difficulty={difficulty}
-          />
-          <StatPanel
-            character={character}
-            masteries={masteries}
-            skillsets={skillsets}
-            itemSkillBonuses={itemSkillBonuses}
-            devotions={devotions}
-            selectedDevotions={selectedDevotions}
-            equippedSetInfo={equippedSetInfo}
-          />
+        <div className="grid min-w-0 items-start gap-2 grid-cols-[minmax(0,1fr)_2.5rem] lg:sticky lg:top-4">
+          <div
+            className="min-w-0"
+            id="character-panel-content"
+            role="tabpanel"
+            aria-labelledby={`character-panel-tab-${rightPanel}`}
+          >
+            {rightPanel === 'skills' && <ActiveSkillPanel skills={activeSkills} onSkillToggle={toggleSkill} compact />}
+            {rightPanel === 'offense' && (
+              <DamagePanel
+                character={character}
+                devotions={devotions}
+                selectedDevotions={selectedDevotions}
+                equippedSetInfo={equippedSetInfo}
+                masteries={masteries}
+                skillsets={skillsets}
+                itemSkillBonuses={itemSkillBonuses}
+              />
+            )}
+            {rightPanel === 'defense' && (
+              <ResistancePanel
+                character={character}
+                devotions={devotions}
+                selectedDevotions={selectedDevotions}
+                equippedSetInfo={equippedSetInfo}
+                difficulty={difficulty}
+              />
+            )}
+            {rightPanel === 'general' && (
+              <StatPanel
+                character={character}
+                masteries={masteries}
+                skillsets={skillsets}
+                itemSkillBonuses={itemSkillBonuses}
+                devotions={devotions}
+                selectedDevotions={selectedDevotions}
+                equippedSetInfo={equippedSetInfo}
+              />
+            )}
+          </div>
+          <nav className="grid content-start gap-1" aria-label="Character panels" role="tablist" aria-orientation="vertical">
+            {[
+              { id: 'offense', label: 'Offense', icon: IconBolt },
+              { id: 'defense', label: 'Defense', icon: IconShield },
+              { id: 'skills', label: 'Skills', icon: IconSparkles },
+              { id: 'general', label: 'General stats', icon: IconChartBar },
+            ].map(({ id, label, icon: Icon }) => {
+              const selected = rightPanel === id
+              return (
+                <button
+                  className={`flex size-10 items-center justify-center rounded-md border transition-colors ${selected ? 'border-orange-300/50 bg-orange-300/10 text-orange-200' : 'border-transparent text-neutral-500 hover:border-neutral-700 hover:bg-neutral-900 hover:text-neutral-200'}`}
+                  key={id}
+                  type="button"
+                  role="tab"
+                  id={`character-panel-tab-${id}`}
+                  aria-selected={selected}
+                  aria-label={label}
+                  aria-controls="character-panel-content"
+                  title={label}
+                  onClick={() => setRightPanel(id as typeof rightPanel)}
+                >
+                  <Icon size={18} stroke={1.8} aria-hidden="true" />
+                </button>
+              )
+            })}
+          </nav>
         </div>
       </div>
     </main>
