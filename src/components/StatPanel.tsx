@@ -1,4 +1,4 @@
-import CollapsiblePanel from '@/components/CollapsiblePanel'
+import CollapsiblePanel from './CollapsiblePanel'
 import { useState } from 'react'
 import type { Character } from '@/domain/hero/types'
 import { BASE_ATTRIBUTE_VALUE, BASE_ENERGY_VALUE, BASE_HEALTH_VALUE } from '@/domain/hero/hero.utils'
@@ -67,9 +67,7 @@ function StatPanel({
       const isProc = isChanceTriggeredSkill(skill)
       if (!skill.isPassive && !isProc) continue
       if (
-        isProc
-          ? !character.enabledProcSkills?.includes(skill.id)
-          : character.disabledPassiveSkills?.includes(skill.id)
+        isProc ? !character.enabledProcSkills?.includes(skill.id) : character.disabledPassiveSkills?.includes(skill.id)
       )
         continue
       const allocatedLevel = character.skillLevels[skill.id] ?? 0
@@ -125,7 +123,8 @@ function StatPanel({
     (cunning - BASE_ATTRIBUTE_VALUE) +
     (spirit - BASE_ATTRIBUTE_VALUE)
   totals.Health *= 1 + attributeModifiers.Health / 100
-  totals.Energy = (BASE_ENERGY_VALUE + (totals.Energy ?? 0) + (spirit - BASE_ATTRIBUTE_VALUE) * 2) *
+  totals.Energy =
+    (BASE_ENERGY_VALUE + (totals.Energy ?? 0) + (spirit - BASE_ATTRIBUTE_VALUE) * 2) *
     (1 + attributeModifiers.Energy / 100)
   // matches offensiveAbilityEquation/defensiveAbilityEquation in data/game/records/game/combatformulas.dbr
   totals['Offensive Ability'] =
@@ -241,25 +240,27 @@ function StatPanel({
         <table className="w-full border-collapse text-sm">
           <tbody>
             {rowsByTab[activeTab].map(({ label, value, modifier, maximum }) => (
-            <tr className="border-b border-neutral-800 last:border-b-0" key={label}>
-              <td className="py-1.5">
-                <span className="flex items-baseline justify-between gap-3">
-                  <span className="text-neutral-500">{label}</span>
-                  <strong className="tabular-nums text-neutral-100">
-                    {modifier ? (
-                      <span className="mr-2 font-normal text-neutral-500">
-                        {modifier > 0 ? '+' : ''}
-                        {Math.round(modifier * 10) / 10}%
-                      </span>
-                    ) : null}
-                    {typeof value === 'string' ? value : `${Math.round(value * 10) / 10}${maximum !== undefined ? '%' : ''}`}
-                    {maximum !== undefined && (
-                      <span className="font-normal text-neutral-600"> / {Math.round(maximum * 10) / 10}%</span>
-                    )}
-                  </strong>
-                </span>
-              </td>
-            </tr>
+              <tr className="border-b border-neutral-800 last:border-b-0" key={label}>
+                <td className="py-1.5">
+                  <span className="flex items-baseline justify-between gap-3">
+                    <span className="text-neutral-500">{label}</span>
+                    <strong className="tabular-nums text-neutral-100">
+                      {modifier ? (
+                        <span className="mr-2 font-normal text-neutral-500">
+                          {modifier > 0 ? '+' : ''}
+                          {Math.round(modifier * 10) / 10}%
+                        </span>
+                      ) : null}
+                      {typeof value === 'string'
+                        ? value
+                        : `${Math.round(value * 10) / 10}${maximum !== undefined ? '%' : ''}`}
+                      {maximum !== undefined && (
+                        <span className="font-normal text-neutral-600"> / {Math.round(maximum * 10) / 10}%</span>
+                      )}
+                    </strong>
+                  </span>
+                </td>
+              </tr>
             ))}
           </tbody>
         </table>

@@ -26,7 +26,10 @@ const categoryGroups = {
 }
 
 const matchesCategory = (itemCategory, category) =>
-  category === 'All' || itemCategory === category || categoryGroups[category]?.includes(itemCategory)
+  category === 'All' ||
+  (category === 'Main-Hand'
+    ? itemCategory === 'Weapon'
+    : itemCategory === category || categoryGroups[category]?.includes(itemCategory))
 
 const matchesWeaponType = (item, category) => {
   if (!['Weapon', 'Off-Hand'].includes(item.category)) return false
@@ -68,7 +71,9 @@ const sendPage = (
   monsterInfrequentOnly = false,
   stats = [],
 ) => {
-  const filtered = items.filter((item) => matches(item, search, category, maxLevel, rarities, monsterInfrequentOnly, stats))
+  const filtered = items.filter((item) =>
+    matches(item, search, category, maxLevel, rarities, monsterInfrequentOnly, stats),
+  )
   postMessage({
     type: 'page',
     page,
@@ -99,7 +104,9 @@ onmessage = (event) => {
           type: 'ready',
           total: items.length,
           categories: ['All', ...new Set(items.map((item) => item.category))],
-          stats: [...new Set(items.flatMap((item) => (item.attributes ?? []).map((attribute) => attribute.label)))].sort(),
+          stats: [
+            ...new Set(items.flatMap((item) => (item.attributes ?? []).map((attribute) => attribute.label))),
+          ].sort(),
         })
         sendPage(
           pendingRequest.page,
