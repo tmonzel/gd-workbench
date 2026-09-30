@@ -16,6 +16,7 @@ const initialCharacter: Character = {
   disabledPassiveSkills: [],
   enabledProcSkills: [],
   equipment: {},
+  disabledEquipmentSlots: {},
 }
 
 export function useHero(skillsets: Record<string, MasterySkill[]>) {
@@ -47,10 +48,14 @@ export function useHero(skillsets: Record<string, MasterySkill[]>) {
       if (!item.isInstance || !isEquippableItem(item)) return current
       if (item.category === 'Off-Hand' && current.equipment.Weapon?.twoHanded) return current
       const equipment = { ...current.equipment }
-      const slot = targetSlot ?? (item.category === 'Ring' ? (equipment['Ring 1'] ? 'Ring 2' : 'Ring 1') : item.category)
+      const disabledEquipmentSlots = { ...(current.disabledEquipmentSlots ?? {}) }
+      const slot =
+        targetSlot ?? (item.category === 'Ring' ? (equipment['Ring 1'] ? 'Ring 2' : 'Ring 1') : item.category)
       equipment[slot] = item
+      delete disabledEquipmentSlots[slot]
       if (item.category === 'Weapon' && item.twoHanded) delete equipment['Off-Hand']
-      return { ...current, equipment }
+      delete disabledEquipmentSlots['Off-Hand']
+      return { ...current, equipment, disabledEquipmentSlots }
     })
   }
 
@@ -67,7 +72,8 @@ export function useHero(skillsets: Record<string, MasterySkill[]>) {
   const changeMastery = (slot: 'mastery1' | 'mastery2', value: string) =>
     setCharacter((current) => {
       if (slot === 'mastery2' && !current.mastery1) return current
-      const replacedMasteries = slot === 'mastery1' ? [current.mastery1, ...(value ? [] : [current.mastery2])] : [current.mastery2]
+      const replacedMasteries =
+        slot === 'mastery1' ? [current.mastery1, ...(value ? [] : [current.mastery2])] : [current.mastery2]
       const masteryLevels = { ...current.masteryLevels }
       const skillLevels = { ...current.skillLevels }
       const disabledPassiveSkills = [...(current.disabledPassiveSkills ?? [])]

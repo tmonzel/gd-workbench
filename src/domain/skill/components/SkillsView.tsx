@@ -1,6 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react'
 import SkillPanel from '@/domain/skill/components/SkillPanel'
-import ActiveSkillPanel from '@/domain/skill/components/ActiveSkillPanel'
+import ActiveSkillList from '@/domain/skill/components/ActiveSkillPanel'
 import type { Character } from '@/domain/hero/types'
 import type { SkillEntry } from '@/domain/skill/active-skills.utils'
 
@@ -29,7 +29,7 @@ function SkillsView({ character, setCharacter, activeSkills, onSkillToggle }: Sk
   return (
     <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(420px,520px)]">
       <SkillPanel character={character} setCharacter={setCharacter} />
-      <ActiveSkillPanel skills={activeSkills} onSkillToggle={onSkillToggle ?? toggleSkill} />
+      <ActiveSkillList skills={activeSkills} onSkillToggle={onSkillToggle ?? toggleSkill} />
     </div>
   )
 }

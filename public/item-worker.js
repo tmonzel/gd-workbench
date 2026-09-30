@@ -31,6 +31,37 @@ const matchesCategory = (itemCategory, category) =>
     ? itemCategory === 'Weapon'
     : itemCategory === category || categoryGroups[category]?.includes(itemCategory))
 
+const matchesMainHandType = (item, category) =>
+  category.startsWith('Main-Hand-') &&
+  item.category === 'Weapon' &&
+  matchesWeaponType(item, category.slice('Main-Hand-'.length))
+
+const matchesOffHandType = (item, category) => {
+  if (!category.startsWith('Off-Hand-Picker-')) return false
+  const type = category.slice('Off-Hand-Picker-'.length)
+  const itemClass = String(item.stats?.Class ?? '')
+  if (type === 'All') return item.category === 'Off-Hand' || (item.category === 'Weapon' && !item.twoHanded)
+  if (type === 'Shields') return item.category === 'Off-Hand' && /shield/i.test(itemClass)
+  if (type === 'Off-Hands') return item.category === 'Off-Hand' && !/shield/i.test(itemClass)
+  if (type === 'One-Handed-Weapons') return item.category === 'Weapon' && !item.twoHanded
+  return false
+}
+
+const matchesArmorType = (item, category) => {
+  if (!category.startsWith('Armor-Picker-')) return false
+  const [slot, type] = category.slice('Armor-Picker-'.length).split('-')
+  const expectedCategory = {
+    ChestArmor: 'Chest Armor',
+    Pants: 'Pants',
+    Gloves: 'Gloves',
+    Helm: 'Helm',
+  }[slot]
+  if (item.category !== expectedCategory) return false
+  if (type === 'All') return true
+  const classification = String(item.stats?.armorClassification ?? '')
+  return (type === 'Normal' && classification === 'Light') || classification === type
+}
+
 const matchesWeaponType = (item, category) => {
   if (!['Weapon', 'Off-Hand'].includes(item.category)) return false
   const itemClass = String(item.stats?.Class ?? '')
@@ -54,7 +85,10 @@ const matches = (item, search, category, maxLevel, rarities, monsterInfrequentOn
   const requiredLevel = Number(item.stats?.levelRequirement ?? item.level) || 0
   return (
     (!search || haystack.includes(search)) &&
-    (matchesCategory(item.category, category) || matchesWeaponType(item, category)) &&
+    (matchesCategory(item.category, category) ||
+      matchesMainHandType(item, category) ||
+      matchesOffHandType(item, category) ||
+      matchesArmorType(item, category)) &&
     (maxLevel == null || requiredLevel <= maxLevel) &&
     (!rarities.length || rarities.includes(normalizedRarity(item.rarity))) &&
     (!monsterInfrequentOnly || item.isMonsterInfrequent) &&

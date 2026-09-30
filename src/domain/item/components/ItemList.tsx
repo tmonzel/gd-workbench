@@ -19,6 +19,7 @@ type ItemListProps = {
   onSelect?: (item: Item) => void
   onRemoveInstance?: (item: Item) => void
   allowTemplateEquip?: boolean
+  maxColumns?: 1 | 2
 }
 
 function ItemList({
@@ -38,6 +39,7 @@ function ItemList({
   onSelect,
   onRemoveInstance,
   allowTemplateEquip = false,
+  maxColumns,
 }: ItemListProps) {
   return (
     <>
@@ -65,7 +67,15 @@ function ItemList({
           Next
         </button>
       </nav>
-      <section className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-3 xl:grid-cols-3">
+      <section
+        className={
+          maxColumns === 1
+            ? 'grid grid-cols-1 gap-3'
+            : maxColumns === 2
+              ? 'grid grid-cols-1 gap-3 sm:grid-cols-2'
+              : 'grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-3 xl:grid-cols-3'
+        }
+      >
         {items.map((item) => (
           <ItemCard
             item={item}

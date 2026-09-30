@@ -15,9 +15,7 @@ function SkillPanel({ character, setCharacter }: SkillPanelProps) {
   const [preferredMasteryId, setPreferredMasteryId] = useState('')
   const { masteries, skillsets } = useSkillData()
   const selectedMasteryIds = [character.mastery1, character.mastery2].filter(Boolean) as string[]
-  const activeMasteryId = selectedMasteryIds.includes(preferredMasteryId)
-    ? preferredMasteryId
-    : selectedMasteryIds[0]
+  const activeMasteryId = selectedMasteryIds.includes(preferredMasteryId) ? preferredMasteryId : selectedMasteryIds[0]
   const availablePoints = skillPointsForLevel(character.level) - spentSkillPoints(character)
   const changeMasteryLevel = (masteryId: string, delta: number) =>
     setCharacter((current) => {
@@ -70,52 +68,53 @@ function SkillPanel({ character, setCharacter }: SkillPanelProps) {
               })}
             </nav>
           )}
-          {activeMasteryId && (() => {
-            const masteryId = activeMasteryId
-            const mastery = masteries.find((entry) => entry.id === masteryId)
-            const skills = skillsets[masteryId] ?? []
-            const masteryLevel = character.masteryLevels[masteryId] ?? 0
-            return (
-              <section key={masteryId}>
-                <div className="mb-3 flex items-center justify-between">
-                  <h3 className="text-sm font-medium uppercase tracking-[0.12em] text-neutral-300">
-                    {mastery?.name ?? 'Mastery'}
-                  </h3>
-                  <span className="flex items-center gap-2 text-sm tabular-nums text-neutral-300">
-                    <button
-                      className="size-7 rounded border border-neutral-700 bg-neutral-900 disabled:opacity-30"
-                      type="button"
-                      disabled={masteryLevel === 0}
-                      onClick={() => changeMasteryLevel(masteryId, -1)}
-                      aria-label={`Decrease ${mastery?.name ?? 'mastery'} rank`}
-                    >
-                      −
-                    </button>
-                    {masteryLevel} / 50
-                    <button
-                      className="size-7 rounded border border-neutral-700 bg-neutral-900 disabled:opacity-30"
-                      type="button"
-                      disabled={masteryLevel === 50 || availablePoints <= 0}
-                      onClick={() => changeMasteryLevel(masteryId, 1)}
-                      aria-label={`Increase ${mastery?.name ?? 'mastery'} rank`}
-                    >
-                      +
-                    </button>
-                  </span>
-                </div>
-                <div className="h-1 overflow-hidden rounded-full bg-neutral-800">
-                  <div className="h-full bg-orange-300" style={{ width: `${masteryLevel * 2}%` }} />
-                </div>
-                <SkillList
-                  skills={skills}
-                  character={character}
-                  setCharacter={setCharacter}
-                  masteryId={masteryId}
-                  masteryLevel={masteryLevel}
-                />
-              </section>
-            )
-          })()}
+          {activeMasteryId &&
+            (() => {
+              const masteryId = activeMasteryId
+              const mastery = masteries.find((entry) => entry.id === masteryId)
+              const skills = skillsets[masteryId] ?? []
+              const masteryLevel = character.masteryLevels[masteryId] ?? 0
+              return (
+                <section key={masteryId}>
+                  <div className="mb-3 flex items-center justify-between">
+                    <h3 className="text-sm font-medium uppercase tracking-[0.12em] text-neutral-300">
+                      {mastery?.name ?? 'Mastery'}
+                    </h3>
+                    <span className="flex items-center gap-2 text-sm tabular-nums text-neutral-300">
+                      <button
+                        className="size-7 rounded border border-neutral-700 bg-neutral-900 disabled:opacity-30"
+                        type="button"
+                        disabled={masteryLevel === 0}
+                        onClick={() => changeMasteryLevel(masteryId, -1)}
+                        aria-label={`Decrease ${mastery?.name ?? 'mastery'} rank`}
+                      >
+                        −
+                      </button>
+                      {masteryLevel} / 50
+                      <button
+                        className="size-7 rounded border border-neutral-700 bg-neutral-900 disabled:opacity-30"
+                        type="button"
+                        disabled={masteryLevel === 50 || availablePoints <= 0}
+                        onClick={() => changeMasteryLevel(masteryId, 1)}
+                        aria-label={`Increase ${mastery?.name ?? 'mastery'} rank`}
+                      >
+                        +
+                      </button>
+                    </span>
+                  </div>
+                  <div className="h-1 overflow-hidden rounded-full bg-neutral-800">
+                    <div className="h-full bg-orange-300" style={{ width: `${masteryLevel * 2}%` }} />
+                  </div>
+                  <SkillList
+                    skills={skills}
+                    character={character}
+                    setCharacter={setCharacter}
+                    masteryId={masteryId}
+                    masteryLevel={masteryLevel}
+                  />
+                </section>
+              )
+            })()}
         </div>
       )}
     </Card>

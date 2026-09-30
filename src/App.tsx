@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { IconBolt, IconChartBar, IconShield, IconSparkles } from '@tabler/icons-react'
+import { IconBolt, IconChartBar, IconShield } from '@tabler/icons-react'
 import './App.css'
 import Header from '@/components/Header'
 import StatPanel from '@/components/StatPanel'
@@ -17,14 +17,14 @@ import { getEquippedSkillBonuses, getEquippedSetInfo } from '@/domain/item/item.
 import { useItemLibrary } from '@/domain/item/item.hooks'
 import { useHero } from '@/domain/hero/hero.hooks'
 import { getActiveSkills } from '@/domain/skill/active-skills.utils'
-import ActiveSkillPanel from '@/domain/skill/components/ActiveSkillPanel'
+import ActiveSkillList from '@/domain/skill/components/ActiveSkillPanel'
 import type { DifficultyMode } from '@/domain/hero/difficulty'
 
 function App() {
   const { masteries, skillsets } = useSkillData()
   const { data: devotions, selected: selectedDevotions, setSelected: setSelectedDevotions } = useDevotionData()
   const [view, setView] = useState<'items' | 'equipment' | 'masteries' | 'devotions'>('masteries')
-  const [rightPanel, setRightPanel] = useState<'offense' | 'defense' | 'skills' | 'general'>('skills')
+  const [rightPanel, setRightPanel] = useState<'offense' | 'defense' | 'general'>('offense')
   const [difficulty, setDifficulty] = useState<DifficultyMode>('Normal')
   const [collectionItems, setCollectionItems] = useState<Item[]>([])
   const { character, setCharacter, changeLevel, adjustAttribute, equipItem, unequipItem, changeMastery } =
@@ -32,8 +32,8 @@ function App() {
   const itemLibrary = useItemLibrary(character.level)
   const { itemSets } = itemLibrary
   const equippedSetInfo = useMemo(
-    () => getEquippedSetInfo(character.equipment, itemSets),
-    [character.equipment, itemSets],
+    () => getEquippedSetInfo(character.equipment, itemSets, character.disabledEquipmentSlots),
+    [character.disabledEquipmentSlots, character.equipment, itemSets],
   )
   const itemSkillBonuses = useMemo(() => {
     const additionalAttributes = [
@@ -41,15 +41,36 @@ function App() {
       ...(devotions?.constellations ?? [])
         .filter((constellation) => constellation.skills.some((skill) => selectedDevotions.includes(skill.id)))
         .flatMap((constellation) =>
-          constellation.skills.filter((skill) => selectedDevotions.includes(skill.id)).flatMap((skill) => skill.attributes),
+          constellation.skills
+            .filter((skill) => selectedDevotions.includes(skill.id))
+            .flatMap((skill) => skill.attributes),
         ),
     ]
-    return getEquippedSkillBonuses(
+    const bonuses = getEquippedSkillBonuses(
       character.equipment,
-      Object.fromEntries(masteries.map((mastery) => [mastery.name, (skillsets[mastery.id] ?? []).map((skill) => skill.name)])),
+      Object.fromEntries(
+        masteries.map((mastery) => [mastery.name, (skillsets[mastery.id] ?? []).map((skill) => skill.name)]),
+      ),
       additionalAttributes,
+      character.disabledEquipmentSlots,
     )
-  }, [character.equipment, devotions, equippedSetInfo, masteries, selectedDevotions, skillsets])
+    const allocatedSkillNames = new Set(
+      Object.values(skillsets)
+        .flat()
+        .filter((skill) => (character.skillLevels[skill.id] ?? 0) > 0)
+        .map((skill) => skill.name),
+    )
+    return Object.fromEntries(Object.entries(bonuses).filter(([name]) => allocatedSkillNames.has(name)))
+  }, [
+    character.disabledEquipmentSlots,
+    character.equipment,
+    character.skillLevels,
+    devotions,
+    equippedSetInfo,
+    masteries,
+    selectedDevotions,
+    skillsets,
+  ])
   const createItemInstance = (template: Item) => {
     const instance = {
       ...template,
@@ -83,7 +104,16 @@ function App() {
     return names
   }, [character.mastery1, character.mastery2, masteries, skillsets])
   const activeSkills = useMemo(
-    () => getActiveSkills({ character, itemSkillBonuses, skillsets, devotions, selectedDevotions, equippedSetInfo, masteries }),
+    () =>
+      getActiveSkills({
+        character,
+        itemSkillBonuses,
+        skillsets,
+        devotions,
+        selectedDevotions,
+        equippedSetInfo,
+        masteries,
+      }),
     [character, itemSkillBonuses, skillsets, devotions, selectedDevotions, equippedSetInfo, masteries],
   )
   const toggleSkill = (skillId: string, isProc: boolean) =>
@@ -127,23 +157,27 @@ function App() {
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(380px,480px)]">
         <div className="min-w-0">
           {view === 'equipment' ? (
-            <EquipmentPanel
-              character={character}
-              setCharacter={setCharacter}
-              itemLibrary={itemLibrary}
-              onEquip={equipAvailableItem}
-              onUnequip={unequipAvailableItem}
-              isEquipped={(item, slot) =>
-                slot
-                  ? Boolean(
-                      character.equipment[slot] &&
-                        (character.equipment[slot]?.id === item.id || character.equipment[slot]?.templateId === item.id),
-                    )
-                  : isEquipmentItem(item)
-              }
-              equippedSetInfo={equippedSetInfo}
-              activeSkillNames={selectedMasterySkillNames}
-            />
+            <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,420px)]">
+              <EquipmentPanel
+                character={character}
+                setCharacter={setCharacter}
+                itemLibrary={itemLibrary}
+                onEquip={equipAvailableItem}
+                onUnequip={unequipAvailableItem}
+                isEquipped={(item, slot) =>
+                  slot
+                    ? Boolean(
+                        character.equipment[slot] &&
+                        (character.equipment[slot]?.id === item.id ||
+                          character.equipment[slot]?.templateId === item.id),
+                      )
+                    : isEquipmentItem(item)
+                }
+                equippedSetInfo={equippedSetInfo}
+                activeSkillNames={selectedMasterySkillNames}
+              />
+              <ActiveSkillList skills={activeSkills} onSkillToggle={toggleSkill} />
+            </div>
           ) : view === 'masteries' ? (
             <SkillsView
               character={character}
@@ -183,7 +217,6 @@ function App() {
             role="tabpanel"
             aria-labelledby={`character-panel-tab-${rightPanel}`}
           >
-            {rightPanel === 'skills' && <ActiveSkillPanel skills={activeSkills} onSkillToggle={toggleSkill} compact />}
             {rightPanel === 'offense' && (
               <DamagePanel
                 character={character}
@@ -216,12 +249,16 @@ function App() {
               />
             )}
           </div>
-          <nav className="grid content-start gap-1" aria-label="Character panels" role="tablist" aria-orientation="vertical">
+          <nav
+            className="grid content-start gap-1"
+            aria-label="Character panels"
+            role="tablist"
+            aria-orientation="vertical"
+          >
             {[
+              { id: 'general', label: 'General stats', icon: IconChartBar },
               { id: 'offense', label: 'Offense', icon: IconBolt },
               { id: 'defense', label: 'Defense', icon: IconShield },
-              { id: 'skills', label: 'Skills', icon: IconSparkles },
-              { id: 'general', label: 'General stats', icon: IconChartBar },
             ].map(({ id, label, icon: Icon }) => {
               const selected = rightPanel === id
               return (

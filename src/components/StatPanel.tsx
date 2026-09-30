@@ -1,6 +1,6 @@
 import CollapsiblePanel from './CollapsiblePanel'
-import { useState } from 'react'
 import type { Character } from '@/domain/hero/types'
+import { getActiveEquipment } from '@/domain/item/item.utils'
 import { BASE_ATTRIBUTE_VALUE, BASE_ENERGY_VALUE, BASE_HEALTH_VALUE } from '@/domain/hero/hero.utils'
 import type { Mastery } from '@/domain/skill/types'
 import type { MasterySkill } from '@/domain/skill/types'
@@ -8,8 +8,6 @@ import { isChanceTriggeredSkill } from '@/domain/skill/skill.utils'
 import type { EquippedSetInfo } from '@/domain/item/types'
 
 type Devotion = { skills: Array<{ id: string; attributes: Array<{ label: string; value: string }> }> }
-type StatTab = 'attributes' | 'combat' | 'resources'
-
 type StatPanelProps = {
   character: Character
   devotions?: { constellations: Devotion[] } | null
@@ -29,7 +27,6 @@ function StatPanel({
   skillsets = {},
   itemSkillBonuses = {},
 }: StatPanelProps) {
-  const [activeTab, setActiveTab] = useState<StatTab>('attributes')
   const totals: Record<string, number> = {}
   const attributeModifiers: Record<string, number> = {
     Physique: 0,
@@ -49,7 +46,7 @@ function StatPanel({
     }
     totals[label] = (totals[label] ?? 0) + value
   }
-  for (const item of Object.values(character.equipment))
+  for (const item of Object.values(getActiveEquipment(character.equipment, character.disabledEquipmentSlots)))
     for (const attribute of item?.attributes ?? []) addAttribute(attribute.label, attribute.value)
   for (const constellation of devotions?.constellations ?? [])
     for (const skill of constellation.skills) {
@@ -175,96 +172,74 @@ function StatPanel({
     { label: 'Offensive Ability', value: totals['Offensive Ability'] ?? 0 },
     { label: 'Defensive Ability', value: totals['Defensive Ability'] ?? 0 },
     { label: 'Armor', value: totals.Armor ?? 0 },
-    { label: 'Damage Conversion', value: Object.keys(character.equipment).length },
+    {
+      label: 'Damage Conversion',
+      value: Object.keys(getActiveEquipment(character.equipment, character.disabledEquipmentSlots)).length,
+    },
   ]
-  const rowsByTab: Record<StatTab, typeof rows> = {
-    attributes: [],
-    combat: rows.slice(4),
-    resources: rows.slice(0, 4),
-  }
-  const tabs: Array<{ value: StatTab; label: string }> = [
-    { value: 'attributes', label: 'Attributes' },
-    { value: 'combat', label: 'Combat' },
-    { value: 'resources', label: 'Resources' },
-  ]
-
   return (
     <CollapsiblePanel eyebrow="Character" title="Stats">
-      <nav className="mb-3 flex w-full gap-1 border-b border-neutral-800" aria-label="Character stat categories">
-        {tabs.map((tab) => {
-          const selected = activeTab === tab.value
-          return (
-            <button
-              className={`flex-1 border-b-2 px-2.5 pb-2 text-xs font-medium transition-colors ${
-                selected
-                  ? 'border-orange-300 text-orange-200'
-                  : 'border-transparent text-neutral-500 hover:text-neutral-200'
-              }`}
-              key={tab.value}
-              type="button"
-              role="tab"
-              aria-selected={selected}
-              onClick={() => setActiveTab(tab.value)}
-            >
-              {tab.label}
-            </button>
-          )
-        })}
-      </nav>
-      {activeTab === 'attributes' ? (
-        <table className="w-full border-collapse text-sm">
-          <thead>
-            <tr className="text-[0.62rem] uppercase tracking-[0.08em] text-neutral-600">
-              <th className="pb-1.5 text-left font-normal">Attribute</th>
-              <th className="pb-1.5 text-right font-normal">Base</th>
-              <th className="pb-1.5 pl-2 text-right font-normal">Modifier</th>
-              <th className="pb-1.5 pl-2 text-right font-normal">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {attributeRows.map(({ label, base, modifier, total }) => (
-              <tr className="border-b border-neutral-800 last:border-b-0" key={label}>
-                <td className="py-1.5 text-neutral-300">{label}</td>
-                <td className="py-1.5 text-right tabular-nums text-neutral-400">{Math.round(base * 10) / 10}</td>
-                <td className="py-1.5 pl-2 text-right tabular-nums text-neutral-500">
-                  {modifier ? `${modifier > 0 ? '+' : ''}${Math.round(modifier * 10) / 10}%` : '—'}
-                </td>
-                <td className="py-1.5 pl-2 text-right tabular-nums text-neutral-100">
-                  <strong>{Math.round(total * 10) / 10}</strong>
-                </td>
+      <div className="grid gap-5">
+        <section>
+          <h3 className="mb-2 text-[0.65rem] font-medium uppercase tracking-[0.14em] text-neutral-500">Attributes</h3>
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr className="text-[0.62rem] uppercase tracking-[0.08em] text-neutral-600">
+                <th className="pb-1.5 text-left font-normal">Type</th>
+                <th className="pb-1.5 text-right font-normal">Base</th>
+                <th className="pb-1.5 pl-2 text-right font-normal">Modifier</th>
+                <th className="pb-1.5 pl-2 text-right font-normal">Total</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      ) : (
-        <table className="w-full border-collapse text-sm">
-          <tbody>
-            {rowsByTab[activeTab].map(({ label, value, modifier, maximum }) => (
-              <tr className="border-b border-neutral-800 last:border-b-0" key={label}>
-                <td className="py-1.5">
-                  <span className="flex items-baseline justify-between gap-3">
-                    <span className="text-neutral-500">{label}</span>
-                    <strong className="tabular-nums text-neutral-100">
-                      {modifier ? (
-                        <span className="mr-2 font-normal text-neutral-500">
-                          {modifier > 0 ? '+' : ''}
-                          {Math.round(modifier * 10) / 10}%
-                        </span>
-                      ) : null}
-                      {typeof value === 'string'
-                        ? value
-                        : `${Math.round(value * 10) / 10}${maximum !== undefined ? '%' : ''}`}
-                      {maximum !== undefined && (
-                        <span className="font-normal text-neutral-600"> / {Math.round(maximum * 10) / 10}%</span>
-                      )}
-                    </strong>
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+            </thead>
+            <tbody>
+              {attributeRows.map(({ label, base, modifier, total }) => (
+                <tr className="border-b border-neutral-800 last:border-b-0" key={label}>
+                  <td className="py-1.5 text-neutral-300">{label}</td>
+                  <td className="py-1.5 text-right tabular-nums text-neutral-400">{Math.round(base * 10) / 10}</td>
+                  <td className="py-1.5 pl-2 text-right tabular-nums text-neutral-500">
+                    {modifier ? `${modifier > 0 ? '+' : ''}${Math.round(modifier * 10) / 10}%` : '—'}
+                  </td>
+                  <td className="py-1.5 pl-2 text-right tabular-nums text-neutral-100">
+                    <strong>{Math.round(total * 10) / 10}</strong>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+        <section>
+          <h3 className="mb-2 text-[0.65rem] font-medium uppercase tracking-[0.14em] text-neutral-500">
+            Combat and resources
+          </h3>
+          <table className="w-full border-collapse text-sm">
+            <tbody>
+              {rows.map(({ label, value, modifier, maximum }) => (
+                <tr className="border-b border-neutral-800 last:border-b-0" key={label}>
+                  <td className="py-1.5">
+                    <span className="flex items-baseline justify-between gap-3">
+                      <span className="text-neutral-300">{label}</span>
+                      <strong className="tabular-nums text-neutral-100">
+                        {modifier ? (
+                          <span className="mr-2 font-normal text-neutral-500">
+                            {modifier > 0 ? '+' : ''}
+                            {Math.round(modifier * 10) / 10}%
+                          </span>
+                        ) : null}
+                        {typeof value === 'string'
+                          ? value
+                          : `${Math.round(value * 10) / 10}${maximum !== undefined ? '%' : ''}`}
+                        {maximum !== undefined && (
+                          <span className="font-normal text-neutral-600"> / {Math.round(maximum * 10) / 10}%</span>
+                        )}
+                      </strong>
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      </div>
     </CollapsiblePanel>
   )
 }

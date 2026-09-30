@@ -82,6 +82,21 @@ export function useItemLibrary(level: number) {
     return () => itemWorker.terminate()
   }, [])
 
+  useEffect(() => {
+    if (!worker) return
+    worker.postMessage({
+      type: 'page',
+      page: 0,
+      search,
+      category,
+      maxLevel: hideAboveLevel ? level : undefined,
+      rarities,
+      monsterInfrequentOnly,
+      stats,
+    })
+    setPage(0)
+  }, [worker])
+
   const changeCategory = (value: string) => {
     setCategory(value)
     requestPage(0, search, value)

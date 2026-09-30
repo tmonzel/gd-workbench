@@ -5,13 +5,13 @@ import CollapsiblePanel from '@/components/CollapsiblePanel'
 import { DAMAGE_COLORS } from '@/domain/skill/skill.utils'
 import type { SkillDamageRow, SkillEntry } from '@/domain/skill/active-skills.utils'
 
-type ActiveSkillPanelProps = {
+type ActiveSkillListProps = {
   skills: SkillEntry[]
   onSkillToggle: (skillId: string, isProc: boolean) => void
   compact?: boolean
 }
 
-function ActiveSkillPanel({ skills, onSkillToggle, compact = false }: ActiveSkillPanelProps) {
+function ActiveSkillList({ skills, onSkillToggle, compact = false }: ActiveSkillListProps) {
   const [expandedSkills, setExpandedSkills] = useState<Set<string>>(new Set())
   const initializedExpansion = useRef(false)
 
@@ -108,7 +108,9 @@ function ActiveSkillPanel({ skills, onSkillToggle, compact = false }: ActiveSkil
         )}
         {child.stats.length > 0 && (
           <div className="mt-2 grid gap-0.5 text-xs text-neutral-400">
-            {child.stats.map((stat) => <span key={stat}>{renderSkillStat(stat)}</span>)}
+            {child.stats.map((stat) => (
+              <span key={stat}>{renderSkillStat(stat)}</span>
+            ))}
           </div>
         )}
       </div>
@@ -117,7 +119,7 @@ function ActiveSkillPanel({ skills, onSkillToggle, compact = false }: ActiveSkil
 
   if (compact) {
     return (
-      <CollapsiblePanel eyebrow="Skills" title="Active skills">
+      <CollapsiblePanel eyebrow="Skills" title="ActiveSkillList">
         {skills.length === 0 ? (
           <p className="m-0 text-sm text-neutral-500">No active skills.</p>
         ) : (
@@ -140,8 +142,14 @@ function ActiveSkillPanel({ skills, onSkillToggle, compact = false }: ActiveSkil
                       onClick={() => toggleSkill(skillKey)}
                     >
                       {skill.stats.length > 0 || (skill.damageRows?.length ?? 0) > 0 ? (
-                        expanded ? <IconChevronUp size={14} stroke={2} aria-hidden="true" /> : <IconChevronDown size={14} stroke={2} aria-hidden="true" />
-                      ) : <span className="size-3.5" />}
+                        expanded ? (
+                          <IconChevronUp size={14} stroke={2} aria-hidden="true" />
+                        ) : (
+                          <IconChevronDown size={14} stroke={2} aria-hidden="true" />
+                        )
+                      ) : (
+                        <span className="size-3.5" />
+                      )}
                       <span className="min-w-0 truncate text-xs">{skill.name}</span>
                       <span className="shrink-0 text-[0.65rem] tabular-nums text-neutral-500">{rankLabel}</span>
                     </button>
@@ -156,13 +164,19 @@ function ActiveSkillPanel({ skills, onSkillToggle, compact = false }: ActiveSkil
                     )}
                   </div>
                   {expanded && skill.damageRows && skill.damageRows.length > 0 && (
-                    <div className={`border-t border-neutral-800 px-1 py-2 ${skill.isToggleable && !skill.enabled ? 'opacity-40' : ''}`}>
+                    <div
+                      className={`border-t border-neutral-800 px-1 py-2 ${skill.isToggleable && !skill.enabled ? 'opacity-40' : ''}`}
+                    >
                       {renderDamageTable(skill.damageRows)}
                     </div>
                   )}
                   {expanded && skill.stats.length > 0 && (
-                    <div className={`grid gap-0.5 border-t border-neutral-800 px-1 py-2 text-xs text-neutral-400 ${skill.isToggleable && !skill.enabled ? 'opacity-40' : ''}`}>
-                      {skill.stats.map((stat) => <span key={stat}>{renderSkillStat(stat)}</span>)}
+                    <div
+                      className={`grid gap-0.5 border-t border-neutral-800 px-1 py-2 text-xs text-neutral-400 ${skill.isToggleable && !skill.enabled ? 'opacity-40' : ''}`}
+                    >
+                      {skill.stats.map((stat) => (
+                        <span key={stat}>{renderSkillStat(stat)}</span>
+                      ))}
                     </div>
                   )}
                   {expanded && skill.children?.map(renderChildDetails)}
@@ -201,7 +215,9 @@ function ActiveSkillPanel({ skills, onSkillToggle, compact = false }: ActiveSkil
                     aria-expanded={expanded}
                     onClick={() => toggleSkill(skillKey)}
                   >
-                    <span className={`block ${skill.isToggleable && !skill.enabled ? 'text-neutral-500' : 'text-neutral-200'}`}>
+                    <span
+                      className={`block ${skill.isToggleable && !skill.enabled ? 'text-neutral-500' : 'text-neutral-200'}`}
+                    >
                       {skill.name} ({rankLabel})
                     </span>
                     <span className="block text-[0.68rem] text-neutral-600">{skill.source}</span>
@@ -258,4 +274,4 @@ function ActiveSkillPanel({ skills, onSkillToggle, compact = false }: ActiveSkil
   )
 }
 
-export default ActiveSkillPanel
+export default ActiveSkillList

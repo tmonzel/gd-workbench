@@ -89,9 +89,10 @@ function ItemPanel({
     }
     for (const [type, pattern] of Object.entries(weaponTypes))
       if (
-        collectionItems.some((item) =>
-          (type === 'Shields' ? item.category === 'Off-Hand' : item.category === 'Weapon') &&
-          pattern.test(String(item.stats?.Class ?? '')),
+        collectionItems.some(
+          (item) =>
+            (type === 'Shields' ? item.category === 'Off-Hand' : item.category === 'Weapon') &&
+            pattern.test(String(item.stats?.Class ?? '')),
         )
       )
         categories.add(type)
@@ -100,9 +101,7 @@ function ItemPanel({
   const collectionStatOptions = useMemo(
     () =>
       [
-        ...new Set([
-          ...collectionItems.flatMap((item) => (item.attributes ?? []).map((attribute) => attribute.label)),
-        ]),
+        ...new Set([...collectionItems.flatMap((item) => (item.attributes ?? []).map((attribute) => attribute.label))]),
       ].sort(),
     [collectionItems],
   )
@@ -111,20 +110,21 @@ function ItemPanel({
     const matchesStat = (item: Item, stat: string) => {
       return (item.attributes ?? []).some((attribute) => attribute.label === stat)
     }
-      const matchesCategory = (item: Item) =>
+    const matchesCategory = (item: Item) =>
       collectionCategory === 'All' ||
-        item.category === collectionCategory ||
-        CATEGORY_GROUPS[collectionCategory]?.includes(item.category) ||
-        (item.category === 'Weapon' && {
-        Swords: /WeaponMelee_Sword/i,
-        Axes: /WeaponMelee_Axe/i,
-        Maces: /WeaponMelee_Mace/i,
-        Daggers: /WeaponMelee_Dagger/i,
-        Scepters: /WeaponMelee_Scepter/i,
-        Spears: /WeaponMelee_Spear/i,
-        Ranged: /WeaponHunting_Ranged/i,
-        Shields: /shield/i,
-      }[collectionCategory]?.test(String(item.stats?.Class ?? '')))
+      item.category === collectionCategory ||
+      CATEGORY_GROUPS[collectionCategory]?.includes(item.category) ||
+      (item.category === 'Weapon' &&
+        {
+          Swords: /WeaponMelee_Sword/i,
+          Axes: /WeaponMelee_Axe/i,
+          Maces: /WeaponMelee_Mace/i,
+          Daggers: /WeaponMelee_Dagger/i,
+          Scepters: /WeaponMelee_Scepter/i,
+          Spears: /WeaponMelee_Spear/i,
+          Ranged: /WeaponHunting_Ranged/i,
+          Shields: /shield/i,
+        }[collectionCategory]?.test(String(item.stats?.Class ?? '')))
     return collectionItems.filter((item) => {
       const requiredLevel = Number(item.stats?.levelRequirement ?? item.level) || 0
       return (
@@ -132,7 +132,7 @@ function ItemPanel({
           `${item.qualityTag ?? ''} ${item.prefix ?? ''} ${item.name} ${item.suffix ?? ''} ${item.category}`
             .toLowerCase()
             .includes(query)) &&
-          matchesCategory(item) &&
+        matchesCategory(item) &&
         (!collectionHideAboveLevel || requiredLevel <= itemLibrary.level) &&
         (!collectionMonsterInfrequentOnly || item.isMonsterInfrequent) &&
         (!collectionRarities.length || collectionRarities.includes(item.rarity)) &&
@@ -246,6 +246,7 @@ function ItemPanel({
                         if (selectedCollectionItem?.id === item.id) setSelectedCollectionItem(undefined)
                       }}
                       allowTemplateEquip={allowTemplateEquip}
+                      maxColumns={embedded ? 2 : undefined}
                     />
                   ) : (
                     <p className="py-12 text-center text-sm text-neutral-500">
@@ -307,6 +308,7 @@ function ItemPanel({
                   equippedSetInfo={equippedSetInfo}
                   onCreateInstance={onCreateInstance}
                   allowTemplateEquip={allowTemplateEquip}
+                  maxColumns={embedded ? 2 : undefined}
                 />
               ) : null}
               {!loading && status === 'ready' && items.length === 0 && (

@@ -1,4 +1,4 @@
-import { useEffect, useState, type Dispatch, type SetStateAction } from 'react'
+import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 import { Card } from '@/components/Card'
 import type { Character } from '@/domain/hero/types'
 import type { EquippedSetInfo, Item } from '@/domain/item/types'
@@ -28,6 +28,56 @@ const SLOT_LABELS: Record<string, string> = {
   Shoulders: 'Shoulders',
 }
 
+const MAIN_HAND_TYPES = [
+  ['Main-Hand', 'All weapons'],
+  ['Main-Hand-Swords', 'Swords'],
+  ['Main-Hand-Axes', 'Axes'],
+  ['Main-Hand-Maces', 'Maces'],
+  ['Main-Hand-Daggers', 'Daggers'],
+  ['Main-Hand-Scepters', 'Scepters'],
+  ['Main-Hand-Spears', 'Spears'],
+  ['Main-Hand-Ranged', 'Ranged'],
+] as const
+
+const OFF_HAND_TYPES = [
+  ['Off-Hand-Picker-All', 'All'],
+  ['Off-Hand-Picker-Shields', 'Shields'],
+  ['Off-Hand-Picker-Off-Hands', 'Off-Hands'],
+  ['Off-Hand-Picker-One-Handed-Weapons', 'One-Handed Weapons'],
+] as const
+
+const ARMOR_TYPES: Record<string, Array<readonly [string, string]>> = {
+  'Chest Armor': [
+    ['All', 'All'],
+    ['Normal', 'Normal'],
+    ['Heavy', 'Heavy'],
+    ['Caster', 'Caster'],
+  ],
+  Pants: [
+    ['All', 'All'],
+    ['Normal', 'Normal'],
+    ['Heavy', 'Heavy'],
+  ],
+  Gloves: [
+    ['All', 'All'],
+    ['Normal', 'Normal'],
+    ['Heavy', 'Heavy'],
+  ],
+  Helm: [
+    ['All', 'All'],
+    ['Normal', 'Normal'],
+    ['Heavy', 'Heavy'],
+    ['Caster', 'Caster'],
+  ],
+}
+
+const ARMOR_PICKER_SLOTS: Record<string, string> = {
+  'Chest Armor': 'ChestArmor',
+  Pants: 'Pants',
+  Gloves: 'Gloves',
+  Helm: 'Helm',
+}
+
 function EquipmentPanel({
   character,
   setCharacter,
@@ -39,14 +89,34 @@ function EquipmentPanel({
   isEquipped,
 }: EquipmentPanelProps) {
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
+  const [mainHandType, setMainHandType] = useState('Main-Hand')
+  const [offHandType, setOffHandType] = useState('Off-Hand-Picker-All')
+  const [armorType, setArmorType] = useState('All')
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const closeTimer = useRef<number | undefined>(undefined)
   useEffect(() => {
     if (!selectedSlot) return
+    setDrawerOpen(false)
+    const frame = requestAnimationFrame(() => setDrawerOpen(true))
     const previousOverflow = document.body.style.overflow
+    const previousPaddingRight = document.body.style.paddingRight
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth
     document.body.style.overflow = 'hidden'
+    if (scrollbarWidth > 0) document.body.style.paddingRight = `${scrollbarWidth}px`
     return () => {
+      cancelAnimationFrame(frame)
       document.body.style.overflow = previousOverflow
+      document.body.style.paddingRight = previousPaddingRight
     }
   }, [selectedSlot])
+  const closeDrawer = () => {
+    if (closeTimer.current !== undefined) window.clearTimeout(closeTimer.current)
+    setDrawerOpen(false)
+    closeTimer.current = window.setTimeout(() => {
+      closeTimer.current = undefined
+      setSelectedSlot(null)
+    }, 300)
+  }
   const slotGroups = [
     { name: 'Weapon', slots: ['Weapon', 'Off-Hand'] },
     { name: 'Armor', slots: ['Chest Armor', 'Gloves', 'Pants', 'Boots', 'Helm', 'Shoulders'] },
@@ -55,10 +125,11 @@ function EquipmentPanel({
   const renderSlot = (slot: string) => {
     const item = character.equipment[slot]
     const blocked = slot === 'Off-Hand' && character.equipment.Weapon?.twoHanded
+    const disabled = Boolean(character.disabledEquipmentSlots?.[slot])
     const slotLabel = SLOT_LABELS[slot] ?? slot
     return (
       <div
-        className={`min-w-0 max-w-full overflow-hidden rounded-md border border-neutral-700 bg-neutral-950/45 ${blocked ? 'opacity-60' : ''}`}
+        className={`min-w-0 max-w-full overflow-hidden rounded-md border border-neutral-700 bg-neutral-950/45 ${blocked || disabled ? 'opacity-60' : ''}`}
         key={slot}
       >
         <div className="flex items-center border-b border-neutral-800">
@@ -70,27 +141,55 @@ function EquipmentPanel({
           >
             {slotLabel}
           </button>
-          {item && !blocked && (
-            <button
-              className="flex size-8 shrink-0 items-center justify-center border-l border-neutral-800 text-neutral-600 transition-colors hover:bg-neutral-800 hover:text-neutral-200"
-              type="button"
-              aria-label={`Remove ${slotLabel}`}
-              title={`Remove ${slotLabel}`}
-              onClick={() =>
-                setCharacter((current) => ({
-                  ...current,
-                  equipment: { ...current.equipment, [slot]: undefined },
-                }))
-              }
-            >
-              ×
-            </button>
+          {item && (
+            <>
+              <label className="flex h-8 shrink-0 items-center gap-1 border-l border-neutral-800 px-2 text-[0.62rem] text-neutral-500">
+                <input
+                  className="app-checkbox"
+                  type="checkbox"
+                  checked={disabled}
+                  onChange={() =>
+                    setCharacter((current) => ({
+                      ...current,
+                      disabledEquipmentSlots: {
+                        ...(current.disabledEquipmentSlots ?? {}),
+                        [slot]: !current.disabledEquipmentSlots?.[slot],
+                      },
+                    }))
+                  }
+                  aria-label={`Deactivate ${slotLabel}`}
+                  title={`Deactivate ${slotLabel}`}
+                />
+                Off
+              </label>
+              {!blocked && (
+                <button
+                  className="flex size-8 shrink-0 items-center justify-center border-l border-neutral-800 text-neutral-600 transition-colors hover:bg-neutral-800 hover:text-neutral-200"
+                  type="button"
+                  aria-label={`Remove ${slotLabel}`}
+                  title={`Remove ${slotLabel}`}
+                  onClick={() =>
+                    setCharacter((current) => {
+                      const disabledEquipmentSlots = { ...(current.disabledEquipmentSlots ?? {}) }
+                      delete disabledEquipmentSlots[slot]
+                      return {
+                        ...current,
+                        equipment: { ...current.equipment, [slot]: undefined },
+                        disabledEquipmentSlots,
+                      }
+                    })
+                  }
+                >
+                  ×
+                </button>
+              )}
+            </>
           )}
         </div>
         {blocked ? (
           <p className="m-0 px-3 py-2 text-xs text-neutral-600">Blocked by two-handed weapon</p>
         ) : item ? (
-          <div className="min-w-0 p-2">
+          <div className={`min-w-0 p-2 ${disabled ? 'pointer-events-none' : ''}`}>
             <ItemCard
               item={item}
               activeSkillNames={activeSkillNames}
@@ -117,18 +216,31 @@ function EquipmentPanel({
       setCharacter((current) => ({
         ...current,
         equipment: { ...current.equipment, [selectedSlot]: undefined },
+        disabledEquipmentSlots: Object.fromEntries(
+          Object.entries(current.disabledEquipmentSlots ?? {}).filter(([slot]) => slot !== selectedSlot),
+        ),
       }))
-      setSelectedSlot(null)
+      closeDrawer()
       return
     }
     onUnequip(item)
-    setSelectedSlot(null)
+    closeDrawer()
   }
   const equipSelectedItem = (item: Item) => {
     if (!selectedSlot) return
     onEquip(item, selectedSlot)
-    setSelectedSlot(null)
+    closeDrawer()
   }
+  const pickerCategory =
+    selectedSlot === 'Ring 1' || selectedSlot === 'Ring 2'
+      ? 'Ring'
+      : selectedSlot === 'Weapon'
+        ? mainHandType
+        : selectedSlot === 'Off-Hand'
+          ? offHandType
+          : ARMOR_PICKER_SLOTS[selectedSlot ?? '']
+            ? `Armor-Picker-${ARMOR_PICKER_SLOTS[selectedSlot ?? '']}-${armorType}`
+            : selectedSlot
 
   return (
     <>
@@ -141,11 +253,7 @@ function EquipmentPanel({
           {slotGroups.map(({ name, slots }) => (
             <section key={name}>
               <h3 className="mb-2 text-[0.65rem] font-medium uppercase tracking-[0.14em] text-neutral-500">{name}</h3>
-              <div
-                className={`grid gap-2 ${name === 'Weapon' ? 'grid-cols-2' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'}`}
-              >
-                {slots.map(renderSlot)}
-              </div>
+              <div className="grid grid-cols-2 gap-2">{slots.map(renderSlot)}</div>
             </section>
           ))}
         </div>
@@ -190,13 +298,14 @@ function EquipmentPanel({
         )}
       </Card>
       {selectedSlot && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/75 p-3 sm:p-6"
-          role="presentation"
-          onClick={() => setSelectedSlot(null)}
-        >
+        <div className="fixed inset-0 z-50" role="presentation">
+          <div
+            className={`absolute inset-0 transition-opacity duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${drawerOpen ? 'bg-black/75 opacity-100' : 'pointer-events-none bg-black/0 opacity-0'}`}
+            aria-hidden="true"
+            onClick={closeDrawer}
+          />
           <section
-            className="my-auto flex max-h-[calc(100vh-1.5rem)] w-full max-w-[88rem] flex-col overflow-hidden rounded-lg border border-neutral-700 bg-neutral-950 shadow-2xl shadow-black/60 sm:max-h-[calc(100vh-3rem)]"
+            className={`relative ml-auto flex h-full w-full max-w-5xl flex-col overflow-hidden border-l border-neutral-700 bg-neutral-950 shadow-2xl shadow-black/60 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${drawerOpen ? 'translate-x-0' : 'translate-x-full'}`}
             role="dialog"
             aria-modal="true"
             aria-labelledby="equipment-item-picker-title"
@@ -208,12 +317,58 @@ function EquipmentPanel({
                 <h2 id="equipment-item-picker-title" className="m-0 text-base font-medium text-neutral-100">
                   Select item for {SLOT_LABELS[selectedSlot] ?? selectedSlot}
                 </h2>
+                {selectedSlot === 'Weapon' ? (
+                  <label className="mt-2 flex items-center gap-2 text-xs text-neutral-500">
+                    <span>Weapon type</span>
+                    <select
+                      className="rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs text-neutral-200 outline-none focus:border-orange-300"
+                      value={mainHandType}
+                      onChange={(event) => setMainHandType(event.target.value)}
+                    >
+                      {MAIN_HAND_TYPES.map(([value, label]) => (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : selectedSlot === 'Off-Hand' ? (
+                  <label className="mt-2 flex items-center gap-2 text-xs text-neutral-500">
+                    <span>Off-Hand type</span>
+                    <select
+                      className="rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs text-neutral-200 outline-none focus:border-orange-300"
+                      value={offHandType}
+                      onChange={(event) => setOffHandType(event.target.value)}
+                    >
+                      {OFF_HAND_TYPES.map(([value, label]) => (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : ARMOR_TYPES[selectedSlot] ? (
+                  <label className="mt-2 flex items-center gap-2 text-xs text-neutral-500">
+                    <span>Armor type</span>
+                    <select
+                      className="rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs text-neutral-200 outline-none focus:border-orange-300"
+                      value={armorType}
+                      onChange={(event) => setArmorType(event.target.value)}
+                    >
+                      {ARMOR_TYPES[selectedSlot].map(([value, label]) => (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
               </div>
               <button
                 className="flex size-8 shrink-0 items-center justify-center rounded text-lg text-neutral-500 hover:bg-neutral-800 hover:text-neutral-100"
                 type="button"
                 aria-label="Close item picker"
-                onClick={() => setSelectedSlot(null)}
+                onClick={closeDrawer}
               >
                 ×
               </button>
@@ -221,13 +376,7 @@ function EquipmentPanel({
             <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-5">
               <ItemPanel
                 itemLibrary={itemLibrary}
-                categoryOverride={
-                  selectedSlot === 'Ring 1' || selectedSlot === 'Ring 2'
-                    ? 'Ring'
-                    : selectedSlot === 'Weapon'
-                      ? 'Main-Hand'
-                      : selectedSlot
-                }
+                categoryOverride={pickerCategory ?? undefined}
                 onEquip={equipSelectedItem}
                 onUnequip={unequipSelectedItem}
                 isEquipped={(item) => isEquipped(item, selectedSlot ?? undefined)}

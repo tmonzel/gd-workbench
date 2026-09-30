@@ -1,5 +1,6 @@
 import CollapsiblePanel from '@/components/CollapsiblePanel'
 import type { Character } from '@/domain/hero/types'
+import { getActiveEquipment } from '@/domain/item/item.utils'
 import type { EquippedSetInfo } from '@/domain/item/types'
 import { DAMAGE_COLORS, DAMAGE_TYPES, resistanceLabel } from '@/domain/skill/skill.utils'
 import { DIFFICULTY_RESISTANCE_PENALTIES, type DifficultyMode } from '@/domain/hero/difficulty'
@@ -22,7 +23,7 @@ function ResistancePanel({
   difficulty,
 }: ResistancePanelProps) {
   const attributes: Array<{ label: string; value: string }> = []
-  for (const item of Object.values(character.equipment))
+  for (const item of Object.values(getActiveEquipment(character.equipment, character.disabledEquipmentSlots)))
     for (const attribute of item?.attributes ?? [])
       attributes.push({ label: attribute.label, value: String(attribute.value) })
   for (const constellation of devotions?.constellations ?? [])
@@ -95,9 +96,7 @@ function ResistancePanel({
             {difficultyPenalty !== 0 && (
               <tr className="border-b border-neutral-800 last:border-b-0">
                 <td className="py-1.5 text-neutral-500">{difficulty} Penalty</td>
-                <td className="py-1.5 text-right tabular-nums text-neutral-500">
-                  {difficultyPenalty}%
-                </td>
+                <td className="py-1.5 text-right tabular-nums text-neutral-500">{difficultyPenalty}%</td>
               </tr>
             )}
           </tbody>

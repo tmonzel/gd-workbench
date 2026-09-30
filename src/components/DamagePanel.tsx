@@ -1,5 +1,6 @@
 import CollapsiblePanel from '@/components/CollapsiblePanel'
 import type { Character } from '@/domain/hero/types'
+import { getActiveEquipment } from '@/domain/item/item.utils'
 import type { EquippedSetInfo } from '@/domain/item/types'
 import { DAMAGE_COLORS, DAMAGE_TYPES } from '@/domain/skill/skill.utils'
 import {
@@ -54,7 +55,7 @@ function DamagePanel({
   const { cunning, spirit } = getCharacterAttributeTotals(character, masteries)
 
   const sourceAttributes: Array<{ label: string; value: string }> = []
-  for (const item of Object.values(character.equipment))
+  for (const item of Object.values(getActiveEquipment(character.equipment, character.disabledEquipmentSlots)))
     for (const attribute of item?.attributes ?? [])
       sourceAttributes.push({ label: attribute.label, value: String(attribute.value) })
   for (const constellation of devotions?.constellations ?? [])
@@ -68,7 +69,7 @@ function DamagePanel({
     for (const skill of skillsets[masteryId ?? ''] ?? []) {
       const isProc = isChanceTriggeredSkill(skill)
       const isEnabled = isProc
-        ? character.enabledProcSkills?.includes(skill.id) ?? false
+        ? (character.enabledProcSkills?.includes(skill.id) ?? false)
         : !character.disabledPassiveSkills?.includes(skill.id)
       if ((!skill.isPassive && !isProc) || !isEnabled) continue
       const allocatedLevel = character.skillLevels[skill.id] ?? 0
@@ -132,7 +133,9 @@ function DamagePanel({
       // hide rows that don't resolve to a concrete total (e.g. an attribute bonus with no base damage to apply to)
       (stat): stat is NonNullable<typeof stat> => stat !== null && (stat.totalMin !== 0 || stat.totalMax !== 0),
     )
-  const armorPiercingPercent = getWeaponArmorPiercingPercent(character.equipment.Weapon?.attributes)
+  const armorPiercingPercent = getWeaponArmorPiercingPercent(
+    getActiveEquipment(character.equipment, character.disabledEquipmentSlots).Weapon?.attributes,
+  )
   // Armor Piercing converts a % of ALL Physical attack damage (weapon + skill + item bonuses) to Piercing
   const damageStats = applyArmorPiercingConversion(calculateDamage(''), armorPiercingPercent).map((stat) => ({
     ...stat,

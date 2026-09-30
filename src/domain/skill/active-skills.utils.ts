@@ -1,5 +1,6 @@
 import type { Character } from '@/domain/hero/types'
 import type { EquippedSetInfo } from '@/domain/item/types'
+import { getActiveEquipment } from '@/domain/item/item.utils'
 import type { DevotionData } from '@/domain/devotion/types'
 import type { Mastery, MasterySkill } from '@/domain/skill/types'
 import {
@@ -89,7 +90,8 @@ export const getActiveSkills = ({
       .map((skill) => skill.name),
   )
   const weaponDamage = new Map<string, { min: number; max: number }>()
-  for (const attribute of character.equipment.Weapon?.attributes ?? []) {
+  const activeEquipment = getActiveEquipment(character.equipment, character.disabledEquipmentSlots)
+  for (const attribute of activeEquipment.Weapon?.attributes ?? []) {
     const match = /^(Physical|Fire|Cold|Lightning|Poison|Piercing|Bleeding|Aether|Chaos|Vitality) Damage$/i.exec(
       attribute.label,
     )
@@ -102,7 +104,7 @@ export const getActiveSkills = ({
   // Apply the same item, devotion, set, and attribute damage bonuses used by DamagePanel.
   const { cunning, spirit } = getCharacterAttributeTotals(character, masteries)
   const sourceAttributes: Array<{ label: string; value: string }> = []
-  for (const item of Object.values(character.equipment))
+  for (const item of Object.values(activeEquipment))
     for (const attribute of item?.attributes ?? [])
       sourceAttributes.push({ label: attribute.label, value: String(attribute.value) })
   for (const constellation of devotions?.constellations ?? [])
@@ -118,7 +120,7 @@ export const getActiveSkills = ({
       damageModifierPercent.set(type, getDamageTypeModifierPercent(type, false, sourceAttributes, cunning, spirit))
     return damageModifierPercent.get(type) ?? 0
   }
-  const armorPiercingPercent = getWeaponArmorPiercingPercent(character.equipment.Weapon?.attributes)
+  const armorPiercingPercent = getWeaponArmorPiercingPercent(activeEquipment.Weapon?.attributes)
   for (const skills of Object.values(skillsets))
     for (const skill of skills) {
       masteryLevels.set(skill.name, character.skillLevels[skill.id] ?? 0)
@@ -146,7 +148,7 @@ export const getActiveSkills = ({
     for (const stat of stats) entry.stats.add(stat)
     entries.set(name, entry)
   }
-  for (const item of Object.values(character.equipment)) {
+  for (const item of Object.values(activeEquipment)) {
     if (!item) continue
     if (
       item.grantedSkill &&
@@ -193,7 +195,7 @@ export const getActiveSkills = ({
       if (skill.isModifier || skill.isTransmuter) continue
       const isProc = isChanceTriggeredSkill(skill)
       const skillEnabled = isProc
-        ? character.enabledProcSkills?.includes(skill.id) ?? false
+        ? (character.enabledProcSkills?.includes(skill.id) ?? false)
         : !character.disabledPassiveSkills?.includes(skill.id)
       const allocatedLevel = character.skillLevels[skill.id] ?? 0
       if (allocatedLevel <= 0) continue
@@ -221,8 +223,7 @@ export const getActiveSkills = ({
             modifier.effects
               .filter((effect) => effect.key === 'offensiveDamageMultModifier')
               .reduce((sum, effect) => {
-                const modifierLevel =
-                  (character.skillLevels[modifier.id] ?? 0) + (itemSkillBonuses[modifier.name] ?? 0)
+                const modifierLevel = (character.skillLevels[modifier.id] ?? 0) + (itemSkillBonuses[modifier.name] ?? 0)
                 return sum + (effect.values[Math.min(modifierLevel, effect.values.length) - 1] ?? 0)
               }, 0) /
               100,
@@ -279,9 +280,10 @@ export const getActiveSkills = ({
             }
           }
           if (isWeaponDamage) return rawValue ? `${formatSkillValue(rawValue)}% Weapon Damage` : ''
-          const label = convertsAllLightningToAether && /lightning/i.test(effect.key)
-            ? effect.label.replace(/Lightning/gi, 'Aether')
-            : effect.label
+          const label =
+            convertsAllLightningToAether && /lightning/i.test(effect.key)
+              ? effect.label.replace(/Lightning/gi, 'Aether')
+              : effect.label
           const value = isDamage ? rawValue * totalDamageMultiplier : rawValue
           if (!Number.isFinite(value) || value === 0) return ''
           if (effect.key === 'offensiveSlowAttackSpeedMin') {
@@ -294,12 +296,11 @@ export const getActiveSkills = ({
             isDamage ? totalDamageMultiplier : 1,
             label,
           )
-          return (
-            effect.key.startsWith('character') ||
+          return (effect.key.startsWith('character') ||
             effect.key === 'offensiveTotalDamageModifier' ||
             effect.key === 'offensiveElementalModifier' ||
-            effect.key === 'offensivePierceModifier'
-          ) && rawValue > 0
+            effect.key === 'offensivePierceModifier') &&
+            rawValue > 0
             ? `+${formatted}`
             : formatted
         })
@@ -331,9 +332,10 @@ export const getActiveSkills = ({
               totalMax: max * flatMultiplier,
             })
           }
-          const label = convertsAllLightningToAether && /lightning/i.test(effect.label)
-            ? effect.label.replace(/Lightning/gi, 'Aether')
-            : effect.label
+          const label =
+            convertsAllLightningToAether && /lightning/i.test(effect.label)
+              ? effect.label.replace(/Lightning/gi, 'Aether')
+              : effect.label
           summonStats.push(`${formatSkillValue(value)}${effect.suffix ?? ''} ${label}`)
         }
         const summonEntryName = summon.name
@@ -378,16 +380,27 @@ export const getActiveSkills = ({
               totalMax: max * flatMultiplier,
             })
           }
-          const label = convertsAllLightningToAether && /lightning/i.test(effect.label)
-            ? effect.label.replace(/Lightning/gi, 'Aether')
-            : effect.label
-          modifierStats.push(formatSkillEffect({ ...effect, value: rawValue }, modifierLevel, isDamage ? totalDamageMultiplier : 1, label))
+          const label =
+            convertsAllLightningToAether && /lightning/i.test(effect.label)
+              ? effect.label.replace(/Lightning/gi, 'Aether')
+              : effect.label
+          modifierStats.push(
+            formatSkillEffect(
+              { ...effect, value: rawValue },
+              modifierLevel,
+              isDamage ? totalDamageMultiplier : 1,
+              label,
+            ),
+          )
         }
         addSkill(modifier.name, modifierLevel, `Modifier of ${skill.name}`, modifierStats, modifier.icon, true)
         const modifierEntry = entries.get(modifier.name)
         if (modifierEntry) {
           modifierEntry.parentSkillName = skill.name
-          modifierEntry.allocatedLevel = Math.max(modifierEntry.allocatedLevel ?? 0, character.skillLevels[modifier.id] ?? 0)
+          modifierEntry.allocatedLevel = Math.max(
+            modifierEntry.allocatedLevel ?? 0,
+            character.skillLevels[modifier.id] ?? 0,
+          )
           modifierEntry.bonusLevel = Math.max(modifierEntry.bonusLevel ?? 0, itemSkillBonuses[modifier.name] ?? 0)
           for (const row of applyArmorPiercingConversion(modifierDamageRows, armorPiercingPercent))
             modifierEntry.damageRows.set(`${row.type}-${row.label}`, row)
@@ -445,28 +458,26 @@ export const getActiveSkills = ({
       if (entry) for (const row of convertedDamageRows) entry.damageRows.set(`${row.type}-${row.label}`, row)
     }
   const flatEntries = [...entries.entries()].map(([name, entry]) => ({
-      name,
-      level: entry.level,
-      allocatedLevel: entry.allocatedLevel,
-      bonusLevel: entry.bonusLevel,
-      source: [...entry.sources].join(' + '),
-      stats: [...entry.stats],
-      damageRows: [...entry.damageRows.values()],
-      icon: entry.icon,
-      isPassive: entry.isPassive,
-      isProc: entry.isProc,
-      isToggleable: entry.isToggleable,
-      toggleSkillId: entry.toggleSkillId,
-      enabled: entry.enabled,
-      parentSkillName: entry.parentSkillName,
-    }))
+    name,
+    level: entry.level,
+    allocatedLevel: entry.allocatedLevel,
+    bonusLevel: entry.bonusLevel,
+    source: [...entry.sources].join(' + '),
+    stats: [...entry.stats],
+    damageRows: [...entry.damageRows.values()],
+    icon: entry.icon,
+    isPassive: entry.isPassive,
+    isProc: entry.isProc,
+    isToggleable: entry.isToggleable,
+    toggleSkillId: entry.toggleSkillId,
+    enabled: entry.enabled,
+    parentSkillName: entry.parentSkillName,
+  }))
   return flatEntries
     .filter((entry) => !entry.parentSkillName)
     .map((entry) => ({
       ...entry,
-      children: flatEntries
-        .filter((child) => child.parentSkillName === entry.name)
-        .map((child) => child),
+      children: flatEntries.filter((child) => child.parentSkillName === entry.name).map((child) => child),
     }))
     .sort((left, right) => left.name.localeCompare(right.name))
 }

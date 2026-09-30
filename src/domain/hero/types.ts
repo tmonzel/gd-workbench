@@ -12,4 +12,5 @@ export type Character = {
   disabledPassiveSkills?: string[]
   enabledProcSkills?: string[]
   equipment: Partial<Record<string, Item>>
+  disabledEquipmentSlots?: Record<string, boolean>
 }
