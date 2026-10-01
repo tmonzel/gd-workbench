@@ -95,6 +95,21 @@ function App() {
     )
     if (equippedItem) unequipItem(equippedItem)
   }
+  const updateItemInstance = (item: Item) => {
+    setCollectionItems((current) =>
+      current.map((entry) => (entry.id === item.id ? { ...entry, ...item, isInstance: true } : entry)),
+    )
+    setCharacter((current) => {
+      const equipment = { ...current.equipment }
+      let changed = false
+      for (const [slot, equippedItem] of Object.entries(equipment))
+        if (equippedItem?.id === item.id) {
+          equipment[slot] = { ...equippedItem, ...item, isInstance: true }
+          changed = true
+        }
+      return changed ? { ...current, equipment } : current
+    })
+  }
   const selectedMasterySkillNames = useMemo(() => {
     const names = new Set<string>()
     for (const id of [character.mastery1, character.mastery2])
@@ -175,6 +190,7 @@ function App() {
                 }
                 equippedSetInfo={equippedSetInfo}
                 activeSkillNames={selectedMasterySkillNames}
+                onUpdateInstance={updateItemInstance}
               />
               <ActiveSkillList skills={activeSkills} onSkillToggle={toggleSkill} />
             </div>
@@ -199,11 +215,7 @@ function App() {
               equippedSetInfo={equippedSetInfo}
               collectionItems={collectionItems}
               onCreateInstance={createItemInstance}
-              onUpdateInstance={(item) =>
-                setCollectionItems((current) =>
-                  current.map((entry) => (entry.id === item.id ? { ...entry, ...item, isInstance: true } : entry)),
-                )
-              }
+              onUpdateInstance={updateItemInstance}
               onRemoveInstance={(item) =>
                 setCollectionItems((current) => current.filter((entry) => entry.id !== item.id))
               }

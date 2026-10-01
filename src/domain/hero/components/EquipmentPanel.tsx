@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
+import { IconPencil } from '@tabler/icons-react'
 import { Card } from '@/components/Card'
 import type { Character } from '@/domain/hero/types'
 import type { EquippedSetInfo, Item } from '@/domain/item/types'
 import ItemCard from '@/domain/item/components/ItemCard'
+import ItemCraftModal from '@/domain/item/components/ItemCraftModal'
 import ItemPanel from '@/domain/item/components/ItemPanel'
 import type { ItemLibraryState } from '@/domain/item/item.hooks'
 
@@ -15,6 +17,7 @@ type EquipmentPanelProps = {
   onEquip: (item: Item, slot?: string) => void
   onUnequip: (item: Item) => void
   isEquipped: (item: Item, slot?: string) => boolean
+  onUpdateInstance?: (item: Item) => void
 }
 
 const SLOT_LABELS: Record<string, string> = {
@@ -87,8 +90,10 @@ function EquipmentPanel({
   onEquip,
   onUnequip,
   isEquipped,
+  onUpdateInstance,
 }: EquipmentPanelProps) {
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
+  const [editingItem, setEditingItem] = useState<Item | undefined>()
   const [mainHandType, setMainHandType] = useState('Main-Hand')
   const [offHandType, setOffHandType] = useState('Off-Hand-Picker-All')
   const [armorType, setArmorType] = useState('All')
@@ -162,6 +167,17 @@ function EquipmentPanel({
                 />
                 Off
               </label>
+              {!blocked && onUpdateInstance && (
+                <button
+                  className="flex size-8 shrink-0 items-center justify-center border-l border-neutral-800 text-neutral-600 transition-colors hover:bg-neutral-800 hover:text-neutral-200"
+                  type="button"
+                  aria-label={`Edit ${slotLabel}`}
+                  title={`Edit ${slotLabel}`}
+                  onClick={() => setEditingItem(item)}
+                >
+                  <IconPencil size={15} stroke={1.8} aria-hidden="true" />
+                </button>
+              )}
               {!blocked && (
                 <button
                   className="flex size-8 shrink-0 items-center justify-center border-l border-neutral-800 text-neutral-600 transition-colors hover:bg-neutral-800 hover:text-neutral-200"
@@ -388,6 +404,19 @@ function EquipmentPanel({
             </div>
           </section>
         </div>
+      )}
+      {editingItem && onUpdateInstance && (
+        <ItemCraftModal
+          item={editingItem}
+          itemSets={itemLibrary.itemSets}
+          equippedSetInfo={equippedSetInfo}
+          activeSkillNames={activeSkillNames}
+          onSave={(item) => {
+            onUpdateInstance(item)
+            setEditingItem(undefined)
+          }}
+          onClose={() => setEditingItem(undefined)}
+        />
       )}
     </>
   )
