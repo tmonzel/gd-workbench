@@ -2,15 +2,15 @@ import type { Character } from '@/domain/hero/types'
 import type { EquippedSetInfo } from '@/domain/item/types'
 import { getActiveEquipment } from '@/domain/item/item.utils'
 import type { DevotionData } from '@/domain/devotion/types'
-import type { Mastery, MasterySkill } from '@/domain/skill/types'
+import type { Mastery, MasterySkill } from '@/domain/mastery/mastery.types'
 import {
   getCharacterAttributeTotals,
   getDamageTypeModifierPercent,
   applyArmorPiercingConversion,
   getWeaponArmorPiercingPercent,
-} from '@/domain/skill/damage.utils'
-import { formatSkillEffect, formatSkillValue, isChanceTriggeredSkill } from '@/domain/skill/skill.utils'
-import { parseDamageValue } from '@/domain/skill/damage.utils'
+} from '@/domain/mastery/damage.utils'
+import { formatSkillEffect, formatSkillValue, isChanceTriggeredSkill } from '@/domain/mastery/mastery.utils'
+import { parseDamageValue } from '@/domain/mastery/damage.utils'
 
 export type SkillDamageRow = {
   type: string

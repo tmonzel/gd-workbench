@@ -1,8 +1,8 @@
 import { useState, type Dispatch, type SetStateAction } from 'react'
 import type { Item } from '@/domain/item/types'
 import { isEquippableItem } from '@/domain/item/item.utils'
-import type { MasterySkill } from '@/domain/skill/types'
-import { trimAllocationsForLevel } from '@/domain/skill/skill.utils'
+import type { MasterySkill } from '@/domain/mastery/mastery.types'
+import { trimAllocationsForLevel } from '@/domain/mastery/mastery.utils'
 import { BASE_ATTRIBUTE_VALUE, ATTRIBUTE_POINT_VALUE, clampAttributes } from '@/domain/hero/hero.utils'
 import type { Character } from '@/domain/hero/types'
 

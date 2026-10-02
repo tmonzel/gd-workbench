@@ -1,10 +1,10 @@
 import type { Dispatch, SetStateAction } from 'react'
 import type { Character } from '@/domain/hero/types'
-import type { MasterySkill } from '@/domain/skill/types'
-import { skillPointsForLevel, spentSkillPoints } from '@/domain/skill/skill.utils'
-import SkillItem from '@/domain/skill/components/SkillItem'
+import type { MasterySkill } from '@/domain/mastery/mastery.types'
+import { skillPointsForLevel, spentSkillPoints } from '@/domain/mastery/mastery.utils'
+import MasterySkillItem from '@/domain/mastery/components/MasterySkillItem'
 
-type SkillListProps = {
+type MasterySkillTreeProps = {
   skills: MasterySkill[]
   character: Character
   setCharacter: Dispatch<SetStateAction<Character>>
@@ -12,7 +12,7 @@ type SkillListProps = {
   masteryLevel: number
 }
 
-function SkillList({ skills, character, setCharacter, masteryId, masteryLevel }: SkillListProps) {
+function MasterySkillTree({ skills, character, setCharacter, masteryId, masteryLevel }: MasterySkillTreeProps) {
   const skillGroups = [...new Set(skills.map((skill) => skill.groupId))]
     .map((groupId) => ({
       base:
@@ -44,7 +44,7 @@ function SkillList({ skills, character, setCharacter, masteryId, masteryLevel }:
       {skillGroups.map(({ base, modifiers }) => {
         if (!base) return null
         return (
-          <SkillItem
+          <MasterySkillItem
             key={base.id}
             skill={base}
             character={character}
@@ -59,4 +59,4 @@ function SkillList({ skills, character, setCharacter, masteryId, masteryLevel }:
   )
 }
 
-export default SkillList
+export default MasterySkillTree

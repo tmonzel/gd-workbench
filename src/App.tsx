@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { IconBolt, IconChartBar, IconShield } from '@tabler/icons-react'
+import { IconBolt, IconChartBar, IconShield, IconSparkles } from '@tabler/icons-react'
 import './App.css'
 import Header from '@/components/Header'
 import StatPanel from '@/components/StatPanel'
@@ -9,22 +9,22 @@ import WorkspaceTabs from '@/components/WorkspaceTabs'
 import ItemPanel from '@/domain/item/components/ItemPanel'
 import type { Item } from '@/domain/item/types'
 import EquipmentPanel from '@/domain/hero/components/EquipmentPanel'
-import SkillsView from '@/domain/skill/components/SkillsView'
+import MasteriesView from '@/domain/mastery/components/MasteriesView'
 import DevotionPanel from '@/domain/devotion/components/DevotionPanel'
-import { useSkillData } from '@/domain/skill/skill.hooks'
+import { useMasteryData } from '@/domain/mastery/mastery.hooks'
 import { useDevotionData } from '@/domain/devotion/devotion.hooks'
 import { getEquippedSkillBonuses, getEquippedSetInfo } from '@/domain/item/item.utils'
 import { useItemLibrary } from '@/domain/item/item.hooks'
 import { useHero } from '@/domain/hero/hero.hooks'
-import { getActiveSkills } from '@/domain/skill/active-skills.utils'
-import ActiveSkillList from '@/domain/skill/components/ActiveSkillPanel'
+import { getActiveSkills } from '@/domain/mastery/active-skills.utils'
+import ActiveSkillList from '@/domain/mastery/components/ActiveSkillList'
 import type { DifficultyMode } from '@/domain/hero/difficulty'
 
 function App() {
-  const { masteries, skillsets } = useSkillData()
+  const { masteries, skillsets } = useMasteryData()
   const { data: devotions, selected: selectedDevotions, setSelected: setSelectedDevotions } = useDevotionData()
   const [view, setView] = useState<'items' | 'equipment' | 'masteries' | 'devotions'>('masteries')
-  const [rightPanel, setRightPanel] = useState<'offense' | 'defense' | 'general'>('offense')
+  const [rightPanel, setRightPanel] = useState<'offense' | 'defense' | 'general' | 'mastery-skills' | null>('offense')
   const [difficulty, setDifficulty] = useState<DifficultyMode>('Normal')
   const [collectionItems, setCollectionItems] = useState<Item[]>([])
   const { character, setCharacter, changeLevel, adjustAttribute, equipItem, unequipItem, changeMastery } =
@@ -131,6 +131,10 @@ function App() {
       }),
     [character, itemSkillBonuses, skillsets, devotions, selectedDevotions, equippedSetInfo, masteries],
   )
+  const activeMasterySkills = useMemo(
+    () => activeSkills.filter((skill) => skill.source === 'Mastery' || skill.source.startsWith('Modifier of ')),
+    [activeSkills],
+  )
   const toggleSkill = (skillId: string, isProc: boolean) =>
     setCharacter((current) => {
       if (isProc) {
@@ -158,18 +162,16 @@ function App() {
       <Header
         level={character.level}
         onLevelChange={changeLevel}
-        masteries={masteries}
-        mastery1={character.mastery1}
-        mastery2={character.mastery2}
         combinedClassName={selectedCombination?.name ?? firstMasteryName}
-        onMasteryChange={changeMastery}
         difficulty={difficulty}
         onDifficultyChange={setDifficulty}
         character={character}
         onAttributeChange={adjustAttribute}
       />
       <WorkspaceTabs value={view} onChange={setView} />
-      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(380px,480px)]">
+      <div
+        className={`grid items-start gap-4 ${rightPanel ? 'lg:grid-cols-[minmax(0,1fr)_minmax(380px,480px)]' : 'lg:grid-cols-[minmax(0,1fr)_2.5rem]'}`}
+      >
         <div className="min-w-0">
           {view === 'equipment' ? (
             <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,420px)]">
@@ -195,12 +197,7 @@ function App() {
               <ActiveSkillList skills={activeSkills} onSkillToggle={toggleSkill} />
             </div>
           ) : view === 'masteries' ? (
-            <SkillsView
-              character={character}
-              setCharacter={setCharacter}
-              activeSkills={activeSkills}
-              onSkillToggle={toggleSkill}
-            />
+            <MasteriesView character={character} setCharacter={setCharacter} onMasteryChange={changeMastery} />
           ) : view === 'devotions' && devotions ? (
             <DevotionPanel data={devotions} selected={selectedDevotions} setSelected={setSelectedDevotions} />
           ) : (
@@ -222,56 +219,66 @@ function App() {
             />
           )}
         </div>
-        <div className="grid min-w-0 items-start gap-2 grid-cols-[minmax(0,1fr)_2.5rem] lg:sticky lg:top-4">
-          <div
-            className="min-w-0"
-            id="character-panel-content"
-            role="tabpanel"
-            aria-labelledby={`character-panel-tab-${rightPanel}`}
-          >
-            {rightPanel === 'offense' && (
-              <DamagePanel
-                character={character}
-                devotions={devotions}
-                selectedDevotions={selectedDevotions}
-                equippedSetInfo={equippedSetInfo}
-                masteries={masteries}
-                skillsets={skillsets}
-                itemSkillBonuses={itemSkillBonuses}
-              />
-            )}
-            {rightPanel === 'defense' && (
-              <ResistancePanel
-                character={character}
-                devotions={devotions}
-                selectedDevotions={selectedDevotions}
-                equippedSetInfo={equippedSetInfo}
-                difficulty={difficulty}
-              />
-            )}
-            {rightPanel === 'general' && (
-              <StatPanel
-                character={character}
-                masteries={masteries}
-                skillsets={skillsets}
-                itemSkillBonuses={itemSkillBonuses}
-                devotions={devotions}
-                selectedDevotions={selectedDevotions}
-                equippedSetInfo={equippedSetInfo}
-              />
-            )}
-          </div>
+        <div
+          className={`grid min-w-0 items-start gap-2 ${rightPanel ? 'grid-cols-[minmax(0,1fr)_2.5rem]' : 'grid-cols-[2.5rem] justify-end'} lg:sticky lg:top-4`}
+        >
+          {rightPanel && (
+            <div
+              className="min-w-0"
+              id="character-panel-content"
+              role="tabpanel"
+              aria-labelledby={`character-panel-tab-${rightPanel}`}
+            >
+              {rightPanel === 'offense' && (
+                <DamagePanel
+                  character={character}
+                  devotions={devotions}
+                  selectedDevotions={selectedDevotions}
+                  equippedSetInfo={equippedSetInfo}
+                  masteries={masteries}
+                  skillsets={skillsets}
+                  itemSkillBonuses={itemSkillBonuses}
+                />
+              )}
+              {rightPanel === 'defense' && (
+                <ResistancePanel
+                  character={character}
+                  devotions={devotions}
+                  selectedDevotions={selectedDevotions}
+                  equippedSetInfo={equippedSetInfo}
+                  difficulty={difficulty}
+                />
+              )}
+              {rightPanel === 'general' && (
+                <StatPanel
+                  character={character}
+                  masteries={masteries}
+                  skillsets={skillsets}
+                  itemSkillBonuses={itemSkillBonuses}
+                  devotions={devotions}
+                  selectedDevotions={selectedDevotions}
+                  equippedSetInfo={equippedSetInfo}
+                />
+              )}
+              {rightPanel === 'mastery-skills' && (
+                <ActiveSkillList skills={activeMasterySkills} onSkillToggle={toggleSkill} />
+              )}
+            </div>
+          )}
           <nav
             className="grid content-start gap-1"
             aria-label="Character panels"
             role="tablist"
             aria-orientation="vertical"
           >
-            {[
-              { id: 'general', label: 'General stats', icon: IconChartBar },
-              { id: 'offense', label: 'Offense', icon: IconBolt },
-              { id: 'defense', label: 'Defense', icon: IconShield },
-            ].map(({ id, label, icon: Icon }) => {
+            {(
+              [
+                { id: 'general', label: 'General stats', icon: IconChartBar },
+                { id: 'offense', label: 'Offense', icon: IconBolt },
+                { id: 'defense', label: 'Defense', icon: IconShield },
+                { id: 'mastery-skills', label: 'Mastery skills', icon: IconSparkles },
+              ] as const
+            ).map(({ id, label, icon: Icon }) => {
               const selected = rightPanel === id
               return (
                 <button
@@ -282,9 +289,9 @@ function App() {
                   id={`character-panel-tab-${id}`}
                   aria-selected={selected}
                   aria-label={label}
-                  aria-controls="character-panel-content"
+                  aria-controls={rightPanel ? 'character-panel-content' : undefined}
                   title={label}
-                  onClick={() => setRightPanel(id as typeof rightPanel)}
+                  onClick={() => setRightPanel((current) => (current === id ? null : id))}
                 >
                   <Icon size={18} stroke={1.8} aria-hidden="true" />
                 </button>

@@ -2,17 +2,17 @@ import CollapsiblePanel from '@/components/CollapsiblePanel'
 import type { Character } from '@/domain/hero/types'
 import { getActiveEquipment } from '@/domain/item/item.utils'
 import type { EquippedSetInfo } from '@/domain/item/types'
-import { DAMAGE_COLORS, DAMAGE_TYPES } from '@/domain/skill/skill.utils'
+import { DAMAGE_COLORS, DAMAGE_TYPES } from '@/domain/mastery/mastery.utils'
 import {
   getAttributeDamageMultiplier,
   getCharacterAttributeTotals,
   parseDamageValue,
   applyArmorPiercingConversion,
   getWeaponArmorPiercingPercent,
-} from '@/domain/skill/damage.utils'
-import type { MasteryProgression } from '@/domain/skill/damage.utils'
-import type { MasterySkill } from '@/domain/skill/types'
-import { isChanceTriggeredSkill } from '@/domain/skill/skill.utils'
+} from '@/domain/mastery/damage.utils'
+import type { MasteryProgression } from '@/domain/mastery/damage.utils'
+import type { MasterySkill } from '@/domain/mastery/mastery.types'
+import { isChanceTriggeredSkill } from '@/domain/mastery/mastery.utils'
 
 type Devotion = { skills: Array<{ id: string; attributes: Array<{ label: string; value: string }> }> }
 

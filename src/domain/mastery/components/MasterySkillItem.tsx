@@ -1,12 +1,9 @@
 import { IconSword } from '@tabler/icons-react'
 import type { Character } from '@/domain/hero/types'
-import type { MasterySkill } from '@/domain/skill/types'
-import {
-  formatSkillEffectParts,
-  formatSkillValue,
-} from '@/domain/skill/skill.utils'
+import type { MasterySkill } from '@/domain/mastery/mastery.types'
+import { formatSkillEffectParts, formatSkillValue } from '@/domain/mastery/mastery.utils'
 
-type SkillItemProps = {
+type MasterySkillItemProps = {
   skill: MasterySkill
   character: Character
   masteryLevel: number
@@ -16,7 +13,7 @@ type SkillItemProps = {
   onChangeLevel: (skill: MasterySkill, delta: number, baseSkillId: string) => void
 }
 
-function SkillItem({
+function MasterySkillItem({
   skill,
   character,
   masteryLevel,
@@ -24,7 +21,7 @@ function SkillItem({
   grouped = false,
   modifiers = [],
   onChangeLevel,
-}: SkillItemProps) {
+}: MasterySkillItemProps) {
   const level = character.skillLevels[skill.id] ?? 0
   const locked =
     (skill.isModifier && (character.skillLevels[baseSkillId] ?? 0) < 1) || masteryLevel < skill.masteryLevelRequired
@@ -114,7 +111,9 @@ function SkillItem({
         <span className="min-w-0 text-sm text-neutral-100">
           <span className="flex min-w-0 items-center gap-2">
             <span className="truncate text-neutral-100">{skill.name}</span>
-            <span className="shrink-0">({level} / {skill.maxLevel})</span>
+            <span className="shrink-0">
+              ({level} / {skill.maxLevel})
+            </span>
             {skill.isTransmuter && (
               <span className="shrink-0 rounded border border-orange-400/30 bg-orange-400/10 px-1.5 py-0.5 text-[0.62rem] uppercase tracking-[0.12em] text-orange-200">
                 Transmuter
@@ -128,7 +127,9 @@ function SkillItem({
           </span>
         </span>
         <span className="flex flex-col items-end gap-1 text-right">
-          <span className={`text-[0.68rem] uppercase tracking-widest ${locked ? 'text-neutral-600' : 'text-orange-300/80'}`}>
+          <span
+            className={`text-[0.68rem] uppercase tracking-widest ${locked ? 'text-neutral-600' : 'text-orange-300/80'}`}
+          >
             {skill.masteryLevelRequired} Points required
           </span>
         </span>
@@ -162,7 +163,7 @@ function SkillItem({
       {hasModifiers && allocated && (
         <div>
           {modifiers.map((modifier) => (
-            <SkillItem
+            <MasterySkillItem
               key={modifier.id}
               skill={modifier}
               character={character}
@@ -178,4 +179,4 @@ function SkillItem({
   )
 }
 
-export default SkillItem
+export default MasterySkillItem

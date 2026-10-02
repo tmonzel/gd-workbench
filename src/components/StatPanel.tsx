@@ -2,9 +2,9 @@ import CollapsiblePanel from './CollapsiblePanel'
 import type { Character } from '@/domain/hero/types'
 import { getActiveEquipment } from '@/domain/item/item.utils'
 import { BASE_ATTRIBUTE_VALUE, BASE_ENERGY_VALUE, BASE_HEALTH_VALUE } from '@/domain/hero/hero.utils'
-import type { Mastery } from '@/domain/skill/types'
-import type { MasterySkill } from '@/domain/skill/types'
-import { isChanceTriggeredSkill } from '@/domain/skill/skill.utils'
+import type { Mastery } from '@/domain/mastery/mastery.types'
+import type { MasterySkill } from '@/domain/mastery/mastery.types'
+import { isChanceTriggeredSkill } from '@/domain/mastery/mastery.utils'
 import type { EquippedSetInfo } from '@/domain/item/types'
 
 type Devotion = { skills: Array<{ id: string; attributes: Array<{ label: string; value: string }> }> }

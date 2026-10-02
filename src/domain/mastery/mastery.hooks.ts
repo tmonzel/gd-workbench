@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import type { Mastery, MasterySkill } from '@/domain/skill/types'
+import type { Mastery, MasterySkill } from '@/domain/mastery/mastery.types'
 
-export function useSkillData() {
+export function useMasteryData() {
   const [masteries, setMasteries] = useState<Mastery[]>([])
   const [skillsets, setSkillsets] = useState<Record<string, MasterySkill[]>>({})
 

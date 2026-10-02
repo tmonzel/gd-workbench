@@ -2,8 +2,9 @@ import { IconChevronDown, IconChevronUp } from '@tabler/icons-react'
 import { useEffect, useRef, useState } from 'react'
 import { Card } from '@/components/Card'
 import CollapsiblePanel from '@/components/CollapsiblePanel'
-import { DAMAGE_COLORS } from '@/domain/skill/skill.utils'
-import type { SkillDamageRow, SkillEntry } from '@/domain/skill/active-skills.utils'
+import SkillIcon from '@/components/SkillIcon'
+import { DAMAGE_COLORS } from '@/domain/mastery/mastery.utils'
+import type { SkillDamageRow, SkillEntry } from '@/domain/mastery/active-skills.utils'
 
 type ActiveSkillListProps = {
   skills: SkillEntry[]
@@ -95,7 +96,7 @@ function ActiveSkillList({ skills, onSkillToggle, compact = false }: ActiveSkill
     return (
       <div className="mt-3 border-t border-orange-300/20 pt-3" key={`${child.name}-${child.source}`}>
         <div className="flex items-start gap-2">
-          {child.icon && <img className="size-6 shrink-0 object-contain" src={child.icon} alt="" />}
+          <SkillIcon src={child.icon} label={child.name} />
           <div className="min-w-0">
             <p className="m-0 text-xs font-medium text-orange-200">
               {child.name} ({rankLabel})
@@ -206,7 +207,7 @@ function ActiveSkillList({ skills, onSkillToggle, compact = false }: ActiveSkill
           return (
             <Card as="section" size="md" variant="filled" className="transition-colors" key={skillKey}>
               <div className="flex items-start gap-3">
-                {skill.icon && <img className="shrink-0" src={skill.icon} alt="" />}
+                <SkillIcon src={skill.icon} label={skill.name} />
                 <div className="flex min-w-0 flex-1 items-start gap-2">
                   <button
                     className={`min-w-0 flex-1 rounded text-left ${skill.stats.length > 0 ? 'cursor-pointer' : 'cursor-default'}`}

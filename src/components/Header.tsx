@@ -1,6 +1,5 @@
 import LevelProgressControl from '@/components/LevelProgressControl'
 import { IconChevronDown, IconMinus, IconPlus } from '@tabler/icons-react'
-import type { Mastery } from '@/domain/skill/types'
 import { DIFFICULTY_MODES, type DifficultyMode } from '@/domain/hero/difficulty'
 import type { Character } from '@/domain/hero/types'
 import { ATTRIBUTE_POINT_VALUE, BASE_ATTRIBUTE_VALUE } from '@/domain/hero/hero.utils'
@@ -8,11 +7,7 @@ import { ATTRIBUTE_POINT_VALUE, BASE_ATTRIBUTE_VALUE } from '@/domain/hero/hero.
 type HeaderProps = {
   level: number
   onLevelChange: (delta: number) => void
-  masteries: Mastery[]
-  mastery1?: string
-  mastery2?: string
   combinedClassName?: string
-  onMasteryChange: (slot: 'mastery1' | 'mastery2', value: string) => void
   difficulty: DifficultyMode
   onDifficultyChange: (difficulty: DifficultyMode) => void
   character: Character
@@ -22,11 +17,7 @@ type HeaderProps = {
 function Header({
   level,
   onLevelChange,
-  masteries,
-  mastery1,
-  mastery2,
   combinedClassName,
-  onMasteryChange,
   difficulty,
   onDifficultyChange,
   character,
@@ -61,36 +52,12 @@ function Header({
               aria-hidden="true"
             />
           </span>
-          {(['mastery1', 'mastery2'] as const).map((slot) => (
-            <span className="relative" key={slot}>
-              <select
-                className="w-auto appearance-none rounded-md border border-neutral-700 bg-neutral-900 py-1.5 pl-2 pr-7 text-xs text-neutral-200 outline-none focus:border-orange-300 disabled:cursor-not-allowed disabled:border-neutral-900 disabled:bg-neutral-950 disabled:text-neutral-600"
-                value={slot === 'mastery1' ? (mastery1 ?? '') : (mastery2 ?? '')}
-                onChange={(event) => onMasteryChange(slot, event.target.value)}
-                aria-label={slot === 'mastery1' ? 'First mastery' : 'Second mastery'}
-                disabled={slot === 'mastery2' && !mastery1}
-              >
-                <option value="">{slot === 'mastery1' ? 'First mastery' : 'Second mastery'}</option>
-                {masteries.map((mastery) => (
-                  <option disabled={slot === 'mastery2' && mastery.id === mastery1} key={mastery.id} value={mastery.id}>
-                    {mastery.name}
-                  </option>
-                ))}
-              </select>
-              <IconChevronDown
-                className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-neutral-500"
-                size={14}
-                stroke={2}
-                aria-hidden="true"
-              />
-            </span>
-          ))}
         </div>
         <span className="flex items-center gap-2 text-[0.68rem] text-neutral-600">
           GD Workbench <span className="size-1 rounded-full bg-neutral-600" aria-hidden="true" /> Game Version 1.3.0.8
         </span>
       </div>
-      <section className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4 py-4">
+      <section className="flex flex-wrap items-end gap-x-16 gap-y-4 py-4">
         <div>
           <p className="mb-1 text-xs uppercase tracking-[0.16em] text-orange-300">Hero class</p>
           <h1 className="text-4xl font-medium tracking-tight text-neutral-50">
@@ -98,13 +65,13 @@ function Header({
           </h1>
         </div>
         <div className="flex flex-wrap items-end gap-2">
-          <span className="mr-1 pb-1 text-[0.65rem] text-neutral-500" title="Unspent attribute points">
+          {/* <span className="mr-1 pb-1 text-[0.65rem] text-neutral-500" title="Unspent attribute points">
             {remainingPoints} points left
-          </span>
+          </span> */}
           {attributes.map((field) => (
-            <div className="flex items-end gap-1 rounded border border-neutral-800 bg-neutral-950/60 px-2 py-1" key={field}>
+            <div className="flex items-end gap-1 px-2 py-1" key={field}>
               <div className="grid justify-items-start leading-none">
-                <span className="text-[0.58rem] capitalize text-neutral-500">{field}</span>
+                <span className="capitalize text-neutral-500">{field}</span>
                 <strong className="mt-1 text-xl font-medium tabular-nums text-neutral-100">{character[field]}</strong>
               </div>
               <div className="ml-1 flex gap-0.5 pb-0.5">

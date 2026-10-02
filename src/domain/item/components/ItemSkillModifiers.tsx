@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { IconChevronDown, IconChevronUp } from '@tabler/icons-react'
+import SkillIcon from '@/components/SkillIcon'
 import type { ItemSkillDetails } from '@/domain/item/types'
 
 type ItemSkillModifiersProps = {
@@ -18,24 +19,29 @@ function ItemSkillModifiers({ modifiers }: ItemSkillModifiersProps) {
         aria-label={`${expanded ? 'Collapse' : 'Expand'} skill modifiers`}
         onClick={() => setExpanded((current) => !current)}
       >
-        <span className="m-0 text-xs font-bold text-neutral-400">
-          Skill Modifiers ({modifiers.length})
-        </span>
+        <span className="m-0 text-xs font-bold text-neutral-400">Skill Modifiers ({modifiers.length})</span>
         <span className="flex size-6 shrink-0 items-center justify-center rounded text-neutral-500 group-hover:bg-neutral-900 group-hover:text-neutral-200">
-          {expanded ? <IconChevronUp size={15} stroke={2} aria-hidden="true" /> : <IconChevronDown size={15} stroke={2} aria-hidden="true" />}
+          {expanded ? (
+            <IconChevronUp size={15} stroke={2} aria-hidden="true" />
+          ) : (
+            <IconChevronDown size={15} stroke={2} aria-hidden="true" />
+          )}
         </span>
       </button>
       {expanded && (
         <div className="grid gap-2">
           {modifiers.map((modifier) => (
             <div className="mt-3 flex items-start gap-2" key={`${modifier.name}-${modifier.level}`}>
-              {modifier.icon && <img className="size-5 shrink-0 rounded object-cover" src={modifier.icon} alt="" />}
+              <SkillIcon src={modifier.icon} label={modifier.name} className="size-5" />
               <div className="min-w-0">
                 <p className="m-0 truncate text-xs text-neutral-200">{modifier.name}</p>
                 {modifier.attributes.length > 0 && (
                   <div className="mt-1">
                     {modifier.attributes.map(({ label, value }, index) => (
-                      <p className="truncate text-[0.78rem] leading-snug text-neutral-400" key={`${label}-${value}-${index}`}>
+                      <p
+                        className="truncate text-[0.78rem] leading-snug text-neutral-400"
+                        key={`${label}-${value}-${index}`}
+                      >
                         <strong>{value}</strong> {label}
                       </p>
                     ))}

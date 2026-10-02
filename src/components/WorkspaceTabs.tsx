@@ -19,7 +19,7 @@ export const EquipmentIcon = () => (
 )
 
 const tabs: Array<{ value: WorkspaceView; label: string; icon: ReactNode }> = [
-  { value: 'masteries', label: 'Skills', icon: <IconSparkles size={16} stroke={1.8} aria-hidden="true" /> },
+  { value: 'masteries', label: 'Masteries', icon: <IconSparkles size={16} stroke={1.8} aria-hidden="true" /> },
   { value: 'items', label: 'Items', icon: <IconLibrary size={16} stroke={1.8} aria-hidden="true" /> },
   { value: 'equipment', label: 'Equipment', icon: <IconShield size={16} stroke={1.8} aria-hidden="true" /> },
   { value: 'devotions', label: 'Devotions', icon: <IconStars size={16} stroke={1.8} aria-hidden="true" /> },

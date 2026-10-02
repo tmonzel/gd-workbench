@@ -1,5 +1,5 @@
 import type { Character } from '@/domain/hero/types'
-import type { MasterySkill } from '@/domain/skill/types'
+import type { MasterySkill } from '@/domain/mastery/mastery.types'
 
 export const DAMAGE_COLORS: Record<string, string> = {
   Physical: '#9ca3af',

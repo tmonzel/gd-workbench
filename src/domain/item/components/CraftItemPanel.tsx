@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { IconChevronDown, IconChevronUp } from '@tabler/icons-react'
+import SkillIcon from '@/components/SkillIcon'
 import type { Item } from '@/domain/item/types'
 import { rarityTextClasses } from '@/domain/item/item.utils'
 
@@ -388,13 +389,11 @@ function CraftItemPanel({ item, onPreview }: CraftItemPanelProps) {
                         }
                       >
                         <span className="flex min-w-0 items-center gap-2 text-xs text-neutral-400">
-                          {candidate.grantedSkill.icon && (
-                            <img
-                              className="size-5 shrink-0 rounded object-cover"
-                              src={candidate.grantedSkill.icon}
-                              alt=""
-                            />
-                          )}
+                          <SkillIcon
+                            src={candidate.grantedSkill.icon}
+                            label={candidate.grantedSkill.name}
+                            className="size-5"
+                          />
                           <span className="truncate">
                             <strong>{candidate.grantedSkill.name}</strong> (Level {candidate.grantedSkill.level})
                           </span>

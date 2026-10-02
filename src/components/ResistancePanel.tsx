@@ -2,7 +2,7 @@ import CollapsiblePanel from '@/components/CollapsiblePanel'
 import type { Character } from '@/domain/hero/types'
 import { getActiveEquipment } from '@/domain/item/item.utils'
 import type { EquippedSetInfo } from '@/domain/item/types'
-import { DAMAGE_COLORS, DAMAGE_TYPES, resistanceLabel } from '@/domain/skill/skill.utils'
+import { DAMAGE_COLORS, DAMAGE_TYPES, resistanceLabel } from '@/domain/mastery/mastery.utils'
 import { DIFFICULTY_RESISTANCE_PENALTIES, type DifficultyMode } from '@/domain/hero/difficulty'
 
 type Devotion = { skills: Array<{ id: string; attributes: Array<{ label: string; value: string }> }> }
