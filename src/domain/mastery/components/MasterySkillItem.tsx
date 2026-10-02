@@ -31,7 +31,7 @@ function MasterySkillItem({
   const allocatedStyle = isGrouped
     ? ''
     : allocated
-      ? 'border-orange-300/70 outline outline-1 outline-orange-300/40'
+      ? 'border-neutral-500 bg-neutral-800/80 shadow-[inset_2px_0_0_0_rgb(163_163_163/0.7)]'
       : 'border-neutral-800 bg-neutral-900/70'
   const effectiveLevel = level
   const rankEffects =
@@ -86,10 +86,10 @@ function MasterySkillItem({
 
   return (
     <div
-      className={`h-fit break-inside-avoid ${hasModifiers ? `self-start content-start rounded-md border p-1 transition-colors ${allocated ? 'border-orange-300/70 outline outline-1 outline-orange-300/40' : 'border-neutral-800 bg-neutral-950/35'}` : ''}`}
+      className={`h-fit break-inside-avoid ${hasModifiers ? `self-start content-start rounded-md border p-1 transition-colors ${allocated ? 'border-neutral-500 bg-neutral-800/40 shadow-[inset_2px_0_0_0_rgb(163_163_163/0.7)]' : 'border-neutral-800 bg-neutral-950/35'}` : ''}`}
     >
       <button
-        className={`grid h-fit w-full self-start content-start grid-cols-[auto_minmax(0,1fr)_auto] gap-x-3 gap-y-1 p-3 text-left transition-colors ${skill.isModifier ? 'ml-0 border-t border-neutral-800 pt-3' : ''} ${isGrouped ? 'rounded-none border-0' : 'rounded-md border'} ${allocatedStyle} ${locked ? 'cursor-not-allowed opacity-45' : isGrouped ? 'hover:bg-neutral-800/70' : allocated ? 'hover:border-orange-300' : 'hover:border-neutral-500 hover:bg-neutral-800/70'} ${locked && !isGrouped ? 'border-neutral-900 bg-neutral-950/40' : ''}`}
+        className={`grid h-fit w-full self-start content-start grid-cols-[auto_minmax(0,1fr)_auto] gap-x-3 gap-y-1 p-3 text-left transition-colors ${skill.isModifier ? 'ml-0 border-t border-neutral-800 pt-3' : ''} ${isGrouped ? 'rounded-none border-0' : 'rounded-md border'} ${allocatedStyle} ${locked ? 'cursor-not-allowed opacity-45' : isGrouped ? 'hover:bg-neutral-800/70' : allocated ? 'hover:border-neutral-400' : 'hover:border-neutral-500 hover:bg-neutral-800/70'} ${locked && !isGrouped ? 'border-neutral-900 bg-neutral-950/40' : ''}`}
         type="button"
         disabled={locked}
         onClick={() => onChangeLevel(skill, 1, baseSkillId)}

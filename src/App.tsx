@@ -163,12 +163,10 @@ function App() {
         level={character.level}
         onLevelChange={changeLevel}
         combinedClassName={selectedCombination?.name ?? firstMasteryName}
-        difficulty={difficulty}
-        onDifficultyChange={setDifficulty}
         character={character}
         onAttributeChange={adjustAttribute}
       />
-      <WorkspaceTabs value={view} onChange={setView} />
+      <WorkspaceTabs value={view} onChange={setView} difficulty={difficulty} onDifficultyChange={setDifficulty} />
       <div
         className={`grid items-start gap-4 ${rightPanel ? 'lg:grid-cols-[minmax(0,1fr)_minmax(380px,480px)]' : 'lg:grid-cols-[minmax(0,1fr)_2.5rem]'}`}
       >

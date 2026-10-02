@@ -1,11 +1,14 @@
 import type { ReactNode } from 'react'
-import { IconLibrary, IconShield, IconSparkles, IconStars } from '@tabler/icons-react'
+import { IconChevronDown, IconLibrary, IconShield, IconSparkles, IconStars } from '@tabler/icons-react'
+import { DIFFICULTY_MODES, type DifficultyMode } from '@/domain/hero/difficulty'
 
 export type WorkspaceView = 'items' | 'equipment' | 'masteries' | 'devotions'
 
 type WorkspaceTabsProps = {
   value: WorkspaceView
   onChange: (value: WorkspaceView) => void
+  difficulty: DifficultyMode
+  onDifficultyChange: (difficulty: DifficultyMode) => void
 }
 
 // src/assets/equipment-icon.svg, inlined so its fill can follow the tab's current text color
@@ -25,29 +28,53 @@ const tabs: Array<{ value: WorkspaceView; label: string; icon: ReactNode }> = [
   { value: 'devotions', label: 'Devotions', icon: <IconStars size={16} stroke={1.8} aria-hidden="true" /> },
 ]
 
-function WorkspaceTabs({ value, onChange }: WorkspaceTabsProps) {
+function WorkspaceTabs({ value, onChange, difficulty, onDifficultyChange }: WorkspaceTabsProps) {
   return (
-    <nav className="mb-4 flex gap-1" aria-label="Workspace views">
-      {tabs.map((tab) => {
-        const selected = value === tab.value
-        return (
-          <button
-            className={`flex items-center justify-center gap-2 rounded-md px-4 py-2 text-xs font-medium transition-colors ${
-              selected ? 'bg-[#172a29] text-[#5eead4]' : 'text-neutral-500 hover:bg-neutral-900 hover:text-neutral-200'
-            }`}
-            key={tab.value}
-            type="button"
-            onClick={() => onChange(tab.value)}
-            aria-current={selected ? 'page' : undefined}
-          >
-            <span className="leading-none" aria-hidden="true">
-              {tab.icon}
-            </span>
-            {tab.label}
-          </button>
-        )
-      })}
-    </nav>
+    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <nav className="flex gap-1" aria-label="Workspace views">
+        {tabs.map((tab) => {
+          const selected = value === tab.value
+          return (
+            <button
+              className={`flex items-center justify-center gap-2 rounded-md px-4 py-2 text-xs font-medium transition-colors ${
+                selected
+                  ? 'bg-[#172a29] text-[#5eead4]'
+                  : 'text-neutral-500 hover:bg-neutral-900 hover:text-neutral-200'
+              }`}
+              key={tab.value}
+              type="button"
+              onClick={() => onChange(tab.value)}
+              aria-current={selected ? 'page' : undefined}
+            >
+              <span className="leading-none" aria-hidden="true">
+                {tab.icon}
+              </span>
+              {tab.label}
+            </button>
+          )
+        })}
+      </nav>
+      <span className="relative ml-auto">
+        <select
+          className="w-auto appearance-none rounded-md border border-neutral-700 bg-neutral-900 py-2 pl-3 pr-8 text-xs text-neutral-200 outline-none focus:border-orange-300"
+          value={difficulty}
+          onChange={(event) => onDifficultyChange(event.target.value as DifficultyMode)}
+          aria-label="Difficulty"
+        >
+          {DIFFICULTY_MODES.map((mode) => (
+            <option key={mode} value={mode}>
+              {mode}
+            </option>
+          ))}
+        </select>
+        <IconChevronDown
+          className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-500"
+          size={14}
+          stroke={2}
+          aria-hidden="true"
+        />
+      </span>
+    </div>
   )
 }
 
