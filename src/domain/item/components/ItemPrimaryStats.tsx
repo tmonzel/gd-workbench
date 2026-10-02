@@ -15,7 +15,7 @@ function ItemPrimaryStats({ attributes, stats }: ItemPrimaryStatsProps) {
     <div className="mt-2">
       {primaryStats.map(({ label, value }, index) => (
         <p className="truncate text-[0.78rem] text-neutral-400" key={`${label}-${value}-${index}`}>
-          <strong>{value}</strong> {label}
+          <span className="font-normal text-white">{value}</span> {label}
         </p>
       ))}
     </div>

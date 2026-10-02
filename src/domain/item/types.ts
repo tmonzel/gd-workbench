@@ -19,6 +19,8 @@ export type Item = {
   prefixId?: string
   suffixId?: string
   componentId?: string
+  componentName?: string
+  componentAttributes?: Array<{ label: string; value: string | number }>
   augmentId?: string
   componentImage?: string
   augmentImage?: string
@@ -34,7 +36,10 @@ export type Item = {
   attributes?: Array<{ label: string; value: string | number }>
   stats?: Record<string, string | number>
   grantedSkill?: ItemSkillDetails
+  componentSkill?: ItemSkillDetails
   specialSkillBonuses?: ItemSkillDetails[]
+  augmentName?: string
+  augmentAttributes?: Array<{ label: string; value: string | number }>
 }
 
 export type ItemSetBonusTier = {

@@ -46,6 +46,8 @@ function ItemCard({
   allowTemplateEquip = false,
 }: ItemCardProps) {
   const [hoverPoint, setHoverPoint] = useState<{ x: number; y: number } | null>(null)
+  const [componentHoverPoint, setComponentHoverPoint] = useState<{ x: number; y: number } | null>(null)
+  const [augmentHoverPoint, setAugmentHoverPoint] = useState<{ x: number; y: number } | null>(null)
   const rarityClass = `rarity-${item.rarity.toLowerCase()}`
   const armorClassification = String(item.stats?.armorClassification ?? '')
   const itemClass = String(item.stats?.Class ?? '')
@@ -67,9 +69,9 @@ function ItemCard({
                     ? 'Ranged'
                     : item.category
       : undefined
-  const itemType =
-    item.category === 'Off-Hand' && /shield/i.test(itemClass) ? 'Shield' : weaponType ?? item.category
-  const typeLine = armorClassification && armorClassification !== 'Light' ? `${armorClassification} ${itemType}` : itemType
+  const itemType = item.category === 'Off-Hand' && /shield/i.test(itemClass) ? 'Shield' : (weaponType ?? item.category)
+  const typeLine =
+    armorClassification && armorClassification !== 'Light' ? `${armorClassification} ${itemType}` : itemType
   const rarityTextClass = rarityTextClasses[item.rarity.toLowerCase()] ?? 'text-neutral-400'
   const itemLevel = Number(item.stats?.itemLevel ?? item.level)
   const itemSet = getSetForItem(item.id, itemSets)
@@ -206,15 +208,11 @@ function ItemCard({
           </div>
         </div>
         <ItemStats attributes={item.attributes} stats={item.stats} activeSkillNames={activeSkillNames} />
-        {item.grantedSkill && (
-          <ItemGrantedSkill skill={item.grantedSkill} />
-        )}
+        {item.grantedSkill && <ItemGrantedSkill skill={item.grantedSkill} />}
         {item.specialSkillBonuses && item.specialSkillBonuses.length > 0 && (
           <ItemSkillModifiers modifiers={item.specialSkillBonuses} />
         )}
-        {itemSet && (
-          <ItemSetInfo set={itemSet} equippedCount={equippedCount} />
-        )}
+        {itemSet && <ItemSetInfo set={itemSet} equippedCount={equippedCount} />}
         {(item.componentImage || item.augmentImage) && (
           <div
             className="mt-3 flex items-center gap-2 border-t border-neutral-800 pt-3"
@@ -222,18 +220,84 @@ function ItemCard({
           >
             {item.componentImage && (
               <span
-                className="flex size-10 items-center justify-center overflow-hidden rounded border border-neutral-700 bg-neutral-950 p-1"
-                title="Component"
+                className="relative flex size-10 items-center justify-center overflow-hidden rounded border border-neutral-700 bg-neutral-950 p-1"
+                onMouseMove={(event) => setComponentHoverPoint({ x: event.clientX, y: event.clientY })}
+                onMouseLeave={() => setComponentHoverPoint(null)}
+                aria-label={item.componentName ?? 'Component'}
               >
                 <img className="block max-h-full max-w-full object-contain" src={item.componentImage} alt="Component" />
+                {componentHoverPoint && (
+                  <span
+                    className="pointer-events-none fixed z-50 w-64 rounded-md border border-neutral-700 bg-neutral-950 p-3 text-xs shadow-2xl shadow-black/70"
+                    style={{ left: componentHoverPoint.x + 14, top: componentHoverPoint.y + 14 }}
+                  >
+                    <strong className="block text-sm font-medium text-neutral-100">
+                      {item.componentName ?? 'Component'}
+                    </strong>
+                    {(item.componentAttributes ?? []).length > 0 ? (
+                      <span className="mt-2 grid gap-1 text-neutral-400">
+                        {item.componentAttributes?.map((attribute, index) => (
+                          <span className="text-neutral-400" key={`${attribute.label}-${index}`}>
+                            <span className="font-normal text-neutral-200">{attribute.value}</span> {attribute.label}
+                          </span>
+                        ))}
+                      </span>
+                    ) : (
+                      <span className="mt-2 block text-neutral-500">No component stats</span>
+                    )}
+                    {item.componentSkill && (
+                      <span className="mt-2 block border-t border-neutral-800 pt-2">
+                        <strong className="block text-neutral-100">
+                          {item.componentSkill.name} (Level {item.componentSkill.level})
+                        </strong>
+                        {item.componentSkill.description && (
+                          <span className="mt-1 block italic text-neutral-500">{item.componentSkill.description}</span>
+                        )}
+                        {item.componentSkill.attributes.length > 0 && (
+                          <span className="mt-1 grid gap-1 text-neutral-400">
+                            {item.componentSkill.attributes.map((attribute, index) => (
+                              <span className="text-neutral-400" key={`${attribute.label}-${index}`}>
+                                <span className="font-normal text-neutral-200">{attribute.value}</span>{' '}
+                                {attribute.label}
+                              </span>
+                            ))}
+                          </span>
+                        )}
+                      </span>
+                    )}
+                  </span>
+                )}
               </span>
             )}
             {item.augmentImage && (
               <span
-                className="flex size-10 items-center justify-center overflow-hidden rounded border border-neutral-700 bg-neutral-950 p-1"
-                title="Augment"
+                className="relative flex size-10 items-center justify-center overflow-hidden rounded border border-neutral-700 bg-neutral-950 p-1"
+                onMouseMove={(event) => setAugmentHoverPoint({ x: event.clientX, y: event.clientY })}
+                onMouseLeave={() => setAugmentHoverPoint(null)}
+                aria-label={item.augmentName ?? 'Augment'}
               >
                 <img className="block max-h-full max-w-full object-contain" src={item.augmentImage} alt="Augment" />
+                {augmentHoverPoint && (
+                  <span
+                    className="pointer-events-none fixed z-50 w-64 rounded-md border border-neutral-700 bg-neutral-950 p-3 text-xs shadow-2xl shadow-black/70"
+                    style={{ left: augmentHoverPoint.x + 14, top: augmentHoverPoint.y + 14 }}
+                  >
+                    <strong className="block text-sm font-medium text-neutral-100">
+                      {item.augmentName ?? 'Augment'}
+                    </strong>
+                    {(item.augmentAttributes ?? []).length > 0 ? (
+                      <span className="mt-2 grid gap-1 text-neutral-400">
+                        {item.augmentAttributes?.map((attribute, index) => (
+                          <span className="text-neutral-400" key={`${attribute.label}-${index}`}>
+                            <span className="font-normal text-neutral-200">{attribute.value}</span> {attribute.label}
+                          </span>
+                        ))}
+                      </span>
+                    ) : (
+                      <span className="mt-2 block text-neutral-500">No augment stats</span>
+                    )}
+                  </span>
+                )}
               </span>
             )}
           </div>

@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { IconChevronDown, IconChevronUp } from '@tabler/icons-react'
 import type { Item } from '@/domain/item/types'
+import { rarityTextClasses } from '@/domain/item/item.utils'
 
 type Affix = {
   id: string
@@ -42,6 +44,39 @@ const loadRelicBonusCatalog = () => {
   return relicBonusCatalogPromise
 }
 
+const COMPONENT_SLOT_FLAGS: Array<[string, string]> = [
+  ['weapon', 'Weapons'],
+  ['offhand', 'Off-Hands'],
+  ['shield', 'Shields'],
+  ['sword', 'Swords'],
+  ['axe', 'Axes'],
+  ['dagger', 'Daggers'],
+  ['mace', 'Maces'],
+  ['ranged1h', 'Ranged Weapons'],
+  ['chest', 'Chest'],
+  ['hands', 'Gloves'],
+  ['legs', 'Pants'],
+  ['feet', 'Boots'],
+  ['head', 'Helms'],
+  ['shoulders', 'Shoulders'],
+  ['accessory', 'Accessories'],
+  ['amulet', 'Amulets'],
+  ['medal', 'Medals'],
+  ['ring', 'Rings'],
+  ['belt', 'Belts'],
+]
+
+const componentUsableFor = (component: Item) => {
+  const flags = component.stats ?? {}
+  return COMPONENT_SLOT_FLAGS.filter(([flag]) => Number(flags[flag] ?? 0) !== 0).map(([, label]) => label)
+}
+
+const renderAttributeLine = (label: string, value: string | number, index: number) => (
+  <p className="m-0 truncate text-[0.78rem] leading-snug text-neutral-400" key={`${label}-${value}-${index}`}>
+    <span className="font-normal text-neutral-200">{value}</span> {label}
+  </p>
+)
+
 type CraftItemPanelProps = {
   item: Item
   onPreview?: (item: Item) => void
@@ -55,6 +90,7 @@ function CraftItemPanel({ item, onPreview }: CraftItemPanelProps) {
   const [components, setComponents] = useState<Item[]>([])
   const [augments, setAugments] = useState<Item[]>([])
   const [componentId, setComponentId] = useState('')
+  const [expandedComponentSkills, setExpandedComponentSkills] = useState<Set<string>>(new Set())
   const [augmentId, setAugmentId] = useState('')
   const [activeTab, setActiveTab] = useState<'affixes' | 'components' | 'augments'>('affixes')
   const [relicBonuses, setRelicBonuses] = useState<RelicBonus[]>([])
@@ -184,7 +220,12 @@ function CraftItemPanel({ item, onPreview }: CraftItemPanelProps) {
       prefixId: selectedPrefix?.id,
       suffixId: selectedSuffix?.id,
       componentId: selectedComponent?.id,
+      componentName: selectedComponent?.name,
+      componentAttributes: selectedComponent?.attributes,
+      componentSkill: selectedComponent?.grantedSkill,
       augmentId: selectedAugment?.id,
+      augmentName: selectedAugment?.name,
+      augmentAttributes: selectedAugment?.attributes,
       componentImage: selectedComponent?.image,
       augmentImage: selectedAugment?.image,
       relicBonusId: selectedRelicBonus?.id,
@@ -250,12 +291,6 @@ function CraftItemPanel({ item, onPreview }: CraftItemPanelProps) {
               </div>
               <div className="grid min-h-0 flex-1 gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
                 {options.map((affix) => {
-                  const stats =
-                    affix.attributes.length > 0
-                      ? affix.attributes.map((attribute) => `${attribute.value} ${attribute.label}`)
-                      : affix.description
-                        ? [affix.description]
-                        : ['No extracted stats']
                   const selected = selectedId === affix.id
                   return (
                     <button
@@ -273,11 +308,15 @@ function CraftItemPanel({ item, onPreview }: CraftItemPanelProps) {
                       <span className="mt-1 block text-[0.68rem] text-neutral-500">
                         Requires level {affix.requiredLevel}
                       </span>
-                      <span className="mt-2 grid gap-0.5 text-xs text-neutral-400">
-                        {stats.map((stat) => (
-                          <span key={stat}>{stat}</span>
-                        ))}
-                      </span>
+                      {affix.attributes.length > 0 ? (
+                        <span className="mt-2 grid gap-0.5">
+                          {affix.attributes.map(({ label, value }, index) => renderAttributeLine(label, value, index))}
+                        </span>
+                      ) : (
+                        <span className="mt-2 block text-xs italic text-neutral-500">
+                          {affix.description ?? 'No extracted stats'}
+                        </span>
+                      )}
                     </button>
                   )
                 })}
@@ -292,31 +331,101 @@ function CraftItemPanel({ item, onPreview }: CraftItemPanelProps) {
           <div className="grid min-h-0 flex-1 gap-2 overflow-y-auto pr-1 sm:grid-cols-2 lg:grid-cols-3">
             {compatibleComponents.map((candidate) => {
               const selected = candidate.id === componentId
+              const usableFor = componentUsableFor(candidate)
+              const rarityClass = rarityTextClasses[candidate.rarity.toLowerCase()] ?? 'text-neutral-400'
+              const skillExpanded = expandedComponentSkills.has(candidate.id)
               return (
-                <button
-                  className={`rounded-md border p-3 text-left transition-colors ${selected ? 'border-orange-300 bg-orange-300/10' : 'border-neutral-800 bg-neutral-900/60 hover:border-neutral-600 hover:bg-neutral-800/80'}`}
+                <div
+                  className={`rounded-md border p-3 transition-colors ${selected ? 'border-orange-300 bg-orange-300/10' : 'border-neutral-800 bg-neutral-900/60'}`}
                   key={candidate.id}
-                  type="button"
-                  onClick={() => setComponentId(selected ? '' : candidate.id)}
                 >
-                  <span className="flex items-start gap-3">
-                    {candidate.image && (
-                      <span className="flex shrink-0 items-center justify-center overflow-hidden rounded-md border border-neutral-800 bg-neutral-950 p-2">
-                        <img className="block" src={candidate.image} alt="" />
-                      </span>
-                    )}
-                    <span className="min-w-0">
-                      <strong className="block text-sm text-neutral-100">{candidate.name}</strong>
-                      <span className="mt-2 grid gap-0.5 text-xs text-neutral-400">
-                        {(candidate.attributes ?? []).map((attribute, index) => (
-                          <span key={`${attribute.label}-${attribute.value}-${index}`}>
-                            {attribute.value} {attribute.label}
+                  <button
+                    className="block w-full text-left hover:text-neutral-100"
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => setComponentId(selected ? '' : candidate.id)}
+                  >
+                    <span className="flex items-start gap-3">
+                      {candidate.image && (
+                        <span className="flex shrink-0 items-center justify-center overflow-hidden rounded-md border border-neutral-800 bg-neutral-950 p-2">
+                          <img className="block" src={candidate.image} alt="" />
+                        </span>
+                      )}
+                      <span className="min-w-0">
+                        <span className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1">
+                          <strong className="text-sm text-neutral-100">{candidate.name}</strong>
+                          <span className={`text-[0.6rem] uppercase tracking-[0.08em] ${rarityClass}`}>
+                            {candidate.rarity}
                           </span>
-                        ))}
+                        </span>
+                        {usableFor.length > 0 && (
+                          <span className="mt-1 block text-[0.65rem] text-neutral-500">
+                            Usable for: {usableFor.join(', ')}
+                          </span>
+                        )}
+                        <span className="mt-2 grid gap-0.5">
+                          {(candidate.attributes ?? []).map(({ label, value }, index) =>
+                            renderAttributeLine(label, value, index),
+                          )}
+                        </span>
                       </span>
                     </span>
-                  </span>
-                </button>
+                  </button>
+                  {candidate.grantedSkill && (
+                    <div className="mt-3">
+                      <button
+                        className="group flex w-full items-center justify-between gap-2 text-left"
+                        type="button"
+                        aria-expanded={skillExpanded}
+                        aria-label={`${skillExpanded ? 'Collapse' : 'Expand'} ${candidate.grantedSkill.name} details`}
+                        onClick={() =>
+                          setExpandedComponentSkills((current) => {
+                            const next = new Set(current)
+                            if (next.has(candidate.id)) next.delete(candidate.id)
+                            else next.add(candidate.id)
+                            return next
+                          })
+                        }
+                      >
+                        <span className="flex min-w-0 items-center gap-2 text-xs text-neutral-400">
+                          {candidate.grantedSkill.icon && (
+                            <img
+                              className="size-5 shrink-0 rounded object-cover"
+                              src={candidate.grantedSkill.icon}
+                              alt=""
+                            />
+                          )}
+                          <span className="truncate">
+                            <strong>{candidate.grantedSkill.name}</strong> (Level {candidate.grantedSkill.level})
+                          </span>
+                        </span>
+                        <span className="flex size-6 shrink-0 items-center justify-center rounded text-neutral-500 group-hover:bg-neutral-900 group-hover:text-neutral-200">
+                          {skillExpanded ? (
+                            <IconChevronUp size={15} stroke={2} aria-hidden="true" />
+                          ) : (
+                            <IconChevronDown size={15} stroke={2} aria-hidden="true" />
+                          )}
+                        </span>
+                      </button>
+                      {skillExpanded && (
+                        <div>
+                          {candidate.grantedSkill.description && (
+                            <p className="mt-1 text-[0.7rem] italic leading-snug text-neutral-500">
+                              {candidate.grantedSkill.description}
+                            </p>
+                          )}
+                          {candidate.grantedSkill.attributes.length > 0 && (
+                            <div className="mt-2 grid gap-0.5">
+                              {candidate.grantedSkill.attributes.map(({ label, value }, index) =>
+                                renderAttributeLine(label, value, index),
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               )
             })}
           </div>
@@ -343,12 +452,10 @@ function CraftItemPanel({ item, onPreview }: CraftItemPanelProps) {
                     )}
                     <span className="min-w-0">
                       <strong className="block text-sm text-neutral-100">{candidate.name}</strong>
-                      <span className="mt-2 grid gap-0.5 text-xs text-neutral-400">
-                        {(candidate.attributes ?? []).map((attribute, index) => (
-                          <span key={`${attribute.label}-${attribute.value}-${index}`}>
-                            {attribute.value} {attribute.label}
-                          </span>
-                        ))}
+                      <span className="mt-2 grid gap-0.5">
+                        {(candidate.attributes ?? []).map(({ label, value }, index) =>
+                          renderAttributeLine(label, value, index),
+                        )}
                       </span>
                     </span>
                   </span>

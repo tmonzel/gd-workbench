@@ -150,22 +150,27 @@ export const getActiveSkills = ({
   }
   for (const item of Object.values(activeEquipment)) {
     if (!item) continue
-    if (
-      item.grantedSkill &&
-      !disabledToggleNames.has(item.grantedSkill.name) &&
-      (!masteryLevels.has(item.grantedSkill.name) || (masteryLevels.get(item.grantedSkill.name) ?? 0) > 0)
-    ) {
-      addSkill(
-        item.grantedSkill.name,
-        item.grantedSkill.level,
-        item.name,
-        item.grantedSkill.attributes.map((attribute) => `${attribute.value} ${attribute.label}`),
-        item.grantedSkill.icon,
+    for (const { skill, source } of [
+      { skill: item.grantedSkill, source: item.name },
+      { skill: item.componentSkill, source: `${item.name} Component` },
+    ]) {
+      if (
+        !skill ||
+        disabledToggleNames.has(skill.name) ||
+        (masteryLevels.has(skill.name) && (masteryLevels.get(skill.name) ?? 0) <= 0)
       )
-      for (const subSkill of item.grantedSkill.subSkills ?? []) {
+        continue
+      addSkill(
+        skill.name,
+        skill.level,
+        source,
+        skill.attributes.map((attribute) => `${attribute.value} ${attribute.label}`),
+        skill.icon,
+      )
+      for (const subSkill of skill.subSkills ?? []) {
         const subSkillStats = subSkill.attributes.map((attribute) => `${attribute.value} ${attribute.label}`)
         const subSkillName = subSkill.name
-        addSkill(subSkillName, subSkill.level, `Spawned by ${item.grantedSkill.name}`, subSkillStats, subSkill.icon)
+        addSkill(subSkillName, subSkill.level, `Spawned by ${skill.name}`, subSkillStats, subSkill.icon)
         const subSkillEntry = entries.get(subSkillName)
         if (!subSkillEntry) continue
         for (const attribute of subSkill.attributes) {
