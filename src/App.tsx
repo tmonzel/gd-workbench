@@ -1,4 +1,14 @@
 import { useMemo, useState } from 'react'
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  pointerWithin,
+  type DragEndEvent,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+import { snapCenterToCursor } from '@dnd-kit/modifiers'
 import { IconBolt, IconChartBar, IconShield, IconSparkles } from '@tabler/icons-react'
 import './App.css'
 import Header from '@/components/Header'
@@ -13,7 +23,11 @@ import MasteriesView from '@/domain/mastery/components/MasteriesView'
 import DevotionPanel from '@/domain/devotion/components/DevotionPanel'
 import { useMasteryData } from '@/domain/mastery/mastery.hooks'
 import { useDevotionData } from '@/domain/devotion/devotion.hooks'
-import { getEquippedSkillBonuses, getEquippedSetInfo } from '@/domain/item/item.utils'
+import {
+  getEquippedSkillBonuses,
+  getEquippedSetInfo,
+  isItemCompatibleWithEquipmentSlot,
+} from '@/domain/item/item.utils'
 import { useItemLibrary } from '@/domain/item/item.hooks'
 import { useHero } from '@/domain/hero/hero.hooks'
 import { getActiveSkills } from '@/domain/mastery/active-skills.utils'
@@ -23,10 +37,10 @@ import type { DifficultyMode } from '@/domain/hero/difficulty'
 function App() {
   const { masteries, skillsets } = useMasteryData()
   const { data: devotions, selected: selectedDevotions, setSelected: setSelectedDevotions } = useDevotionData()
-  const [view, setView] = useState<'items' | 'equipment' | 'masteries' | 'devotions'>('masteries')
+  const [view, setView] = useState<'items' | 'masteries' | 'devotions'>('masteries')
   const [rightPanel, setRightPanel] = useState<'offense' | 'defense' | 'general' | 'mastery-skills' | null>('offense')
   const [difficulty, setDifficulty] = useState<DifficultyMode>('Normal')
-  const [collectionItems, setCollectionItems] = useState<Item[]>([])
+  const [draggedItem, setDraggedItem] = useState<Item>()
   const { character, setCharacter, changeLevel, adjustAttribute, equipItem, unequipItem, changeMastery } =
     useHero(skillsets)
   const itemLibrary = useItemLibrary(character.level)
@@ -71,20 +85,52 @@ function App() {
     selectedDevotions,
     skillsets,
   ])
-  const createItemInstance = (template: Item) => {
-    const instance = {
-      ...template,
-      id: `${template.id}::instance::${Date.now()}-${collectionItems.length}`,
-      templateId: template.id,
-      isInstance: true,
-      originRarity: template.rarity,
-      baseAttributes: [...(template.attributes ?? [])],
-    }
-    setCollectionItems((current) => [...current, instance])
-    return instance
-  }
+  const createEquipmentInstance = (template: Item) => ({
+    ...template,
+    id: `${template.id}::instance::${Date.now()}`,
+    templateId: template.id,
+    isInstance: true,
+    originRarity: template.rarity,
+    baseAttributes: [...(template.attributes ?? [])],
+  })
   const equipAvailableItem = (item: Item, targetSlot?: string) =>
-    equipItem(item.isInstance ? item : createItemInstance(item), targetSlot)
+    equipItem(item.isInstance ? item : createEquipmentInstance(item), targetSlot)
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
+  const handleDragStart = (active: { data: { current?: Record<string, unknown> | null } }) =>
+    setDraggedItem(active.data.current?.item as Item | undefined)
+  const handleDragCancel = () => setDraggedItem(undefined)
+  const handleDragEnd = ({ active, over }: DragEndEvent) => {
+    const item = active.data.current?.item as Item | undefined
+    const sourceId = typeof active.data.current?.dragSource === 'string' ? active.data.current.dragSource : ''
+    const targetId = typeof over?.id === 'string' ? over.id : ''
+    if (item && targetId.startsWith('equipment-slot-')) {
+      const slot = targetId.slice('equipment-slot-'.length)
+      const canEquip =
+        isItemCompatibleWithEquipmentSlot(item, slot) && !(slot === 'Off-Hand' && character.equipment.Weapon?.twoHanded)
+      if (canEquip && sourceId.startsWith('equipment-slot-')) {
+        setCharacter((current) => {
+          const equipment = { ...current.equipment }
+          const disabledEquipmentSlots = { ...(current.disabledEquipmentSlots ?? {}) }
+          for (const [equippedSlot, equippedItem] of Object.entries(equipment)) {
+            if (equippedItem?.id === item.id) {
+              delete equipment[equippedSlot]
+              delete disabledEquipmentSlots[equippedSlot]
+            }
+          }
+          equipment[slot] = item
+          if (item.category === 'Weapon' && item.twoHanded) {
+            delete equipment['Off-Hand']
+            delete disabledEquipmentSlots['Off-Hand']
+          }
+          return { ...current, equipment, disabledEquipmentSlots }
+        })
+      } else if (canEquip) equipAvailableItem(item, slot)
+      else if (sourceId.startsWith('equipment-slot-')) unequipItem(item)
+    } else if (item && sourceId.startsWith('equipment-slot-')) {
+      unequipItem(item)
+    }
+    setDraggedItem(undefined)
+  }
   const isEquipmentItem = (item: Item) =>
     Object.values(character.equipment).some(
       (equippedItem) => equippedItem?.id === item.id || equippedItem?.templateId === item.id,
@@ -96,9 +142,6 @@ function App() {
     if (equippedItem) unequipItem(equippedItem)
   }
   const updateItemInstance = (item: Item) => {
-    setCollectionItems((current) =>
-      current.map((entry) => (entry.id === item.id ? { ...entry, ...item, isInstance: true } : entry)),
-    )
     setCharacter((current) => {
       const equipment = { ...current.equipment }
       let changed = false
@@ -158,147 +201,155 @@ function App() {
       : undefined
   const firstMasteryName = masteries.find((mastery) => mastery.id === character.mastery1)?.name
   return (
-    <main className="min-h-screen w-full px-4 pb-10 text-neutral-100 sm:px-6 lg:px-8 xl:px-10">
-      <Header
-        level={character.level}
-        onLevelChange={changeLevel}
-        combinedClassName={selectedCombination?.name ?? firstMasteryName}
-        character={character}
-        onAttributeChange={adjustAttribute}
-      />
-      <WorkspaceTabs value={view} onChange={setView} difficulty={difficulty} onDifficultyChange={setDifficulty} />
-      <div
-        className={`grid items-start gap-4 ${rightPanel ? 'lg:grid-cols-[minmax(0,1fr)_minmax(380px,480px)]' : 'lg:grid-cols-[minmax(0,1fr)_2.5rem]'}`}
-      >
-        <div className="min-w-0">
-          {view === 'equipment' ? (
-            <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,420px)]">
-              <EquipmentPanel
-                character={character}
-                setCharacter={setCharacter}
-                itemLibrary={itemLibrary}
-                onEquip={equipAvailableItem}
-                onUnequip={unequipAvailableItem}
-                isEquipped={(item, slot) =>
-                  slot
-                    ? Boolean(
-                        character.equipment[slot] &&
-                        (character.equipment[slot]?.id === item.id ||
-                          character.equipment[slot]?.templateId === item.id),
-                      )
-                    : isEquipmentItem(item)
-                }
-                equippedSetInfo={equippedSetInfo}
-                activeSkillNames={selectedMasterySkillNames}
-                onUpdateInstance={updateItemInstance}
-              />
-              <ActiveSkillList skills={activeSkills} onSkillToggle={toggleSkill} />
-            </div>
-          ) : view === 'masteries' ? (
-            <MasteriesView character={character} setCharacter={setCharacter} onMasteryChange={changeMastery} />
-          ) : view === 'devotions' && devotions ? (
-            <DevotionPanel data={devotions} selected={selectedDevotions} setSelected={setSelectedDevotions} />
-          ) : (
-            <ItemPanel
-              itemLibrary={itemLibrary}
-              onEquip={equipItem}
-              onUnequip={unequipItem}
-              isEquipped={(item) =>
-                Object.values(character.equipment).some((equippedItem) => equippedItem?.id === item.id)
-              }
-              activeSkillNames={selectedMasterySkillNames}
-              equippedSetInfo={equippedSetInfo}
-              collectionItems={collectionItems}
-              onCreateInstance={createItemInstance}
-              onUpdateInstance={updateItemInstance}
-              onRemoveInstance={(item) =>
-                setCollectionItems((current) => current.filter((entry) => entry.id !== item.id))
-              }
-            />
-          )}
-        </div>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={pointerWithin}
+      modifiers={[snapCenterToCursor]}
+      onDragStart={({ active }) => handleDragStart(active)}
+      onDragCancel={handleDragCancel}
+      onDragEnd={handleDragEnd}
+    >
+      <main className="min-h-screen w-full px-4 pb-10 text-neutral-100 sm:px-6 lg:px-8 xl:px-10">
+        <Header
+          level={character.level}
+          onLevelChange={changeLevel}
+          combinedClassName={selectedCombination?.name ?? firstMasteryName}
+          difficulty={difficulty}
+          onDifficultyChange={setDifficulty}
+          character={character}
+          onAttributeChange={adjustAttribute}
+        />
+        <WorkspaceTabs value={view} onChange={setView} />
         <div
-          className={`grid min-w-0 items-start gap-2 ${rightPanel ? 'grid-cols-[minmax(0,1fr)_2.5rem]' : 'grid-cols-[2.5rem] justify-end'} lg:sticky lg:top-4`}
+          className={`grid items-start gap-4 ${rightPanel ? 'lg:grid-cols-[minmax(0,1fr)_minmax(380px,480px)]' : 'lg:grid-cols-[minmax(0,1fr)_2.5rem]'}`}
         >
-          {rightPanel && (
-            <div
-              className="min-w-0"
-              id="character-panel-content"
-              role="tabpanel"
-              aria-labelledby={`character-panel-tab-${rightPanel}`}
-            >
-              {rightPanel === 'offense' && (
-                <DamagePanel
-                  character={character}
-                  devotions={devotions}
-                  selectedDevotions={selectedDevotions}
-                  equippedSetInfo={equippedSetInfo}
-                  masteries={masteries}
-                  skillsets={skillsets}
-                  itemSkillBonuses={itemSkillBonuses}
-                />
-              )}
-              {rightPanel === 'defense' && (
-                <ResistancePanel
-                  character={character}
-                  devotions={devotions}
-                  selectedDevotions={selectedDevotions}
-                  equippedSetInfo={equippedSetInfo}
-                  difficulty={difficulty}
-                />
-              )}
-              {rightPanel === 'general' && (
-                <StatPanel
-                  character={character}
-                  masteries={masteries}
-                  skillsets={skillsets}
-                  itemSkillBonuses={itemSkillBonuses}
-                  devotions={devotions}
-                  selectedDevotions={selectedDevotions}
+          <div className="min-w-0">
+            {view === 'masteries' ? (
+              <MasteriesView character={character} setCharacter={setCharacter} onMasteryChange={changeMastery} />
+            ) : view === 'devotions' && devotions ? (
+              <DevotionPanel data={devotions} selected={selectedDevotions} setSelected={setSelectedDevotions} />
+            ) : (
+              <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,500px)]">
+                <ItemPanel
+                  itemLibrary={itemLibrary}
+                  onEquip={equipItem}
+                  onUnequip={unequipItem}
+                  isEquipped={(item) =>
+                    Object.values(character.equipment).some((equippedItem) => equippedItem?.id === item.id)
+                  }
+                  activeSkillNames={selectedMasterySkillNames}
                   equippedSetInfo={equippedSetInfo}
                 />
-              )}
-              {rightPanel === 'mastery-skills' && (
-                <ActiveSkillList skills={activeMasterySkills} onSkillToggle={toggleSkill} />
-              )}
-            </div>
-          )}
-          <nav
-            className="grid content-start gap-1"
-            aria-label="Character panels"
-            role="tablist"
-            aria-orientation="vertical"
+                <EquipmentPanel
+                  character={character}
+                  setCharacter={setCharacter}
+                  itemLibrary={itemLibrary}
+                  onEquip={equipAvailableItem}
+                  onUnequip={unequipAvailableItem}
+                  isEquipped={(item, slot) =>
+                    slot
+                      ? Boolean(character.equipment[slot] && character.equipment[slot]?.id === item.id)
+                      : isEquipmentItem(item)
+                  }
+                  equippedSetInfo={equippedSetInfo}
+                  activeSkillNames={selectedMasterySkillNames}
+                  onUpdateInstance={updateItemInstance}
+                />
+              </div>
+            )}
+          </div>
+          <div
+            className={`grid min-w-0 items-start gap-2 ${rightPanel ? 'grid-cols-[minmax(0,1fr)_2.5rem]' : 'grid-cols-[2.5rem] justify-end'} lg:sticky lg:top-4`}
           >
-            {(
-              [
-                { id: 'general', label: 'General stats', icon: IconChartBar },
-                { id: 'offense', label: 'Offense', icon: IconBolt },
-                { id: 'defense', label: 'Defense', icon: IconShield },
-                { id: 'mastery-skills', label: 'Mastery skills', icon: IconSparkles },
-              ] as const
-            ).map(({ id, label, icon: Icon }) => {
-              const selected = rightPanel === id
-              return (
-                <button
-                  className={`flex size-10 items-center justify-center rounded-md border transition-colors ${selected ? 'border-orange-300/50 bg-orange-300/10 text-orange-200' : 'border-transparent text-neutral-500 hover:border-neutral-700 hover:bg-neutral-900 hover:text-neutral-200'}`}
-                  key={id}
-                  type="button"
-                  role="tab"
-                  id={`character-panel-tab-${id}`}
-                  aria-selected={selected}
-                  aria-label={label}
-                  aria-controls={rightPanel ? 'character-panel-content' : undefined}
-                  title={label}
-                  onClick={() => setRightPanel((current) => (current === id ? null : id))}
-                >
-                  <Icon size={18} stroke={1.8} aria-hidden="true" />
-                </button>
-              )
-            })}
-          </nav>
+            {rightPanel && (
+              <div
+                className="min-w-0"
+                id="character-panel-content"
+                role="tabpanel"
+                aria-labelledby={`character-panel-tab-${rightPanel}`}
+              >
+                {rightPanel === 'offense' && (
+                  <DamagePanel
+                    character={character}
+                    devotions={devotions}
+                    selectedDevotions={selectedDevotions}
+                    equippedSetInfo={equippedSetInfo}
+                    masteries={masteries}
+                    skillsets={skillsets}
+                    itemSkillBonuses={itemSkillBonuses}
+                  />
+                )}
+                {rightPanel === 'defense' && (
+                  <ResistancePanel
+                    character={character}
+                    devotions={devotions}
+                    selectedDevotions={selectedDevotions}
+                    equippedSetInfo={equippedSetInfo}
+                    difficulty={difficulty}
+                  />
+                )}
+                {rightPanel === 'general' && (
+                  <StatPanel
+                    character={character}
+                    masteries={masteries}
+                    skillsets={skillsets}
+                    itemSkillBonuses={itemSkillBonuses}
+                    devotions={devotions}
+                    selectedDevotions={selectedDevotions}
+                    equippedSetInfo={equippedSetInfo}
+                  />
+                )}
+                {rightPanel === 'mastery-skills' && (
+                  <ActiveSkillList skills={activeMasterySkills} onSkillToggle={toggleSkill} />
+                )}
+              </div>
+            )}
+            <nav
+              className="grid content-start gap-1"
+              aria-label="Character panels"
+              role="tablist"
+              aria-orientation="vertical"
+            >
+              {(
+                [
+                  { id: 'general', label: 'General stats', icon: IconChartBar },
+                  { id: 'offense', label: 'Offense', icon: IconBolt },
+                  { id: 'defense', label: 'Defense', icon: IconShield },
+                  { id: 'mastery-skills', label: 'Mastery skills', icon: IconSparkles },
+                ] as const
+              ).map(({ id, label, icon: Icon }) => {
+                const selected = rightPanel === id
+                return (
+                  <button
+                    className={`flex size-10 items-center justify-center rounded-md border transition-colors ${selected ? 'border-orange-300/50 bg-orange-300/10 text-orange-200' : 'border-transparent text-neutral-500 hover:border-neutral-700 hover:bg-neutral-900 hover:text-neutral-200'}`}
+                    key={id}
+                    type="button"
+                    role="tab"
+                    id={`character-panel-tab-${id}`}
+                    aria-selected={selected}
+                    aria-label={label}
+                    aria-controls={rightPanel ? 'character-panel-content' : undefined}
+                    title={label}
+                    onClick={() => setRightPanel((current) => (current === id ? null : id))}
+                  >
+                    <Icon size={18} stroke={1.8} aria-hidden="true" />
+                  </button>
+                )
+              })}
+            </nav>
+          </div>
         </div>
-      </div>
-    </main>
+      </main>
+      <DragOverlay dropAnimation={null}>
+        {draggedItem && (
+          <img
+            className="block h-auto w-auto max-h-none max-w-none origin-center scale-125 brightness-125 contrast-125 drop-shadow-[0_0_12px_rgba(255,255,255,0.7)]"
+            src={draggedItem.image}
+            alt=""
+          />
+        )}
+      </DragOverlay>
+    </DndContext>
   )
 }
 

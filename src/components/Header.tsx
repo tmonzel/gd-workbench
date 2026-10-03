@@ -1,5 +1,6 @@
 import LevelProgressControl from '@/components/LevelProgressControl'
-import { IconMinus, IconPlus } from '@tabler/icons-react'
+import { IconChevronDown, IconMinus, IconPlus } from '@tabler/icons-react'
+import { DIFFICULTY_MODES, type DifficultyMode } from '@/domain/hero/difficulty'
 import type { Character } from '@/domain/hero/types'
 import { ATTRIBUTE_POINT_VALUE, BASE_ATTRIBUTE_VALUE } from '@/domain/hero/hero.utils'
 
@@ -7,11 +8,21 @@ type HeaderProps = {
   level: number
   onLevelChange: (delta: number) => void
   combinedClassName?: string
+  difficulty: DifficultyMode
+  onDifficultyChange: (difficulty: DifficultyMode) => void
   character: Character
   onAttributeChange: (field: 'physique' | 'cunning' | 'spirit', delta: number) => void
 }
 
-function Header({ level, onLevelChange, combinedClassName, character, onAttributeChange }: HeaderProps) {
+function Header({
+  level,
+  onLevelChange,
+  combinedClassName,
+  difficulty,
+  onDifficultyChange,
+  character,
+  onAttributeChange,
+}: HeaderProps) {
   const attributes = ['physique', 'cunning', 'spirit'] as const
   const spentPoints =
     (character.physique + character.cunning + character.spirit - BASE_ATTRIBUTE_VALUE * 3) / ATTRIBUTE_POINT_VALUE
@@ -32,6 +43,30 @@ function Header({ level, onLevelChange, combinedClassName, character, onAttribut
           </h1>
         </div>
         <div className="flex flex-wrap items-end gap-2">
+          <span className="relative grid justify-items-start gap-1 px-2 py-1">
+            {/* <span className="text-neutral-500">Difficulty</span> */}
+            <select
+              className="w-auto appearance-none rounded-md border border-neutral-700 bg-neutral-900 py-2.5 pl-4 pr-9 text-lg text-neutral-200 outline-none focus:border-orange-300"
+              value={difficulty}
+              onChange={(event) => onDifficultyChange(event.target.value as DifficultyMode)}
+              aria-label="Difficulty"
+            >
+              {DIFFICULTY_MODES.map((mode) => (
+                <option key={mode} value={mode}>
+                  {mode}
+                </option>
+              ))}
+            </select>
+            <IconChevronDown
+              className="pointer-events-none absolute bottom-5 right-5 text-neutral-500"
+              size={16}
+              stroke={2}
+              aria-hidden="true"
+            />
+          </span>
+          <span></span>
+          <span></span>
+          <span></span>
           {/* <span className="mr-1 pb-1 text-[0.65rem] text-neutral-500" title="Unspent attribute points">
             {remainingPoints} points left
           </span> */}

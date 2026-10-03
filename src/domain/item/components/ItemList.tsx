@@ -15,9 +15,6 @@ type ItemListProps = {
   activeSkillNames?: Set<string>
   itemSets?: ItemSet[]
   equippedSetInfo?: EquippedSetInfo[]
-  onCreateInstance?: (item: Item) => void
-  onSelect?: (item: Item) => void
-  onRemoveInstance?: (item: Item) => void
   allowTemplateEquip?: boolean
   maxColumns?: 1 | 2
 }
@@ -35,9 +32,6 @@ function ItemList({
   activeSkillNames,
   itemSets,
   equippedSetInfo,
-  onCreateInstance,
-  onSelect,
-  onRemoveInstance,
   allowTemplateEquip = false,
   maxColumns,
 }: ItemListProps) {
@@ -86,9 +80,6 @@ function ItemList({
             activeSkillNames={activeSkillNames}
             itemSets={itemSets}
             equippedSetInfo={equippedSetInfo}
-            onCreateInstance={onCreateInstance}
-            onSelect={onSelect}
-            onRemoveInstance={onRemoveInstance}
             allowTemplateEquip={allowTemplateEquip}
           />
         ))}

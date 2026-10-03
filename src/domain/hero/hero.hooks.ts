@@ -51,6 +51,8 @@ export function useHero(skillsets: Record<string, MasterySkill[]>) {
       const disabledEquipmentSlots = { ...(current.disabledEquipmentSlots ?? {}) }
       const slot =
         targetSlot ?? (item.category === 'Ring' ? (equipment['Ring 1'] ? 'Ring 2' : 'Ring 1') : item.category)
+      for (const [equippedSlot, equippedItem] of Object.entries(equipment))
+        if (equippedItem?.id === item.id && equippedSlot !== slot) delete equipment[equippedSlot]
       equipment[slot] = item
       delete disabledEquipmentSlots[slot]
       if (item.category === 'Weapon' && item.twoHanded) delete equipment['Off-Hand']

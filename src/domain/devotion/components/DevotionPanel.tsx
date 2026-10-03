@@ -57,7 +57,7 @@ function DevotionPanel({ data, selected, setSelected }: Props) {
     )
   }
   return (
-    <Card as="section" size="lg" variant="elevated">
+    <Card as="section" size="lg" variant="filled">
       <div className="mb-5 flex items-end justify-between">
         <div>
           <p className="mb-1 text-xs uppercase tracking-[0.16em] text-orange-300">Devotions</p>

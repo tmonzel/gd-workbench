@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
-import { IconPencil } from '@tabler/icons-react'
 import { Card } from '@/components/Card'
 import type { Character } from '@/domain/hero/types'
 import type { EquippedSetInfo, Item } from '@/domain/item/types'
-import ItemCard from '@/domain/item/components/ItemCard'
 import ItemCraftModal from '@/domain/item/components/ItemCraftModal'
 import ItemPanel from '@/domain/item/components/ItemPanel'
+import EquipmentSlot from '@/domain/hero/components/EquipmentSlot'
 import type { ItemLibraryState } from '@/domain/item/item.hooks'
 
 type EquipmentPanelProps = {
@@ -130,99 +129,34 @@ function EquipmentPanel({
   const renderSlot = (slot: string) => {
     const item = character.equipment[slot]
     const blocked = slot === 'Off-Hand' && character.equipment.Weapon?.twoHanded
-    const disabled = Boolean(character.disabledEquipmentSlots?.[slot])
     const slotLabel = SLOT_LABELS[slot] ?? slot
     return (
-      <div
-        className={`min-w-0 max-w-full overflow-hidden rounded-md border border-neutral-700 bg-neutral-950/45 ${blocked || disabled ? 'opacity-60' : ''}`}
+      <EquipmentSlot
         key={slot}
-      >
-        <div className="flex items-center border-b border-neutral-800">
-          <button
-            className="min-w-0 flex-1 px-3 py-2 text-left text-xs font-medium text-neutral-200 transition-colors hover:text-orange-200 disabled:cursor-not-allowed"
-            type="button"
-            disabled={blocked}
-            onClick={() => setSelectedSlot(slot)}
-          >
-            {slotLabel}
-          </button>
-          {item && (
-            <>
-              <label className="flex h-8 shrink-0 items-center gap-1 border-l border-neutral-800 px-2 text-[0.62rem] text-neutral-500">
-                <input
-                  className="app-checkbox"
-                  type="checkbox"
-                  checked={disabled}
-                  onChange={() =>
-                    setCharacter((current) => ({
-                      ...current,
-                      disabledEquipmentSlots: {
-                        ...(current.disabledEquipmentSlots ?? {}),
-                        [slot]: !current.disabledEquipmentSlots?.[slot],
-                      },
-                    }))
-                  }
-                  aria-label={`Deactivate ${slotLabel}`}
-                  title={`Deactivate ${slotLabel}`}
-                />
-                Off
-              </label>
-              {!blocked && onUpdateInstance && (
-                <button
-                  className="flex size-8 shrink-0 items-center justify-center border-l border-neutral-800 text-neutral-600 transition-colors hover:bg-neutral-800 hover:text-neutral-200"
-                  type="button"
-                  aria-label={`Edit ${slotLabel}`}
-                  title={`Edit ${slotLabel}`}
-                  onClick={() => setEditingItem(item)}
-                >
-                  <IconPencil size={15} stroke={1.8} aria-hidden="true" />
-                </button>
-              )}
-              {!blocked && (
-                <button
-                  className="flex size-8 shrink-0 items-center justify-center border-l border-neutral-800 text-neutral-600 transition-colors hover:bg-neutral-800 hover:text-neutral-200"
-                  type="button"
-                  aria-label={`Remove ${slotLabel}`}
-                  title={`Remove ${slotLabel}`}
-                  onClick={() =>
-                    setCharacter((current) => {
-                      const disabledEquipmentSlots = { ...(current.disabledEquipmentSlots ?? {}) }
-                      delete disabledEquipmentSlots[slot]
-                      return {
-                        ...current,
-                        equipment: { ...current.equipment, [slot]: undefined },
-                        disabledEquipmentSlots,
-                      }
-                    })
-                  }
-                >
-                  ×
-                </button>
-              )}
-            </>
-          )}
-        </div>
-        {blocked ? (
-          <p className="m-0 px-3 py-2 text-xs text-neutral-600">Blocked by two-handed weapon</p>
-        ) : item ? (
-          <div className={`min-w-0 p-2 ${disabled ? 'pointer-events-none' : ''}`}>
-            <ItemCard
-              item={item}
-              activeSkillNames={activeSkillNames}
-              itemSets={itemLibrary.itemSets}
-              equippedSetInfo={equippedSetInfo}
-            />
-          </div>
-        ) : (
-          <button
-            className="w-full px-3 py-3 text-left text-xs text-neutral-600 transition-colors hover:text-neutral-300"
-            type="button"
-            onClick={() => setSelectedSlot(slot)}
-          >
-            Empty · Select {slotLabel.toLowerCase()} item
-          </button>
-        )}
-      </div>
+        slot={slot}
+        label={slotLabel}
+        portrait={slot === 'Weapon' || slot === 'Off-Hand'}
+        item={item}
+        blocked={Boolean(blocked)}
+        disabled={Boolean(character.disabledEquipmentSlots?.[slot])}
+        setCharacter={setCharacter}
+        itemSets={itemLibrary.itemSets}
+        activeSkillNames={activeSkillNames}
+        equippedSetInfo={equippedSetInfo}
+        onSelect={setSelectedSlot}
+        onEdit={onUpdateInstance ? setEditingItem : undefined}
+        onRemove={(targetSlot) =>
+          setCharacter((current) => {
+            const disabledEquipmentSlots = { ...(current.disabledEquipmentSlots ?? {}) }
+            delete disabledEquipmentSlots[targetSlot]
+            return {
+              ...current,
+              equipment: { ...current.equipment, [targetSlot]: undefined },
+              disabledEquipmentSlots,
+            }
+          })
+        }
+      />
     )
   }
   const unequipSelectedItem = (item: Item) => {

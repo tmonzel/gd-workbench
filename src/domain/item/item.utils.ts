@@ -47,6 +47,13 @@ export const EQUIPPABLE_CATEGORIES = new Set([
 
 export const isEquippableItem = (item: Item) => EQUIPPABLE_CATEGORIES.has(item.category)
 
+export const isItemCompatibleWithEquipmentSlot = (item: Item, slot: string) => {
+  if (slot === 'Ring 1' || slot === 'Ring 2') return item.category === 'Ring'
+  if (slot === 'Weapon') return item.category === 'Weapon'
+  if (slot === 'Off-Hand') return item.category === 'Off-Hand' || (item.category === 'Weapon' && !item.twoHanded)
+  return item.category === slot
+}
+
 export const getActiveEquipment = (
   equipment: Partial<Record<string, Item>>,
   disabledSlots: Record<string, boolean> = {},

@@ -1,14 +1,11 @@
 import type { ReactNode } from 'react'
-import { IconChevronDown, IconLibrary, IconShield, IconSparkles, IconStars } from '@tabler/icons-react'
-import { DIFFICULTY_MODES, type DifficultyMode } from '@/domain/hero/difficulty'
+import { IconLibrary, IconSparkles, IconStars } from '@tabler/icons-react'
 
-export type WorkspaceView = 'items' | 'equipment' | 'masteries' | 'devotions'
+export type WorkspaceView = 'items' | 'masteries' | 'devotions'
 
 type WorkspaceTabsProps = {
   value: WorkspaceView
   onChange: (value: WorkspaceView) => void
-  difficulty: DifficultyMode
-  onDifficultyChange: (difficulty: DifficultyMode) => void
 }
 
 // src/assets/equipment-icon.svg, inlined so its fill can follow the tab's current text color
@@ -24,13 +21,12 @@ export const EquipmentIcon = () => (
 const tabs: Array<{ value: WorkspaceView; label: string; icon: ReactNode }> = [
   { value: 'masteries', label: 'Masteries', icon: <IconSparkles size={16} stroke={1.8} aria-hidden="true" /> },
   { value: 'items', label: 'Items', icon: <IconLibrary size={16} stroke={1.8} aria-hidden="true" /> },
-  { value: 'equipment', label: 'Equipment', icon: <IconShield size={16} stroke={1.8} aria-hidden="true" /> },
   { value: 'devotions', label: 'Devotions', icon: <IconStars size={16} stroke={1.8} aria-hidden="true" /> },
 ]
 
-function WorkspaceTabs({ value, onChange, difficulty, onDifficultyChange }: WorkspaceTabsProps) {
+function WorkspaceTabs({ value, onChange }: WorkspaceTabsProps) {
   return (
-    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <div className="mb-4">
       <nav className="flex gap-1" aria-label="Workspace views">
         {tabs.map((tab) => {
           const selected = value === tab.value
@@ -54,26 +50,6 @@ function WorkspaceTabs({ value, onChange, difficulty, onDifficultyChange }: Work
           )
         })}
       </nav>
-      <span className="relative ml-auto">
-        <select
-          className="w-auto appearance-none rounded-md border border-neutral-700 bg-neutral-900 py-2 pl-3 pr-8 text-xs text-neutral-200 outline-none focus:border-orange-300"
-          value={difficulty}
-          onChange={(event) => onDifficultyChange(event.target.value as DifficultyMode)}
-          aria-label="Difficulty"
-        >
-          {DIFFICULTY_MODES.map((mode) => (
-            <option key={mode} value={mode}>
-              {mode}
-            </option>
-          ))}
-        </select>
-        <IconChevronDown
-          className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-500"
-          size={14}
-          stroke={2}
-          aria-hidden="true"
-        />
-      </span>
     </div>
   )
 }

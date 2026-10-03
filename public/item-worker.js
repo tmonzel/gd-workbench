@@ -86,6 +86,7 @@ const matches = (item, search, category, maxLevel, rarities, monsterInfrequentOn
   return (
     (!search || haystack.includes(search)) &&
     (matchesCategory(item.category, category) ||
+      matchesWeaponType(item, category) ||
       matchesMainHandType(item, category) ||
       matchesOffHandType(item, category) ||
       matchesArmorType(item, category)) &&
