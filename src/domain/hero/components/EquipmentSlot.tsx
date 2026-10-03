@@ -1,10 +1,11 @@
 import type { Dispatch, SetStateAction } from 'react'
-import { useDndContext, useDroppable } from '@dnd-kit/core'
+import { useDroppable } from '@dnd-kit/core'
 import { IconPencil } from '@tabler/icons-react'
 import ItemCard from '@/domain/item/components/ItemCard'
 import type { EquippedSetInfo, Item, ItemSet } from '@/domain/item/types'
 import type { Character } from '@/domain/hero/types'
 import { isItemCompatibleWithEquipmentSlot } from '@/domain/item/item.utils'
+import { useItemDndContext } from '@/contexts/ItemDndContext'
 
 type EquipmentSlotProps = {
   slot: string
@@ -37,8 +38,7 @@ function EquipmentSlot({
   onEdit,
   onRemove,
 }: EquipmentSlotProps) {
-  const { active } = useDndContext()
-  const draggedItem = active?.data.current?.item as Item | undefined
+  const { draggedItem, isDragging } = useItemDndContext()
   const compatible = Boolean(draggedItem && isItemCompatibleWithEquipmentSlot(draggedItem, slot) && !blocked)
   const { isOver, setNodeRef } = useDroppable({ id: `equipment-slot-${slot}`, disabled: !compatible })
 
@@ -53,7 +53,7 @@ function EquipmentSlot({
         <span className="absolute left-1.5 top-1.5 z-10 max-w-[65%] truncate bg-zinc-400/10 text-zinc-200 text-xs font-medium px-1.5 py-0.5 rounded">
           {label}
         </span>
-        {item && !active && (
+        {item && !isDragging && (
           <div className="pointer-events-none absolute right-1 top-1 z-10 flex items-center rounded border border-neutral-800 bg-neutral-950/95 opacity-0 shadow-sm transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100">
             <label className="flex h-7 shrink-0 items-center gap-1 px-1.5 text-[0.6rem] text-neutral-500">
               <input

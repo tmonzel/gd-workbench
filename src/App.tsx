@@ -1,14 +1,4 @@
 import { useMemo, useState } from 'react'
-import {
-  DndContext,
-  DragOverlay,
-  PointerSensor,
-  pointerWithin,
-  type DragEndEvent,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core'
-import { snapCenterToCursor } from '@dnd-kit/modifiers'
 import { IconBolt, IconChartBar, IconShield, IconSparkles } from '@tabler/icons-react'
 import './App.css'
 import Header from '@/components/Header'
@@ -23,16 +13,13 @@ import MasteriesView from '@/domain/mastery/components/MasteriesView'
 import DevotionPanel from '@/domain/devotion/components/DevotionPanel'
 import { useMasteryData } from '@/domain/mastery/mastery.hooks'
 import { useDevotionData } from '@/domain/devotion/devotion.hooks'
-import {
-  getEquippedSkillBonuses,
-  getEquippedSetInfo,
-  isItemCompatibleWithEquipmentSlot,
-} from '@/domain/item/item.utils'
+import { getEquippedSkillBonuses, getEquippedSetInfo } from '@/domain/item/item.utils'
 import { useItemLibrary } from '@/domain/item/item.hooks'
 import { useHero } from '@/domain/hero/hero.hooks'
 import { getActiveSkills } from '@/domain/mastery/active-skills.utils'
 import ActiveSkillList from '@/domain/mastery/components/ActiveSkillList'
 import type { DifficultyMode } from '@/domain/hero/difficulty'
+import { ItemDndProvider } from '@/contexts/ItemDndContext'
 
 function App() {
   const { masteries, skillsets } = useMasteryData()
@@ -40,7 +27,6 @@ function App() {
   const [view, setView] = useState<'items' | 'masteries' | 'devotions'>('masteries')
   const [rightPanel, setRightPanel] = useState<'offense' | 'defense' | 'general' | 'mastery-skills' | null>('offense')
   const [difficulty, setDifficulty] = useState<DifficultyMode>('Normal')
-  const [draggedItem, setDraggedItem] = useState<Item>()
   const { character, setCharacter, changeLevel, adjustAttribute, equipItem, unequipItem, changeMastery } =
     useHero(skillsets)
   const itemLibrary = useItemLibrary(character.level)
@@ -95,42 +81,6 @@ function App() {
   })
   const equipAvailableItem = (item: Item, targetSlot?: string) =>
     equipItem(item.isInstance ? item : createEquipmentInstance(item), targetSlot)
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
-  const handleDragStart = (active: { data: { current?: Record<string, unknown> | null } }) =>
-    setDraggedItem(active.data.current?.item as Item | undefined)
-  const handleDragCancel = () => setDraggedItem(undefined)
-  const handleDragEnd = ({ active, over }: DragEndEvent) => {
-    const item = active.data.current?.item as Item | undefined
-    const sourceId = typeof active.data.current?.dragSource === 'string' ? active.data.current.dragSource : ''
-    const targetId = typeof over?.id === 'string' ? over.id : ''
-    if (item && targetId.startsWith('equipment-slot-')) {
-      const slot = targetId.slice('equipment-slot-'.length)
-      const canEquip =
-        isItemCompatibleWithEquipmentSlot(item, slot) && !(slot === 'Off-Hand' && character.equipment.Weapon?.twoHanded)
-      if (canEquip && sourceId.startsWith('equipment-slot-')) {
-        setCharacter((current) => {
-          const equipment = { ...current.equipment }
-          const disabledEquipmentSlots = { ...(current.disabledEquipmentSlots ?? {}) }
-          for (const [equippedSlot, equippedItem] of Object.entries(equipment)) {
-            if (equippedItem?.id === item.id) {
-              delete equipment[equippedSlot]
-              delete disabledEquipmentSlots[equippedSlot]
-            }
-          }
-          equipment[slot] = item
-          if (item.category === 'Weapon' && item.twoHanded) {
-            delete equipment['Off-Hand']
-            delete disabledEquipmentSlots['Off-Hand']
-          }
-          return { ...current, equipment, disabledEquipmentSlots }
-        })
-      } else if (canEquip) equipAvailableItem(item, slot)
-      else if (sourceId.startsWith('equipment-slot-')) unequipItem(item)
-    } else if (item && sourceId.startsWith('equipment-slot-')) {
-      unequipItem(item)
-    }
-    setDraggedItem(undefined)
-  }
   const isEquipmentItem = (item: Item) =>
     Object.values(character.equipment).some(
       (equippedItem) => equippedItem?.id === item.id || equippedItem?.templateId === item.id,
@@ -201,13 +151,11 @@ function App() {
       : undefined
   const firstMasteryName = masteries.find((mastery) => mastery.id === character.mastery1)?.name
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={pointerWithin}
-      modifiers={[snapCenterToCursor]}
-      onDragStart={({ active }) => handleDragStart(active)}
-      onDragCancel={handleDragCancel}
-      onDragEnd={handleDragEnd}
+    <ItemDndProvider
+      character={character}
+      setCharacter={setCharacter}
+      equipAvailableItem={equipAvailableItem}
+      unequipItem={unequipItem}
     >
       <main className="min-h-screen w-full px-4 pb-10 text-neutral-100 sm:px-6 lg:px-8 xl:px-10">
         <Header
@@ -340,16 +288,7 @@ function App() {
           </div>
         </div>
       </main>
-      <DragOverlay dropAnimation={null}>
-        {draggedItem && (
-          <img
-            className="block h-auto w-auto max-h-none max-w-none origin-center scale-125 brightness-125 contrast-125 drop-shadow-[0_0_12px_rgba(255,255,255,0.7)]"
-            src={draggedItem.image}
-            alt=""
-          />
-        )}
-      </DragOverlay>
-    </DndContext>
+    </ItemDndProvider>
   )
 }
 
